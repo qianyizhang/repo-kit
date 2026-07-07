@@ -23,7 +23,9 @@ consumer with `copier update`, not a one-time scaffold.
 
 - `CLAUDE.md`, `docs/index.md`, `docs/todo/backlog.md`, `docs/glossary/ddd.md`
   (jinja skeletons with the repo's bindings).
-- `.codex/skills/doc-hygiene-audit/` and `.codex/skills/governance-sync/`.
+- Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `governance-sync`,
+  `domain-modeling`, `grill-with-docs`, `show-gap`, `explain-layman` (the last
+  four are portable seeds — sharpen them with repo-specific terms on first use).
 - `pyproject-doc-governance.toml` — a block to merge into the repo's real
   `pyproject.toml`, then delete.
 
@@ -53,7 +55,7 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   docs/rules/*.md
   docs/{index.md,todo/backlog.md,glossary/ddd.md}.jinja
   CLAUDE.md.jinja
-  .codex/skills/{doc-hygiene-audit,governance-sync}/SKILL.md
+  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,grill-with-docs,show-gap,explain-layman}/
 ```
 
 The doctrine itself explains the propagation model — see

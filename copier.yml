@@ -23,6 +23,10 @@ _skip_if_exists:
   - pyproject-doc-governance.toml
   - ".codex/skills/doc-hygiene-audit/SKILL.md"
   - ".codex/skills/governance-sync/SKILL.md"
+  - ".codex/skills/domain-modeling/**"
+  - ".codex/skills/grill-with-docs/**"
+  - ".codex/skills/show-gap/**"
+  - ".codex/skills/explain-layman/**"
 
 _message_after_copy: |
   Governance kit applied.
