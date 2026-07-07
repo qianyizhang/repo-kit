@@ -1,6 +1,6 @@
 ---
 name: doc-hygiene-audit
-version: "1.0.0"
+version: "1.1.0"
 description: >-
   Keep the doc corpus honest: capture emergent knowledge into its SSOT,
   glossary, or backlog; reconcile drift (stale terms, contradictions, status
@@ -146,6 +146,12 @@ supersession banner.
 - **Propose** (don't auto-apply): anything that re-litigates a settled decision,
   changes meaning, or moves an SSOT whose replacement is not already explicit.
 - Domain/policy *content* is never edited here — this skill governs docs.
+- **Kit-owned doctrine** (`docs/rules/*`, the two scripts, `ruff_base.toml`,
+  `AGENTS.md`) comes from the shared governance kit. A project-agnostic
+  refinement is promoted upstream — patch the kit, `copier update` (the
+  `governance-sync` skill) — not edited only here; move the project-specific
+  half into `CLAUDE.md` bindings. A local edit to a kit-owned file is drift
+  (`docs/rules/governance.md` "Kit propagation").
 
 ## Output
 
