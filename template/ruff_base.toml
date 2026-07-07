@@ -1,0 +1,18 @@
+# Ruff doctrine defaults (docs/rules/python.md) — extended by pyproject.toml
+# [tool.ruff]. Repo-specific `ignore` exceptions belong in pyproject, not here.
+line-length = 120
+target-version = "py312"
+
+[lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort (import sorting)
+    "B",    # bugbear
+    "RUF",  # Ruff-specific rules
+]
+
+[format]
+quote-style = "double"
+indent-style = "space"

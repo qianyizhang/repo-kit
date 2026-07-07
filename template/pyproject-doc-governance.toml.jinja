@@ -1,0 +1,37 @@
+# Merge this into your pyproject.toml, then delete this file.
+# `scripts/check_docs.py` and `scripts/bootstrap_agents.py` read these bindings;
+# the scripts stay portable, the repo-specific values live here.
+# Doctrine: docs/rules/governance.md "mechanical enforcement".
+
+[tool.doc_governance]
+exclude_dirs = [
+    ".git", ".venv", "venv", ".cache", "node_modules", "__pycache__",
+    ".import_linter_cache", ".pytest_cache", ".ruff_cache",
+    "scratch", "artifacts", "audit_logs", "resources", "dist", "build",
+]
+exclude_path_contains = ["/prompts"]
+# top-level dirs whose backticked paths in authority docs must resolve
+repo_path_dirs = [{% for d in code_dirs.split() %}"{{ d }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+authority_files = [
+    "CLAUDE.md", "readme.md", "README.md",
+    "docs/index.md",
+]
+authority_globs = ["docs/glossary/*.md"]
+skills_dirs = [".codex/skills", ".agents/skills"]
+deprecated_dir = "docs/deprecated"
+index_file = "docs/index.md"
+# docs that must be individually referenced from the navigator index
+index_required_globs = [
+    "docs/*.md", "docs/rules/*.md", "docs/glossary/*.md",
+]
+
+# INVARIANT: .codex/ holds the real agent assets; discovery paths are relative
+# symlinks into it (docs/rules/governance.md "agent toolchains & symlink layout").
+[tool.doc_governance.symlinks]
+".agents" = ".codex"
+".claude/skills" = "../.codex/skills"
+
+# Doctrine ruff defaults live in ruff_base.toml (docs/rules/python.md); extend
+# them here and keep only repo-specific `ignore` exceptions in [tool.ruff.lint].
+[tool.ruff]
+extend = "ruff_base.toml"

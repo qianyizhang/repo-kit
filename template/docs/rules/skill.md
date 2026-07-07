@@ -1,0 +1,82 @@
+---
+description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
+scope: skill authoring rules
+status: stable
+last_update: 2026-07-07
+---
+
+# Skill rules
+
+What a skill is *allowed* to do is governed by `CLAUDE.md` ("Skills are the
+document-processing substrate" + the governing invariant); this file is how to
+write one well. `.codex/skills/` is the single home (symlink layout in
+`CLAUDE.md`); `docs/index.md` §Playbooks is the skill map.
+
+The root virtue is **predictability**: the agent takes the same *process* every
+run, not the same output. Every rule below is a lever on it. (Vocabulary adapted
+from mattpocock/skills `writing-great-skills`.)
+
+## lifecycle
+
+- **Versioned.** Semver `version:` in frontmatter, bumped in the same commit as
+  any behaviour change: patch = fix/clarify, minor = new step/capability, major
+  = incompatible contract/output. **Git history is the changelog** — no standing
+  changelog section to rot. Where a skill ships code, a test guards the version
+  against the package `__version__` (see `clinical-guideline-extraction`).
+- **Signed output.** Any artifact a skill produces is stamped with its
+  provenance — `skill@version · agent=<model-id> · effort=<reasoning level> ·
+  <date>` — kept next to the artifact's metadata: docs in frontmatter
+  (`produced_by:`), data runs in run metadata (`--run-id`, `--model`,
+  `--effort`). Prefer stamps built from the package `__version__` over
+  hand-typed ones — hand-typed stamps drift.
+- **Field-notes loop.** After a run, a footgun/caveat you hit either gets fixed
+  in the skill body (+ version bump) or filed as a `# TODO:` / backlog item; a
+  recurring-but-unfixed caveat lands in `## Pitfalls`. A skill that bit you and
+  left no trace is an unfinished run.
+- **Map re-sync.** A skill add/rename/behaviour change re-syncs the
+  `docs/index.md` §Playbooks map in the same change — a map that omits or
+  misdescribes a skill routes agents wrong.
+
+## description — the always-loaded trigger
+
+The frontmatter `description` sits in the agent's context every turn of every
+session in this repo; each word pays rent. Target ≤ ~45 words: what the skill
+is, one trigger clause per *genuinely distinct* branch, plus any reach clause a
+sibling skill depends on (e.g. extraction routes pack repair to
+`guideline-ingestion`). Synonym triggers restating one branch are duplication;
+operating policy ("do not implement unless…") belongs in the body, never the
+description.
+
+## body
+
+- **Hierarchy: steps → in-file reference → `references/*.md`.** Disclose by the
+  branching test: inline what every run needs; push behind a pointer what only
+  some branches reach (taxonomies, contracts, templates, style guides). A
+  pointer's *wording* decides whether it fires — sharpen the wording before
+  pulling material back inline.
+- **Completion criteria are checkable, preferably machine-checkable.** Prefer a
+  gate that exits non-zero (`validate`, `coverage --require-full`, `ledger
+  report FULL ✓`, fail-closed `resolve`/`mint`) over prose bounds. "Full" is a
+  gate verdict, not a feeling.
+- **Role split stated explicitly.** Every skill names what the agent judges vs
+  what deterministic code gates — the governing invariant applied to authoring.
+- **Subagent durability.** Any fan-out contract tells subagents to write their
+  output file first, then report, so a session cut leaves recoverable output.
+- **Prohibitions are for hard rails only.** Safety/authority invariants stay as
+  explicit "never" lines, each paired with the positive route ("route to
+  `UNBOUND_LIBRARY`", "defer rather than guess"). Soft preferences are phrased
+  as the target behaviour, not a "do not".
+
+## pruning — on every edit round
+
+- **Single source of truth.** A meaning lives once. Rules already owned by
+  `CLAUDE.md` or `docs/rules/` are not restated per skill (no per-skill
+  Versioning sections). The sanctioned exception is point-of-use operational
+  text an agent needs mid-command (e.g. the restricted-sandbox venv fallback).
+- **No-op test.** A line the model already obeys by default is deleted, not
+  trimmed.
+- **Sediment.** Pitfalls state the *current* rule, timeless, with a one-clause
+  why; version stamps and dated run-log entries inside the body are a changelog
+  in disguise — that history lives in git.
+- **Sprawl.** When a body outgrows its live steps, disclose reference to
+  `references/*.md` rather than letting the top of the skill bury them.

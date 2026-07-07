@@ -1,0 +1,51 @@
+---
+description: Navigator over every doc, rule, glossary, and skill in {{ project_name }} — routes to the SSOT, never the authority itself.
+scope: documentation navigator index
+status: stable
+last_update: 2026-07-07
+---
+
+# Docs index
+
+This is a **navigator, not an authority**: it maps every doc with status and
+audience. When the index and a target disagree, the target wins — fix the index.
+Doctrine: `docs/rules/governance.md` "SSOT and the navigator index".
+
+## Authority & precedence
+
+When two docs overlap, precedence is:
+
+1. `CLAUDE.md` — the repo binding (invariant, architecture, commands).
+2. `docs/rules/*` — portable doctrine (governance, doc, python, skill, testing).
+3. Module/app `README.md` — the owning context's public surface.
+4. `docs/glossary/*` — ubiquitous language.
+5. Everything else routes to one of the above.
+
+## Rules (portable doctrine, kit-owned)
+
+| Doc | Scope |
+|:--|:--|
+| [`docs/rules/governance.md`](rules/governance.md) | Repo governance, symlink layout, kit propagation |
+| [`docs/rules/doc.md`](rules/doc.md) | Doc lifecycle, frontmatter, deprecation contract |
+| [`docs/rules/python.md`](rules/python.md) | Python style doctrine |
+| [`docs/rules/skill.md`](rules/skill.md) | Skill authoring & lifecycle |
+| [`docs/rules/testing.md`](rules/testing.md) | Testing doctrine |
+
+## Glossary
+
+| Doc | Scope |
+|:--|:--|
+| [`docs/glossary/ddd.md`](glossary/ddd.md) | Ubiquitous-language SSOT |
+
+## Playbooks (skills)
+
+Skills live under `.codex/skills/`. Add a row per skill as it lands.
+
+| Skill | Use when |
+|:--|:--|
+| `doc-hygiene-audit` | Capture/reconcile/restructure the doc corpus |
+| `governance-sync` | Adopt or update the shared governance kit (copier + reconcile) |
+
+<!-- Fill in: product/plan/architecture/design rows and module README rows as the
+     repo grows. Every new doc matching index_required_globs needs a row here or
+     check_docs.py fails. -->

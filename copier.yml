@@ -1,0 +1,61 @@
+# Governance kit — copier template.
+# Deterministic file propagation for the portable governance layer (docs/rules/*,
+# check_docs.py, bootstrap_agents.py, ruff_base.toml, AGENTS.md) plus one-time
+# seeds (CLAUDE.md, docs/index.md, backlog, doc-hygiene-audit skill).
+#
+# Kit-owned files (no `.jinja`, not in _skip_if_exists) are OVERWRITTEN on
+# `copier update`. Seeded files (below) are written once and then repo-owned.
+# Doctrine: docs/rules/governance.md "Kit propagation".
+
+_subdirectory: template
+_templates_suffix: .jinja
+_envops:
+  # Keep default Jinja delimiters; only *.jinja files are rendered, so real
+  # scripts/toml ship verbatim and never collide with `{{ }}` in code.
+  keep_trailing_newline: true
+
+# Seeded once, then repo-owned — never clobbered on update.
+_skip_if_exists:
+  - CLAUDE.md
+  - docs/index.md
+  - docs/todo/backlog.md
+  - docs/glossary/ddd.md
+  - pyproject-doc-governance.toml
+  - ".codex/skills/doc-hygiene-audit/SKILL.md"
+  - ".codex/skills/governance-sync/SKILL.md"
+
+_message_after_copy: |
+  Governance kit applied.
+
+  Next steps (see the `governance-sync` skill in the kit for the full adoption
+  procedure):
+    1. Merge `pyproject-doc-governance.toml` into your pyproject.toml
+       ([tool.doc_governance] + [tool.ruff] extend), then delete that file.
+    2. Move any real .agents/.claude skill copies into `.codex/skills/`, then run
+       `python scripts/bootstrap_agents.py` to create the symlink layout.
+    3. Add frontmatter to authority docs and fill the CLAUDE.md bindings.
+    4. `python scripts/check_docs.py` until green; wire it into `make lint`.
+
+_message_after_update: |
+  Kit files updated. Re-run `python scripts/check_docs.py` and, if the symlink
+  map changed, `python scripts/bootstrap_agents.py`.
+
+project_name:
+  type: str
+  help: Human-readable project name (e.g. "drug-safety")
+
+project_slug:
+  type: str
+  help: Python package / import name (snake_case)
+  default: "{{ project_name | lower | replace('-', '_') | replace(' ', '_') }}"
+
+project_tagline:
+  type: str
+  help: One line describing what this repo is
+
+code_dirs:
+  type: str
+  help: >-
+    Space-separated top-level dirs holding code/docs, used for check_docs path
+    validation (repo_path_dirs). Include .codex if you ship skills.
+  default: "src scripts tests docs .codex"

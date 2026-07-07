@@ -1,0 +1,101 @@
+---
+description: System rules, invariants, and guidelines for developer agents.
+scope: system guidelines
+status: stable
+last_update: 2026-07-07
+---
+
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) and other agent
+toolchains when working with code in this repository. It is the **binding**: what
+is true of *this* repo. Portable doctrine lives in `docs/rules/*` and is pulled
+from the governance kit — refinements to it are promoted upstream, not edited
+here (see `docs/rules/governance.md` "Kit propagation").
+
+## What this project is
+
+{{ project_tagline }}
+
+<!-- Fill in: the spine of the system, the one deterministic backbone if any,
+     and the "no backward compatibility" stance if it applies. -->
+
+## Where things are documented
+
+`docs/index.md` is the navigator over every doc, module README, report, and
+skill — with status, audience, and an **Authority & precedence** order. Start
+there; it routes, the linked target is the SSOT. Rules worth internalizing
+without a hop:
+
+- `docs/rules/` holds portable doctrine (kit-owned): `governance.md` (repo
+  governance, symlink layout, kit propagation), `doc.md` (doc lifecycle),
+  `python.md` (code style), `skill.md` (skill authoring), `testing.md`.
+- `docs/glossary/` is the ubiquitous-language SSOT; code names must match it, and
+  a new domain term updates the glossary in the same change.
+- `readme.md` / `README.md` is human setup + usage.
+
+## Working principles
+
+- **Concise is the key.**
+- **Full means full.** When asked to complete, extend, or verify coverage, do the
+  actual work — never relabel a partial run as "full".
+- **Verify before claiming done.** After any change, run the full suite *and* lint
+  (`make test` / `make lint`) green before reporting. Numeric claims are
+  re-checked against the code, not quoted from memory.
+- **Symlinks are load-bearing** (see below). Verify link targets before `rm` or
+  bulk file ops near them.
+
+## Agent toolchains & symlink layout
+
+This repo is worked by multiple agent toolchains sharing one source of truth by
+symlink, not copy — full layout and rationale in `docs/rules/governance.md`.
+INVARIANT: `.codex/` holds the real assets; `.agents` and `.claude/skills` are
+**relative symlinks into it** (declared in `[tool.doc_governance.symlinks]`,
+verified by lint, created/repaired by `scripts/bootstrap_agents.py`). Create/edit
+skills only under `.codex/skills/` — never duplicate per toolchain.
+
+## The governing invariant
+
+<!-- Fill in: the enforced-from-day-one invariant that shapes every module, plus
+     its corollaries. Delete this section if the repo has no such invariant. -->
+
+## Commands
+
+```bash
+make install   # sync deps and install pre-commit hooks
+make lint      # lint, formatter checks, import contracts, docs (check_docs.py)
+make test      # test suite
+make check     # full local verification: lint + tests
+make format    # auto-format and auto-fix
+```
+
+## Architecture rules
+
+<!-- Fill in: the module graph / bounded-context rules and their mechanical
+     enforcement (import-linter contracts, etc.). -->
+
+- **Ubiquitous language**: names in code must match `docs/glossary/`. A change
+  introducing a new domain term adds it to the glossary in the same change.
+
+## Code Style
+
+Doctrine (semantic typehints, `Literal`-vs-`StrEnum` promotion test, tagged
+comment taxonomy) lives in `docs/rules/python.md`. Repo-specific exemplars of the
+sanctioned patterns go here as they emerge.
+
+## Testing
+
+SSOT: `docs/rules/testing.md`. Repo-specific bindings (which modules are runnable
+today, the env vars that redirect side-effecting roots) go here.
+
+## Skills
+
+SSOT: `docs/rules/skill.md`. `.codex/skills/` is the single home; `docs/index.md`
+§Playbooks is the skill map.
+
+## Housekeeping (after a task)
+
+- Revisit `CLAUDE.md` (this file): doctrine refinements go to `docs/rules/` and
+  are promoted to the kit; repo bindings stay here.
+- Unfinished/deferred work goes to `docs/todo/backlog.md`.
+- All docs carry frontmatter per `docs/rules/doc.md`.

@@ -1,0 +1,30 @@
+---
+description: Deferred work backlog and triage tags for {{ project_name }}.
+scope: backlog
+status: stable
+last_update: 2026-07-07
+---
+
+# Backlog
+
+Open work only. When an item resolves or is canceled, move its entry to a
+skim-only `backlog-archive.md` rather than leaving it here.
+
+## Triage Tags
+
+- `[MVP]`: needed before the current slice is trustworthy.
+- `[domain]`: bounded-context or shared-kernel implementation work.
+- `[frontend]`: app/API/user-surface work.
+- `[hygiene]`: doc/tooling cleanup that protects the SSOT.
+
+## Status Values
+
+- `Deferred`: known work, not in active implementation.
+- `Ready`: scoped enough to start when prioritized.
+- `In progress`: partially landed; explicit remaining work still exists.
+- `Blocked`: needs a named decision or external capability first.
+
+## Active Backlog Items
+
+<!-- Add items as `### [AB-XXX-001] Title` with Tags / Added / Status / Source /
+     Context & Tradeoffs / Trigger Condition. -->
