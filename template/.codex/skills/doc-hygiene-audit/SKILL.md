@@ -1,6 +1,6 @@
 ---
 name: doc-hygiene-audit
-version: "1.2.0"
+version: "1.2.1"
 description: >-
   Keep the doc corpus honest: capture knowledge, reconcile drift, review
   implementation decisions/deviations with the user, and restructure when the
@@ -121,16 +121,18 @@ Classify each material event and present a **Decision Review Queue**:
 
 | Disposition | Use when | Action |
 |:--|:--|:--|
-| `ratify` | Evidence supports the decision | promote durable consequences to the owning SSOT/glossary/ADR; mark `ratified` |
+| `ratify` | Evidence supports the decision | ask the user to formally approve it; promote durable consequences to the owning SSOT/glossary/ADR; mark `ratified` only after approval |
 | `audit-again` | Evidence is insufficient | create a linked audit item; mark `audit-requested` |
 | `correct-forward` | The decision was wrong but forward repair is safer | create a linked remediation item; mark the old event `rejected` or `superseded` |
 | `rewind` | Continuing compounds harm and reversal is justified | propose a bounded rewind plan with affected paths/data and verification; implement only after explicit approval |
 | `defer` | Resolution is valid but not timely | create/link an item with a trigger condition; leave review visible |
 
-Prompt the user one material decision at a time with evidence, consequence, and
-a recommended disposition. Do not auto-ratify a semantic decision, rewrite an
-authority boundary, or perform a rewind as hygiene. Mechanical stale-status
-repairs may still be applied when the evidence is unambiguous.
+Here `ratify` means formal user approval after review, not an agent deciding that
+its own choice was correct. Prompt the user one material decision at a time with
+evidence, consequence, and a recommended disposition. Do not auto-ratify a
+semantic decision, rewrite an authority boundary, or perform a rewind as hygiene.
+Mechanical stale-status repairs may still be applied when evidence is
+unambiguous.
 
 ```markdown
 | Item / event | Evidence | Consequence | Recommendation | User decision |
@@ -195,7 +197,7 @@ a table — every row a concrete action, not a bare observation:
 ```markdown
 | # | Category | File:Line | Finding | Action |
 |:--|:--|:--|:--|:--|
-| 1 | captured      | backlog.md          | untracked TODO in rules/engine.py | added [hygiene] item |
+| 1 | captured      | items/AB-HYG-001.md | untracked TODO in rules/engine.py | created [hygiene] item |
 | 2 | stale_term    | review/README.md:41 | old term                          | → new term (applied) |
 | 3 | contradiction | prd vs README       | module list differs               | align owning README |
 | 4 | structure     | docs/report{,s}/    | duplicate dirs                    | propose: merge |
@@ -211,5 +213,5 @@ material dispositions remain for the user.
 - Trusting frontmatter to call a spec landed. `check_docs.py` couples
   `status: deprecated` to `docs/deprecated/`; only a full-body read catches a
   forward dependency that keeps a spec active.
-- Treating a logged implementation decision as ratified authority. Pending
-  decisions must be reviewed or promoted to their owning SSOT.
+- Treating a logged implementation decision as ratified authority. Only the user
+  or the owning formal review process can ratify it.

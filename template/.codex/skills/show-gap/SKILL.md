@@ -1,6 +1,6 @@
 ---
 name: show-gap
-version: "0.5.0"
+version: "0.6.0"
 description: >-
   Map a fuzzy or emerging feature intent against what the repo already built,
   planned, rejected, or deferred; discuss concrete shapes, then deliver an
@@ -8,7 +8,7 @@ description: >-
   Use for feature gap/status/fit questions before implementation.
 scope: repo feature gap analysis skill
 status: experimental
-last_update: 2026-07-07
+last_update: 2026-07-10
 ---
 
 # Show Gap
@@ -37,8 +37,9 @@ of this skill.
 ## Ground rules
 
 - Start at `CLAUDE.md`, then `docs/index.md` as the navigator; never rely on
-  memory for runnable/stubbed status. `docs/todo/backlog.md` is open work;
-  `backlog-archive.md` and `docs/deprecated/` are history, never authority.
+  memory for runnable/stubbed status. `docs/todo/backlog.md` owns the lifecycle;
+  durable active and terminal records live under `docs/todo/items/`.
+  `docs/deprecated/` is history, never authority.
 - **Keep the repo's governing invariant intact.** Whatever `CLAUDE.md` declares as
   the backbone/authority contract (a deterministic spine, a review gate, a safety
   floor) is not weakened by a demo, narrative, or user-facing construct. Rendering,
@@ -82,10 +83,12 @@ your repo):
 rg -n "<alias-regex>" docs <code-dirs> .codex/skills -S
 sed -n '1,280p' docs/index.md
 sed -n '1,220p' docs/todo/backlog.md
-sed -n '1,220p' docs/todo/backlog-archive.md
+find docs/todo/items -maxdepth 1 -name '*.md' -print | sort
+rg -n '^work_status:|\*\*Review:\*\* (pending|audit-requested)' docs/todo/items
 ```
 
-Then open only the directly relevant bodies. Common anchors:
+Then open only the directly relevant bodies, including each relevant item's
+Status History and Implementation Ledger. Common anchors:
 
 - `docs/index.md` for current status, tracks, and SSOT routing.
 - `docs/glossary/*.md` for term authority.
@@ -104,7 +107,7 @@ Classify evidence as:
 | `already_built` | Runnable/live or shaped enough that the requested thing mostly exists. |
 | `on_map` | Open backlog/design work directly covers it. |
 | `overlap` | Adjacent work exists; this intent should merge, split, or re-scope. |
-| `rejected_or_deprecated` | Prior discussion turned it down, superseded it, or moved it out of active docs. |
+| `rejected_or_deprecated` | A durable item or prior decision is canceled/rejected/superseded, or history moved under deprecated docs. |
 | `new_gap` | No direct coverage found after the light survey. |
 | `blocked` | Direction is plausible but a named dependency or authority decision blocks it. |
 | `deferred_by_design` | Intentionally out of the current cut — not an obstacle, a choice. Distinguish from `blocked`: nothing is stuck. |
