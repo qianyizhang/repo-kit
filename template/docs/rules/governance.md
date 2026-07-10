@@ -2,7 +2,7 @@
 description: Repo-governance doctrine — the doctrine/binding split, SSOT & navigator-index pattern, glossary discipline, agent-toolchain symlink layout, and the mechanical-enforcement inventory.
 scope: repo governance rules
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-10
 ---
 
 # Governance rules
@@ -92,7 +92,8 @@ Prose rules rot; every rule that *can* be checked mechanically is, via
   frontmatter contract, status↔folder coupling, forbidden generated-trailer
   tokens, local-link and backticked-repo-path validity in authority docs,
   navigator-index coverage of rule/design/glossary docs, skill-manifest semver,
-  and the symlink layout above.
+  durable backlog-item identity/lifecycle/lineage/ledger structure, and the
+  symlink layout above.
 - `import-linter` — architecture rules as import contracts
   (`[tool.importlinter]`); a broken contract is a design signal, not a hurdle.
 - `ruff` — style baseline; doctrine defaults in `ruff_base.toml`, repo

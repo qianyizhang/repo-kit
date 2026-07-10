@@ -45,6 +45,16 @@ without a hop:
 - **Symlinks are load-bearing** (see below). Verify link targets before `rm` or
   bulk file ops near them.
 
+## Implementation records
+
+Every `IMPLEMENT` task names one primary file under `docs/todo/items/`. Before
+changing implementation surfaces, transition it to `wip` and append its Status
+History. Append material findings, assumptions, decisions, deviations,
+verification, and handoff information directly to its Implementation Ledger; do
+not leave them only in chat or a separate report. At the stop condition, update
+the item to `done`, `partial`, `blocked`, or leave it `wip` with an explicit
+handoff. Closing as `partial` requires linked residual backlog items.
+
 ## Agent toolchains & symlink layout
 
 This repo is worked by multiple agent toolchains sharing one source of truth by
@@ -97,5 +107,6 @@ SSOT: `docs/rules/skill.md`. `.codex/skills/` is the single home; `docs/index.md
 
 - Revisit `CLAUDE.md` (this file): doctrine refinements go to `docs/rules/` and
   are promoted to the kit; repo bindings stay here.
-- Unfinished/deferred work goes to `docs/todo/backlog.md`.
+- Unfinished/deferred work gets an individual record under `docs/todo/items/`;
+  `docs/todo/backlog.md` owns the lifecycle and schema.
 - All docs carry frontmatter per `docs/rules/doc.md`.

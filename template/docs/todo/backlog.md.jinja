@@ -1,14 +1,15 @@
 ---
-description: Deferred work backlog and triage tags for {{ project_name }}.
+description: Backlog-item lifecycle, schema, and discovery for {{ project_name }}.
 scope: backlog
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-10
 ---
 
 # Backlog
 
-Open work only. When an item resolves or is canceled, move its entry to a
-skim-only `backlog-archive.md` rather than leaving it here.
+This page owns the backlog lifecycle and schema. It does not duplicate item
+status. Every item is one durable file under `docs/todo/items/`; terminal items
+remain at the same path so implementation history and inbound links survive.
 
 ## Triage Tags
 
@@ -17,14 +18,65 @@ skim-only `backlog-archive.md` rather than leaving it here.
 - `[frontend]`: app/API/user-surface work.
 - `[hygiene]`: doc/tooling cleanup that protects the SSOT.
 
-## Status Values
+## Work Status
 
-- `Deferred`: known work, not in active implementation.
-- `Ready`: scoped enough to start when prioritized.
-- `In progress`: partially landed; explicit remaining work still exists.
-- `Blocked`: needs a named decision or external capability first.
+- `deferred`: valid work, deliberately not scheduled.
+- `ready`: scope and acceptance criteria are sufficient to begin.
+- `wip`: actively owned; implementation has started.
+- `blocked`: needs a named decision, dependency, or capability.
+- `done`: all acceptance criteria are satisfied and verified.
+- `partial`: terminal accepted subset; remaining scope exists as linked items.
+- `canceled`: terminal intentional abandonment, with rationale.
 
-## Active Backlog Items
+`partial` never becomes `done`. Close the residual scope through new items linked
+with `residual_of` / `residual_items`; the original outcome remains historical.
 
-<!-- Add items as `### [AB-XXX-001] Title` with Tags / Added / Status / Source /
-     Context & Tradeoffs / Trigger Condition. -->
+## Required Shape
+
+```markdown
+---
+description: <one concise sentence>
+scope: backlog item
+status: stable
+last_update: YYYY-MM-DD
+work_id: AB-AREA-001
+work_status: deferred
+added: YYYY-MM-DD
+tags: tag-a, tag-b
+depends_on: none
+residual_of: none
+residual_items: none
+---
+
+# AB-AREA-001 — <title>
+
+## Intent
+
+## Acceptance Criteria
+
+## Context and Trade-offs
+
+## Status History
+
+| Date | Actor | From | To | Reason / evidence |
+| --- | --- | --- | --- | --- |
+| YYYY-MM-DD | <actor> | — | deferred | Item captured |
+
+## Implementation Ledger
+
+No implementation events yet.
+```
+
+Status History is terse and append-only. Implementation Ledger entries are
+substantive and use one of `finding`, `decision`, `assumption`, `deviation`,
+`verification`, or `handoff`; each records evidence, consequence, follow-up, and
+review state (`not-required`, `pending`, `ratified`, `rejected`, `superseded`, or
+`audit-requested`).
+
+## Discovery
+
+```bash
+find docs/todo/items -maxdepth 1 -name '*.md' -print | sort
+rg -n '^work_status: (ready|wip|blocked)$' docs/todo/items
+rg -n '^[-*] \*\*Review:\*\* (pending|audit-requested)$' docs/todo/items
+```

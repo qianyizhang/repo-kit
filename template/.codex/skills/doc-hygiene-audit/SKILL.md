@@ -1,14 +1,13 @@
 ---
 name: doc-hygiene-audit
-version: "1.1.0"
+version: "1.2.0"
 description: >-
-  Keep the doc corpus honest: capture emergent knowledge into its SSOT,
-  glossary, or backlog; reconcile drift (stale terms, contradictions, status
-  violations, code↔doc skew); restructure when the layout causes the drift.
-  Use after pivots/refactors, periodically, or when asked for doc hygiene.
+  Keep the doc corpus honest: capture knowledge, reconcile drift, review
+  implementation decisions/deviations with the user, and restructure when the
+  layout causes drift. Use after pivots/refactors or for doc hygiene.
 scope: documentation hygiene skill
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-10
 ---
 
 # Documentation Hygiene Round
@@ -18,14 +17,18 @@ last_update: 2026-07-07
 > first substantive run; those edits are repo-owned (the kit will not overwrite
 > this file on update).
 
-A round does three things, in order of leverage:
+A round does four things, in order of leverage:
 
 1. **Capture** emergent knowledge before it's buried — terms, settled decisions,
    and TODOs that live only in conversation, reports, PRs, or code comments get
    routed into their SSOT, glossary, or backlog.
 2. **Reconcile** drift — stale/deprecated terms, cross-doc contradictions, status
    and deprecation-contract violations, code↔doc skew.
-3. **Restructure** when the layout itself causes the drift — duplicate or
+3. **Review implementation intelligence** — read backlog-item ledgers for
+   material decisions, deviations, disputed assumptions, and audit requests;
+   bring consequential dispositions to the user instead of silently ratifying
+   or reversing them.
+4. **Restructure** when the layout itself causes the drift — duplicate or
    homeless docs, oversized files, missing landing spots.
 
 When a new SSOT or implemented code surface arrives, hygiene is expected to be
@@ -68,8 +71,8 @@ home — don't just note it.
 |:--|:--|
 | A domain term not in the glossary | `docs/glossary/` (format per `docs/rules/doc.md`) |
 | A settled decision living only in a report / PR / conversation | the owning design/architecture SSOT |
-| A `TODO`/`HACK`/`WHY` deferral in code that's untracked | `docs/todo/backlog.md` |
-| A resolved or abandoned backlog item still marked open | the backlog resolved/archive ledger |
+| A `TODO`/`HACK`/`WHY` deferral in code that's untracked | a new or existing `docs/todo/items/` record |
+| A resolved or abandoned backlog item still marked open | that item's Status History + current `work_status` |
 | An emerged concept with no doc home | propose a home (§3) |
 
 Glossary discipline: a new domain term in code or docs earns a glossary entry in
@@ -107,7 +110,35 @@ failed deprecation.
 rg -n "docs/deprecated/" docs -g '!docs/deprecated/**'   # inspect framing of each hit
 ```
 
-## 3. Restructure — reduce cognitive load
+## 3. Review implementation intelligence
+
+Scan `docs/todo/items/` for `pending` / `audit-requested` review states,
+decisions not reflected in their owning SSOT, deviations that changed acceptance
+or authority boundaries, assumptions contradicted by later evidence, repeated
+verification failures, and `partial` items without valid residual work.
+
+Classify each material event and present a **Decision Review Queue**:
+
+| Disposition | Use when | Action |
+|:--|:--|:--|
+| `ratify` | Evidence supports the decision | promote durable consequences to the owning SSOT/glossary/ADR; mark `ratified` |
+| `audit-again` | Evidence is insufficient | create a linked audit item; mark `audit-requested` |
+| `correct-forward` | The decision was wrong but forward repair is safer | create a linked remediation item; mark the old event `rejected` or `superseded` |
+| `rewind` | Continuing compounds harm and reversal is justified | propose a bounded rewind plan with affected paths/data and verification; implement only after explicit approval |
+| `defer` | Resolution is valid but not timely | create/link an item with a trigger condition; leave review visible |
+
+Prompt the user one material decision at a time with evidence, consequence, and
+a recommended disposition. Do not auto-ratify a semantic decision, rewrite an
+authority boundary, or perform a rewind as hygiene. Mechanical stale-status
+repairs may still be applied when the evidence is unambiguous.
+
+```markdown
+| Item / event | Evidence | Consequence | Recommendation | User decision |
+|:--|:--|:--|:--|:--|
+| AB-AREA-001 / IL-002 | <proof> | <impact> | audit-again | pending |
+```
+
+## 4. Restructure — reduce cognitive load
 
 When the same drift keeps recurring, the structure is the cause. Propose (or, for
 low-risk moves, apply) structural fixes. Default to **clearing active paths**:
@@ -140,7 +171,7 @@ supersession banner.
 
 ## What to apply vs propose
 
-- **Apply** in-round: mechanical fixes, term alignment, glossary/backlog capture,
+- **Apply** in-round: mechanical fixes, term alignment, glossary/backlog-item capture,
   frontmatter, broken-link/path repair, low-risk structural moves, and clear
   deprecations where a new SSOT/code surface already owns the durable contract.
 - **Propose** (don't auto-apply): anything that re-litigates a settled decision,
@@ -170,7 +201,9 @@ a table — every row a concrete action, not a bare observation:
 | 4 | structure     | docs/report{,s}/    | duplicate dirs                    | propose: merge |
 ```
 
-Cross-check against existing `[hygiene]` backlog items — extend, don't duplicate.
+Cross-check against existing `[hygiene]` backlog items and implementation ledgers
+— extend, don't duplicate. Include the Decision Review Queue in the report when
+material dispositions remain for the user.
 
 ## Pitfalls
 
@@ -178,3 +211,5 @@ Cross-check against existing `[hygiene]` backlog items — extend, don't duplica
 - Trusting frontmatter to call a spec landed. `check_docs.py` couples
   `status: deprecated` to `docs/deprecated/`; only a full-body read catches a
   forward dependency that keeps a spec active.
+- Treating a logged implementation decision as ratified authority. Pending
+  decisions must be reviewed or promoted to their owning SSOT.

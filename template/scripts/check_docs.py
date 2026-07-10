@@ -17,6 +17,8 @@ Checks:
 7. Navigator-index coverage: every doc matching `index_required_globs` is
    referenced from `index_file`.
 8. Agent-toolchain symlink layout matches `[tool.doc_governance.symlinks]`.
+9. Backlog-item records have valid identity, lifecycle, lineage, and ledger
+   structure.
 """
 
 import os
@@ -33,6 +35,16 @@ FORBIDDEN_TOKENS = [re.compile(r"^</content>\s*$"), re.compile(r"^</invoke>\s*$"
 MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 # SAMPLE: version: "1.3.1" → semver major.minor.patch, no pre-release tags
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
+WORK_ID_PATTERN = re.compile(r"^AB-[A-Z0-9]+-\d{3}$")
+WORK_STATUSES = {"deferred", "ready", "wip", "blocked", "done", "partial", "canceled"}
+BACKLOG_ITEM_DIR = "docs/todo/items"
+BACKLOG_REQUIRED_HEADINGS = (
+    "## Intent",
+    "## Acceptance Criteria",
+    "## Context and Trade-offs",
+    "## Status History",
+    "## Implementation Ledger",
+)
 
 
 @dataclass(frozen=True)
@@ -128,6 +140,26 @@ def is_authority_doc(rel_path: str, cfg: GovernanceConfig) -> bool:
 
 def is_skill_manifest(rel_path: str, cfg: GovernanceConfig) -> bool:
     return any(glob_match(rel_path, f"{sd}/*/SKILL.md") for sd in cfg.skills_dirs)
+
+
+def is_backlog_item(rel_path: str) -> bool:
+    path = Path(rel_path)
+    return path.parent.as_posix() == BACKLOG_ITEM_DIR and path.suffix == ".md"
+
+
+def markdown_section(content: str, heading: str) -> str:
+    """Return the body below an exact H2 heading up to the next H2."""
+    match = re.search(rf"^{re.escape(heading)}\s*$", content, re.MULTILINE)
+    if match is None:
+        return ""
+    tail = content[match.end() :]
+    next_heading = re.search(r"^##\s+", tail, re.MULTILINE)
+    return tail[: next_heading.start()] if next_heading else tail
+
+
+def metadata_work_ids(value: str) -> set[str]:
+    """Extract work IDs from a compact frontmatter value such as `AB-X-001, AB-X-002`."""
+    return set(re.findall(r"\bAB-[A-Z0-9]+-\d{3}\b", value))
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, str], int, str]:
@@ -292,12 +324,98 @@ def check_index_coverage(repo_root: Path, cfg: GovernanceConfig, md_files: list[
     return errors
 
 
+def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
+    """Validate durable one-file-per-item backlog records and their lineage."""
+    records: dict[str, tuple[Path, dict[str, str], str]] = {}
+    errors = []
+
+    for filepath in sorted(md_files):
+        rel = rel_posix(filepath, repo_root)
+        if rel is None or not is_backlog_item(rel):
+            continue
+        content = filepath.read_text(encoding="utf-8")
+        metadata, _, fm_err = parse_frontmatter(content)
+        if fm_err:
+            continue  # check_file reports the frontmatter failure
+
+        for key in (
+            "work_id",
+            "work_status",
+            "added",
+            "tags",
+            "depends_on",
+            "residual_of",
+            "residual_items",
+        ):
+            if not metadata.get(key):
+                errors.append(f"Backlog item: '{rel}' is missing frontmatter key '{key}'")
+
+        work_id = metadata.get("work_id", "")
+        if work_id and not WORK_ID_PATTERN.fullmatch(work_id):
+            errors.append(f"Backlog item: '{rel}' has invalid work_id '{work_id}'")
+        if work_id and not filepath.stem.startswith(f"{work_id}-"):
+            errors.append(f"Backlog item: filename '{filepath.name}' must start with '{work_id}-'")
+        if work_id in records:
+            other = rel_posix(records[work_id][0], repo_root)
+            errors.append(f"Backlog item: duplicate work_id '{work_id}' in '{other}' and '{rel}'")
+        elif work_id:
+            records[work_id] = (filepath, metadata, content)
+
+        work_status = metadata.get("work_status", "")
+        if work_status and work_status not in WORK_STATUSES:
+            errors.append(
+                f"Backlog item: '{rel}' has invalid work_status '{work_status}' "
+                f"(must be one of {sorted(WORK_STATUSES)})"
+            )
+
+        for heading in BACKLOG_REQUIRED_HEADINGS:
+            if not re.search(rf"^{re.escape(heading)}\s*$", content, re.MULTILINE):
+                errors.append(f"Backlog item: '{rel}' is missing required heading '{heading}'")
+
+        status_history = markdown_section(content, "## Status History")
+        if work_status and not re.search(
+            rf"^\|[^|\n]*\|[^|\n]*\|[^|\n]*\|\s*{re.escape(work_status)}\s*\|",
+            status_history,
+            re.MULTILINE,
+        ):
+            errors.append(f"Backlog item: '{rel}' has no Status History transition to current status '{work_status}'")
+
+        implementation_ledger = markdown_section(content, "## Implementation Ledger")
+        if work_status in {"wip", "blocked", "done", "partial"} and (
+            not implementation_ledger.strip() or "No implementation events yet." in implementation_ledger
+        ):
+            errors.append(f"Backlog item: '{rel}' status '{work_status}' requires an Implementation Ledger event")
+
+        acceptance = markdown_section(content, "## Acceptance Criteria")
+        if work_status == "done" and re.search(r"^\s*[-*]\s+\[ \]", acceptance, re.MULTILINE):
+            errors.append(f"Backlog item: '{rel}' is done but has unchecked acceptance criteria")
+
+        if work_status == "partial" and not metadata_work_ids(metadata.get("residual_items", "")):
+            errors.append(f"Backlog item: '{rel}' is partial but has no residual_items work ID")
+
+    known_ids = set(records)
+    for work_id, (filepath, metadata, _) in records.items():
+        rel = rel_posix(filepath, repo_root)
+        for key in ("depends_on", "residual_of", "residual_items"):
+            for linked_id in metadata_work_ids(metadata.get(key, "")):
+                if linked_id not in known_ids:
+                    errors.append(f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'")
+                elif linked_id == work_id:
+                    errors.append(f"Backlog item: '{rel}' {key} cannot reference itself")
+
+    return errors
+
+
 def run(repo_root: Path, file_args: list[str] | None = None) -> int:
     cfg = load_config(repo_root)
 
     # Global checks run in both modes: they are cheap and guard repo-wide invariants.
     all_md_files = get_markdown_files(repo_root, cfg)
-    global_errors = check_symlink_layout(repo_root, cfg) + check_index_coverage(repo_root, cfg, all_md_files)
+    global_errors = (
+        check_symlink_layout(repo_root, cfg)
+        + check_index_coverage(repo_root, cfg, all_md_files)
+        + check_backlog_items(repo_root, all_md_files)
+    )
 
     if file_args:
         md_files = []
