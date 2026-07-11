@@ -1,6 +1,6 @@
 ---
 name: glossary-drill
-version: "0.3.0"
+version: "0.3.1"
 description: >-
   Onboard and quiz ubiquitous-language glossary terms (MCQ) with spaced
   repetition and miss-explanations, and lint prose for _Avoid_ / confusable
@@ -8,7 +8,7 @@ description: >-
   notes against docs/glossary. Portable across kit repos.
 scope: glossary onboard quiz lint skill
 status: experimental
-last_update: 2026-07-10
+last_update: 2026-07-11
 ---
 
 # Glossary Drill
