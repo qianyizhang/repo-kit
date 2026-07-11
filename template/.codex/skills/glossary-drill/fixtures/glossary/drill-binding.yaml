@@ -1,0 +1,8 @@
+# Optional binding for the fixture tree (zero-config still works without this).
+spine:
+  - Candidate
+  - ProtocolAtom
+  - Bounded Context
+locale: bilingual
+paths:
+  glossary: fixtures/glossary

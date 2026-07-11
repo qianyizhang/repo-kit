@@ -1,0 +1,28 @@
+# Self-contained portable skill — no host-repo domain coupling.
+[project]
+name = "glossary-drill"
+description = "Portable ubiquitous-language onboard, MCQ quiz, and glossary lint."
+requires-python = ">=3.12"
+dynamic = ["version"]
+dependencies = [
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+glossary-drill = "glossary_drill.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "glossary_drill/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["glossary_drill"]
+
+[tool.pytest.ini_options]
+testpaths = ["glossary_drill"]

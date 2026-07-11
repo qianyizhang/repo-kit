@@ -24,6 +24,7 @@ _skip_if_exists:
   - ".codex/skills/doc-hygiene-audit/SKILL.md"
   - ".codex/skills/governance-sync/SKILL.md"
   - ".codex/skills/domain-modeling/**"
+  - ".codex/skills/glossary-drill/**"
   - ".codex/skills/grill-with-docs/**"
   - ".codex/skills/show-gap/**"
   - ".codex/skills/explain-layman/**"
