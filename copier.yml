@@ -1,7 +1,7 @@
 # Governance kit — copier template.
 # Deterministic file propagation for the portable governance layer (docs/rules/*,
 # check_docs.py, bootstrap_agents.py, ruff_base.toml, AGENTS.md) plus one-time
-# seeds (CLAUDE.md, docs/index.md, backlog, doc-hygiene-audit skill).
+# seeds (CLAUDE.md, docs/index.md, backlog, glossary, and repo bindings).
 #
 # Kit-owned files (no `.jinja`, not in _skip_if_exists) are OVERWRITTEN on
 # `copier update`. Seeded files (below) are written once and then repo-owned.
@@ -22,12 +22,11 @@ _skip_if_exists:
   - docs/glossary/ddd.md
   - pyproject-doc-governance.toml
   - ".codex/skills/doc-hygiene-audit/SKILL.md"
-  - ".codex/skills/governance-sync/SKILL.md"
   - ".codex/skills/domain-modeling/**"
   - ".codex/skills/glossary-drill/**"
   - ".codex/skills/grill-with-docs/**"
   - ".codex/skills/show-gap/**"
-  - ".codex/skills/explain-layman/**"
+  - ".codex/skills/explain-layman/references/repo-bindings.md"
 
 _message_after_copy: |
   Governance kit applied.
@@ -42,8 +41,10 @@ _message_after_copy: |
     4. `python scripts/check_docs.py` until green; wire it into `make lint`.
 
 _message_after_update: |
-  Kit files updated. Re-run `python scripts/check_docs.py` and, if the symlink
-  map changed, `python scripts/bootstrap_agents.py`.
+  Kit files updated. Reconcile seeded repository bindings, including
+  `.codex/skills/explain-layman/references/repo-bindings.md`, then re-run
+  `python scripts/check_docs.py` and, if the symlink map changed,
+  `python scripts/bootstrap_agents.py`.
 
 project_name:
   type: str

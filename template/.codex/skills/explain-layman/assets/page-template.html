@@ -1,0 +1,47 @@
+<!--
+description: @@DESCRIPTION@@
+scope: stakeholder explainer
+status: experimental
+last_update: @@DATE@@
+produced_by: explain-layman@__SKILL_VERSION__ · profile=__PROFILE__@__PROFILE_VERSION__ · agent=__AGENT__ · effort=__EFFORT__ · __DATE__
+-->
+<!doctype html>
+<html lang="@@LANG@@">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@@TITLE@@</title>
+  <style>
+    :root { --bg:#faf9f5; --surface:#fff; --ink:#20201d; --muted:#65645f; --line:#dfddd4; --blue:#2f6f9f; --green:#2d7b57; --amber:#9a6a20; --red:#b6423b; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 system-ui,sans-serif; }
+    main, footer, .hero { width:min(1080px, calc(100% - 32px)); margin:auto; }
+    header { background:#fffdf8; border-bottom:1px solid var(--line); }
+    .hero { padding:44px 0 30px; }
+    h1 { margin:8px 0 12px; font-size:clamp(30px,4.5vw,48px); line-height:1.1; }
+    h2 { margin:0 0 14px; font-size:24px; }
+    section { padding:28px 0; border-bottom:1px solid var(--line); }
+    .lead { max-width:820px; color:var(--muted); font-size:18px; }
+    .answer, .card { background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:16px; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .term { position:relative; display:inline-block; border-bottom:1px dotted var(--blue); color:#194e72; cursor:help; }
+    .term::after { content:attr(data-tip); position:absolute; left:0; bottom:calc(100% + 8px); width:min(320px,80vw); padding:10px 12px; background:var(--ink); color:#fff; border-radius:6px; font-size:13px; line-height:1.45; opacity:0; pointer-events:none; z-index:5; }
+    .term:hover::after, .term:focus::after { opacity:1; }
+    footer { padding:24px 0 40px; color:var(--muted); font-size:14px; display:grid; gap:4px; }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body data-explainer-shape="page">
+  <header><div class="hero"><div>@@EYEBROW@@</div><h1>@@TITLE@@</h1><p class="lead">@@LEAD@@</p></div></header>
+  <main>
+    <section><div class="answer"><strong>@@ANSWER_LABEL@@</strong> @@ONE_LINE_ANSWER@@</div></section>
+    <section><h2>@@PRIMARY_VISUAL_TITLE@@</h2><div class="grid">@@PRIMARY_VISUAL@@</div></section>
+    <section><h2>@@BOUNDARY_TITLE@@</h2>@@BOUNDARY_CONTENT@@</section>
+  </main>
+  <footer>
+    <strong>@@TITLE@@</strong>
+    <span>@@FRESHNESS_NOTICE@@</span>
+    <span>@@CANONICAL_SOURCE_LABEL@@ <a href="@@CANONICAL_REPO_URL@@">@@REPO_LABEL@@</a> · path: @@ARTIFACT_PATH@@</span>
+  </footer>
+</body>
+</html>

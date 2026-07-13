@@ -2,7 +2,7 @@
 description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
 scope: skill authoring rules
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-13
 ---
 
 # Skill rules
@@ -80,3 +80,23 @@ description.
   in disguise — that history lives in git.
 - **Sprawl.** When a body outgrows its live steps, disclose reference to
   `references/*.md` rather than letting the top of the skill bury them.
+
+## managed portable skill cores
+
+When a skill is reused across Copier-managed repositories, separate reusable
+workflow from local authority:
+
+- Keep the portable `SKILL.md`, general references, scripts, assets, validator,
+  and UI metadata kit-owned.
+- Keep repository language, paths, invariants, roles, vocabulary, source
+  identity, and verification command in one explicitly skipped binding file.
+- Make the skill read and validate that binding before acting. Fail closed on a
+  missing, stale, or placeholder binding.
+- Treat Copier `_skip_if_exists` as the ownership declaration: skip the binding,
+  not the whole skill directory.
+- Version the portable skill and the repository profile separately when both
+  affect artifact provenance.
+
+Avoid two sibling skills for “core” and “local” behavior; separate triggers make
+it easy to load only half the contract. Avoid managed/local marker blocks inside
+one file; they create fragile merge authority.

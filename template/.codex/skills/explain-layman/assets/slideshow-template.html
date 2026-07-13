@@ -1,0 +1,77 @@
+<!--
+description: @@DESCRIPTION@@
+scope: stakeholder explainer
+status: experimental
+last_update: @@DATE@@
+produced_by: explain-layman@__SKILL_VERSION__ · profile=__PROFILE__@__PROFILE_VERSION__ · agent=__AGENT__ · effort=__EFFORT__ · __DATE__
+-->
+<!doctype html>
+<html lang="@@LANG@@">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>@@TITLE@@</title>
+  <style>
+    :root { --bg:#faf9f5; --surface:#fff; --ink:#20201d; --muted:#65645f; --line:#dfddd4; --blue:#2f6f9f; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.6 system-ui,sans-serif; }
+    .deck { width:min(1120px,calc(100% - 32px)); margin:auto; padding:24px 0 96px; }
+    .slide { min-height:calc(100vh - 150px); padding:clamp(24px,5vw,64px); margin:0 0 24px; background:var(--surface); border:1px solid var(--line); border-radius:10px; }
+    .slide h1, .slide h2 { margin-top:0; line-height:1.15; }
+    .slide h1 { font-size:clamp(32px,5vw,58px); }
+    .slide h2 { font-size:clamp(27px,4vw,44px); }
+    .controls { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); display:flex; align-items:center; gap:10px; padding:8px; background:rgba(255,255,255,.96); border:1px solid var(--line); border-radius:9px; z-index:10; }
+    button { border:1px solid var(--line); background:#fff; color:var(--ink); padding:8px 12px; border-radius:6px; cursor:pointer; }
+    .counter { min-width:72px; text-align:center; color:var(--muted); }
+    .js .slide { display:none; }
+    .js .slide.active { display:block; }
+    .term { position:relative; border-bottom:1px dotted var(--blue); color:#194e72; cursor:help; }
+    .term::after { content:attr(data-tip); position:absolute; left:0; bottom:calc(100% + 8px); width:min(320px,80vw); padding:10px; background:var(--ink); color:#fff; border-radius:6px; font-size:13px; opacity:0; pointer-events:none; z-index:20; }
+    .term:hover::after, .term:focus::after { opacity:1; }
+    .no-js-note { padding:12px; background:#fff; border:1px solid var(--line); }
+    footer { padding:20px 0; color:var(--muted); font-size:14px; }
+    @media (max-width:700px) { .deck { width:min(100% - 16px,1120px); } .slide { min-height:auto; padding:24px 18px; } }
+    @media print { .controls, .no-js-note { display:none !important; } .deck { width:auto; padding:0; } .slide, .js .slide { display:block !important; min-height:0; break-after:page; border:0; } }
+    @media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+  </style>
+  <script>document.documentElement.classList.add("js");</script>
+</head>
+<body data-explainer-shape="slides">
+  <main class="deck">
+    <noscript><p class="no-js-note">@@NO_JS_NOTE@@</p></noscript>
+    <section class="slide" id="slide-1"><h1>@@TITLE@@</h1><p>@@OPENING@@</p></section>
+    <section class="slide" id="slide-2"><h2>@@SLIDE_2_TITLE@@</h2>@@SLIDE_2_CONTENT@@</section>
+    @@MORE_SLIDES@@
+    <footer><strong>@@TITLE@@</strong><br>@@FRESHNESS_NOTICE@@<br><a href="@@CANONICAL_REPO_URL@@">@@REPO_LABEL@@</a> · path: @@ARTIFACT_PATH@@</footer>
+  </main>
+  <nav class="controls" aria-label="@@CONTROLS_LABEL@@">
+    <button id="prev" type="button">@@PREVIOUS_LABEL@@</button>
+    <span class="counter" id="counter" aria-live="polite">1 / 2</span>
+    <button id="next" type="button">@@NEXT_LABEL@@</button>
+  </nav>
+  <script>
+    (() => {
+      const slides = [...document.querySelectorAll(".slide")];
+      const counter = document.getElementById("counter");
+      const indexFromHash = () => {
+        const match = location.hash.match(/^#slide-(\d+)$/);
+        return match ? Math.max(0, Math.min(slides.length - 1, Number(match[1]) - 1)) : 0;
+      };
+      const show = (index, updateHash = true) => {
+        slides.forEach((slide, i) => slide.classList.toggle("active", i === index));
+        counter.textContent = `${index + 1} / ${slides.length}`;
+        if (updateHash) history.replaceState(null, "", `#slide-${index + 1}`);
+      };
+      const move = delta => show((indexFromHash() + delta + slides.length) % slides.length);
+      document.getElementById("prev").addEventListener("click", () => move(-1));
+      document.getElementById("next").addEventListener("click", () => move(1));
+      window.addEventListener("keydown", event => {
+        if (["ArrowRight", "PageDown"].includes(event.key)) move(1);
+        if (["ArrowLeft", "PageUp"].includes(event.key)) move(-1);
+      });
+      window.addEventListener("hashchange", () => show(indexFromHash(), false));
+      show(indexFromHash(), false);
+    })();
+  </script>
+</body>
+</html>

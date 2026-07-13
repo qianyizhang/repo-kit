@@ -2,7 +2,7 @@
 description: Repo-governance doctrine — the doctrine/binding split, SSOT & navigator-index pattern, glossary discipline, agent-toolchain symlink layout, and the mechanical-enforcement inventory.
 scope: repo governance rules
 status: stable
-last_update: 2026-07-10
+last_update: 2026-07-13
 ---
 
 # Governance rules
@@ -120,6 +120,9 @@ After a task:
   patch the kit, tag it, `copier update` the consumers (`governance-sync`
   skill) — never left to drift in one repo. Binding changes stay local.
   Kit-owned files (`docs/rules/*`, `scripts/check_docs.py`,
-  `scripts/bootstrap_agents.py`, `ruff_base.toml`, `AGENTS.md`) are
-  overwritten on update; seeded files (`CLAUDE.md`, glossary, backlog,
-  seeded skills) are repo-owned after first copy.
+  `scripts/bootstrap_agents.py`, `ruff_base.toml`, `AGENTS.md`, and managed
+  skill cores) are overwritten on update. Seeded files (`CLAUDE.md`, glossary,
+  backlog, seeded skills, and explicit repository-binding files) are repo-owned
+  after first copy. A managed skill may therefore keep portable workflow in its
+  kit-owned core while routing local authority to one skipped binding file; the
+  Copier `_skip_if_exists` list is the ownership boundary.

@@ -1,105 +1,135 @@
 ---
 name: explain-layman
-version: "1.6.1"
+version: "1.7.0"
 description: >-
-  Create plain-language stakeholder explainers for a repo concept — typically a
-  standalone HTML page under docs/background/ — translating domain/product/system
-  boundaries without weakening the repo's safety, review, provenance, or authority
-  contracts. Use when asked to explain a repo concept to non-technical people or
-  produce stakeholder communication.
+  Create or revise plain-language stakeholder explainers as standalone pages,
+  narrative slide decks, linked series, or focused interactive maps. Use for
+  non-technical communication that must preserve a repository's authority,
+  safety, provenance, terminology, and release boundaries.
 scope: stakeholder explainer skill
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-13
 ---
 
 # Explain Layman
 
-> Seeded from the governance kit. Fill in the repo's non-negotiable boundaries,
-> canonical object names, and word-choice tables on the first run; those edits are
-> repo-owned.
+Turn one teaching job into a non-technical stakeholder artifact without
+weakening the repository's contracts.
 
-Turn a repo concept into a non-technical stakeholder artifact — usually a polished
-standalone HTML page under `docs/background/`.
+## Ownership and role split
 
-## Grounding order
+- The governance kit owns this workflow, its general references, templates,
+  validator, and UI metadata. Promote portable improvements upstream; do not
+  customize those files in a consumer repository.
+- The consumer owns `references/repo-bindings.md`. It names the local audience,
+  authority files, invariants, vocabulary, output locations, source identity,
+  and verification command.
+- The agent judges narrative structure, examples, and honest omission. Repository
+  SSOTs own meaning. `scripts/validate_explainer.py` gates mechanical contracts;
+  it does not judge clinical or domain truth.
 
-Before writing, read enough live repo authority to avoid weakening contracts:
+## 1. Load and validate the local binding
 
-1. `CLAUDE.md` for the governing invariant and doc rules.
-2. `docs/index.md` for the audience map and where this topic belongs — never
-   memory for volatile module status.
-3. The topic's SSOT (the owning ADR / module README / design doc routed from the
-   index).
-4. `references/style-guide.md` — the style SSOT for these pages: editorial
-   posture, page rhythm, tone, word-choice discipline, visual and
-   interactive-visual patterns, the role/scale/honest-omission moves, the schema
-   field-card widget, and reusable blocks.
-5. One nearby explainer for comparison (an existing `docs/background/*` page).
-
-## Non-negotiable boundaries
-
-A plain-language page must never weaken a contract the repo declares. Before
-writing, list the repo's authority/safety boundaries (from `CLAUDE.md`'s governing
-invariant) and preserve each one when relevant. Typical shapes to preserve:
-
-- Who owns the human gate vs. what an agent/LLM only proposes.
-- Which object is the canonical source of truth vs. which are renderings/previews.
-- What a deterministic backbone computes with no LLM in the path.
-- Which users may view but not act (permission role ≠ real-world responsibility —
-  do not collapse them).
-- What becomes a review prompt rather than a direct instruction.
-- That approved artifacts are immutable; changes create new versions.
-- That every claim is source-backed and reviewable.
-
-> Fill in the concrete list for this repo here on first run — the generic shapes
-> above are prompts, not the contract.
-
-## Writing the page
-
-- Default artifact language is the repo's stakeholder-reader language; canonical
-  source-object names and real schema field names stay in English (matching code).
-  Canonical translations for domain nouns come from `docs/glossary/`, never
-  invented per page.
-- Write one concrete boundary per page. Good topics answer one practical
-  confusion: "What is this concept, and what is it not?" · "Who owns which
-  responsibility?" · "What can be automated, and what requires human review?" ·
-  "How does a source/version/fact become a visible work item?" · "Why is this
-  workflow longer than just asking an LLM?"
-- Output standalone dependency-free HTML unless the user asks for Markdown,
-  following the style guide's page rhythm, section patterns, tone, and visual
-  constraints. When the concept is an object or generated artifact, lead with a
-  concrete mock artifact surface before definition cards.
-- Run a dedicated **word-choice pass** before finishing — it is a mandatory step,
-  not polish. Bare jargon and literal calques are the most common quality
-  regression; the repo's fix tables live in the style guide's word-choice section.
-- Stamp at creation: a frontmatter-equivalent HTML comment with `description`,
-  `scope`, `status`, `last_update`, and `produced_by` —
-  `explain-layman@<version> · agent=<model-id> · effort=<level> · <date>`. Older
-  unstamped pages are not backfilled with invented provenance; they get stamped at
-  their next substantive edit.
-
-## Update repo navigation
-
-For a new maintained background page:
-
-1. Put it under `docs/background/<slug>.html`. The filename is a concise slug of
-   the page `<title>` / H1, not an unrelated implementation label.
-2. Add a row to the relevant `docs/index.md` section.
-3. Keep `status: stable` only when the page reflects settled repo contracts; use
-   `experimental` for exploratory framing.
-4. If introducing a new durable domain term, update the appropriate glossary in
-   the same change.
-
-## Verification
-
-At minimum:
+Read `references/repo-bindings.md` completely. Then run:
 
 ```bash
-rg -n "new-page-slug|<title>|<h1>" docs/index.md docs/background/new-page.html
-rg -n "</content>|</invoke>" docs/index.md docs/background/new-page.html
-git status --short
+python .codex/skills/explain-layman/scripts/validate_explainer.py \
+  --binding .codex/skills/explain-layman/references/repo-bindings.md \
+  --binding-only
 ```
 
-For static docs-only changes, full `make test` / `make lint` is usually not
-necessary unless the user asks or the change touches Markdown/doc-check surfaces.
-Say explicitly if you did not run them.
+Stop if the binding is missing, outdated, or contains placeholders. Follow
+`references/binding-contract.md` when reconciling it; never invent local policy.
+
+## 2. Ground the teaching job
+
+Read, in order:
+
+1. the agent-instruction SSOT named by the binding;
+2. the repository navigator and topic SSOTs named by the binding;
+3. the local glossary and avoid-list;
+4. `references/style-guide.md`;
+5. `references/artifact-shapes.md`;
+6. one nearby maintained explainer, if available.
+
+Restate the artifact's single **teaching job**: the practical question readers
+should be able to answer afterward. A teaching job may require several related
+boundaries; do not force a landscape explanation into one narrow definition.
+
+Before writing, list the relevant authority, safety, provenance, and release
+boundaries from the binding. Preserve all of them in the artifact.
+
+## 3. Choose the artifact shape
+
+Use the decision table in `references/artifact-shapes.md`:
+
+- **Page** for lookup, one object, one role split, or one stable process.
+- **Slides** for a cumulative argument whose meaning depends on sequence.
+- **Series** for several independently useful teaching jobs with explicit
+  handoffs.
+- **Interactive map** for one relationship that is materially clearer through
+  exploration.
+
+For a large structural change with genuine alternatives, build two or three
+throwaway variants and let the user choose before polishing. Delete previews
+after the choice is incorporated.
+
+## 4. Write and visualize
+
+- Lead with the answer, then earn the detail. Use operational language rather
+  than marketing or implementation narration.
+- Show the whole relevant landscape before highlighting the project's chosen
+  scope. Label omissions and uncovered areas explicitly.
+- When replacing a baseline, state what it accomplished, where its authority
+  sat, why it was initially sufficient, and what fails at scale. Do not create a
+  strawman.
+- Use one visual spine once. Other sections should add a different lens, not
+  repeat the same sequence.
+- For implementation explainers, distinguish parallel capability lanes from
+  vertical integration and distinguish coverage growth from capability growth.
+- For a series, include both a numbered reading-order strip and a narrative
+  handoff: what this artifact settled, what remains unanswered, and why the next
+  artifact follows.
+- Use the dependency-free assets as starting points when they match the chosen
+  shape. Adapt them; do not preserve unused placeholder sections.
+
+## 5. Run the terminology and tooltip pass
+
+Use reader-language first. Keep canonical names visible where traceability
+matters. For the first meaningful use of every clinical, scientific,
+regulatory, coding, or repository-canonical term:
+
+- use the glossary's canonical wording;
+- add a keyboard-focusable tooltip;
+- explain both what the term means and why it appears in that context;
+- keep essential meaning visible outside the tooltip.
+
+Never use tooltip text to introduce policy absent from an authority source.
+
+## 6. Preserve provenance and navigation
+
+- Stamp substantive artifacts with
+  `explain-layman@<version> · profile=<profile>@<profile_version> · agent=<id> · effort=<level> · <date>`.
+- Use the binding's output directory, index file, canonical source URL, footer
+  wording, and artifact language.
+- Align filename, `<title>`, H1, and footer title.
+- Update the repository navigator for a maintained artifact. Update the glossary
+  in the same change when introducing durable vocabulary.
+
+## 7. Verify
+
+Run the deterministic validator on every changed HTML artifact:
+
+```bash
+python .codex/skills/explain-layman/scripts/validate_explainer.py \
+  --binding .codex/skills/explain-layman/references/repo-bindings.md \
+  path/to/explainer.html
+```
+
+Then visually inspect desktop and narrow layouts. For slides, also verify direct
+hash navigation, keyboard controls, no-JS reading, print output, and reduced
+motion. Finally run the repository verification command from the binding; the
+local repository policy, not this portable skill, decides the required gate.
+
+Do not claim visual inspection when the environment only allowed structural
+checks. Record the limitation and leave the corresponding work open.

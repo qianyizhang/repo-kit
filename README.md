@@ -18,20 +18,24 @@ consumer with `copier update`, not a one-time scaffold.
   fails closed on real dirs.
 - `ruff_base.toml` — ruff doctrine defaults.
 - `AGENTS.md` — thin pointer to `CLAUDE.md`.
+- `governance-sync` — the portable adoption/update/reconciliation procedure.
+- `explain-layman` core workflow, references, assets, validator, and UI metadata.
 
 **Seeded once, then repo-owned** (`_skip_if_exists`):
 
 - `CLAUDE.md`, `docs/index.md`, `docs/todo/backlog.md`, `docs/glossary/ddd.md`
   (jinja skeletons with the repo's bindings).
-- Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `governance-sync`,
-  `domain-modeling`, `glossary-drill`, `grill-with-docs`, `show-gap`,
-  `explain-layman` (portable seeds — sharpen binding/spine with repo terms).
+- Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `domain-modeling`,
+  `glossary-drill`, `grill-with-docs`, and `show-gap`.
+- `.codex/skills/explain-layman/references/repo-bindings.md` — the consumer's
+  audience, authority, vocabulary, paths, source identity, and verification
+  profile.
 - `pyproject-doc-governance.toml` — a block to merge into the repo's real
   `pyproject.toml`, then delete.
 
 ## Use it
 
-Adoption and updates are driven by the seeded **`governance-sync`** skill
+Adoption and updates are driven by the managed **`governance-sync`** skill
 (`template/.codex/skills/governance-sync/SKILL.md`) — it wraps the raw copier
 commands with the semantic reconciliation copier can't do (pyproject merge,
 consolidating duplicated skill copies, filling bindings, greening `check_docs`).

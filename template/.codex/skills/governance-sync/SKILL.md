@@ -1,114 +1,122 @@
 ---
 name: governance-sync
-version: "1.0.0"
+version: "1.1.0"
 description: >-
-  Adopt or update the shared governance kit in a repo: run copier for
-  deterministic file propagation, then reconcile what copier can't — merge the
-  pyproject bindings, consolidate duplicated agent-skill copies into the .codex
-  symlink layout, fill CLAUDE.md bindings, and get check_docs green. Use when
-  adopting the kit into a new/brownfield repo or pulling a kit update.
-scope: governance kit adoption & sync skill
+  Adopt or update the shared governance kit in a repository: run Copier for
+  managed files, reconcile seeded bindings and skill profiles, consolidate the
+  .codex symlink layout, and restore documentation gates. Use for first adoption,
+  kit updates, or promoting portable refinements upstream.
+scope: governance kit adoption and sync skill
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-13
 ---
 
 # Governance kit sync
 
-Deterministic file propagation is copier's job; **semantic reconciliation is
-yours**. The split: copier owns versioned kit-file propagation (`docs/rules/*`,
-`scripts/check_docs.py`, `scripts/bootstrap_agents.py`, `ruff_base.toml`,
-`AGENTS.md`); the agent owns brownfield merge — pyproject bindings, consolidating
-duplicated skill copies, filling repo bindings, and closing the lint gap.
+Copier propagates portable files. The agent reconciles repository-owned
+bindings. Never let either side silently take the other's authority.
 
-Role split: **copier writes files; the agent makes judgment calls** (which
-duplicated copy is authoritative, what the repo's real code dirs are, what the
-governing invariant says). Never let copier clobber a real directory — that's why
-`bootstrap_agents.py` fails closed on real paths.
+## Ownership model
 
-## A. First adoption (brownfield or greenfield)
+| Kit-owned and managed on update | Repo-owned and seeded once |
+|:--|:--|
+| `docs/rules/*`, `scripts/check_docs.py`, `scripts/bootstrap_agents.py` | `CLAUDE.md`, `docs/index.md`, backlog and glossary |
+| `ruff_base.toml`, `AGENTS.md` | `pyproject.toml` merged governance configuration |
+| `governance-sync` skill core | Repository implementation and product documentation |
+| `explain-layman` core, references, assets, validator, and UI metadata | `explain-layman/references/repo-bindings.md` |
+| Other paths not listed in Copier `_skip_if_exists` | Exact paths listed in Copier `_skip_if_exists` |
 
-1. **Snapshot.** Ensure the target repo is a clean git tree (`git status`), so the
-   copier diff is reviewable. Commit or stash first.
+Portable changes go to the kit first. Repository contracts go to their binding
+file. Never customize a managed skill core in a consumer.
 
-2. **Run copier** from the kit source (a local path or git URL):
+## A. First adoption
 
-   ```bash
-   uvx copier copy <kit-source> <target-repo>       # e.g. ~/pkgs/repo-kit  .
-   ```
-
-   Answer the prompts (`project_name`, `project_slug`, `project_tagline`,
-   `code_dirs`). This writes kit-owned files verbatim and seeds the repo-owned
-   ones (`CLAUDE.md`, `docs/index.md`, backlog, glossary, `doc-hygiene-audit` +
-   this skill). It records answers in `.copier-answers.yml` — commit that file;
-   it's what makes later `copier update` work.
-
-3. **Merge the pyproject block.** Copier drops `pyproject-doc-governance.toml`.
-   Merge its `[tool.doc_governance]`, `[tool.doc_governance.symlinks]`, and
-   `[tool.ruff] extend = "ruff_base.toml"` into the repo's real `pyproject.toml`,
-   then delete the dropped file. Tune `repo_path_dirs`, `authority_files`,
-   `authority_globs`, and `index_required_globs` to the repo's actual layout.
-
-4. **Consolidate the agent-skill layout.** If the repo already has duplicated
-   real `.agents/` and `.claude/skills/` copies (the common brownfield state):
-   - pick the authoritative copy and move its skills into `.codex/skills/`;
-   - delete the now-empty real `.agents` / `.claude/skills` directories
-     (resolve targets first — never `rm -rf` through a symlink);
-   - run `python scripts/bootstrap_agents.py` to create the relative symlinks.
-     It fails closed if a real dir still sits where a link belongs — that means
-     step-one consolidation isn't done.
-
-5. **Frontmatter + bindings.** Add `description/scope/status/last_update`
-   frontmatter to every governed doc (`docs/rules/*` already have it). Any
-   pre-existing repo docs the index must cover need frontmatter too. Fill the
-   `<!-- Fill in -->` binding sections in `CLAUDE.md` (governing invariant,
-   architecture rules, commands) and add an `docs/index.md` row per doc/skill.
-   Give each existing skill manifest a semver `version:`.
-
-6. **Green the gate.** Run `python scripts/check_docs.py` and fix every finding
-   (missing frontmatter, index coverage, broken links, symlink layout, skill
-   semver). Wire it into `make lint` (or the repo's lint target). Confirm
-   `bootstrap_agents.py --check` and `check_docs.py` both exit 0, then commit.
+1. **Snapshot.** Start from a clean target tree so the Copier diff is reviewable.
+2. **Copy.** Run `uvx copier copy <kit-source> <target-repo>` and commit
+   `.copier-answers.yml`.
+3. **Merge configuration.** Merge `pyproject-doc-governance.toml` into the real
+   `pyproject.toml`, then delete the dropped file.
+4. **Consolidate skills.** Move authoritative skills into `.codex/skills/`, then
+   run `python scripts/bootstrap_agents.py`. It must fail rather than overwrite a
+   real `.agents` or `.claude/skills` directory.
+5. **Fill bindings.** Complete `CLAUDE.md`, the navigator, glossary, and every
+   seeded skill binding. For `explain-layman`, fill
+   `references/repo-bindings.md` and validate it before using the skill.
+6. **Green the gate.** Run `check_docs.py`, symlink checks, and the repository's
+   full verification command.
 
 ## B. Pulling a kit update
 
-When the kit publishes a project-agnostic refinement:
+1. Confirm the consumer and kit source are clean, or explicitly account for
+   every existing change.
+2. Inspect `.copier-answers.yml` to confirm the intended source and current kit
+   version.
+3. Run `uvx copier update` using the released kit ref.
+4. Review the diff by ownership:
+   - managed files should match the kit; a local conflict means the portable
+     change must be promoted upstream or discarded;
+   - seeded files must retain repository policy;
+   - never resolve a missing local binding by copying another repository's.
+5. Run binding-specific reconciliation and validation.
+6. Run documentation, symlink, and full repository gates.
+
+### Managed-skill migration
+
+When a skill changes from “entire directory seeded” to “managed core plus local
+binding,” perform this one-time migration before accepting the Copier result:
+
+1. Diff the consumer skill against the old kit seed and extract only real local
+   policy: language, paths, authority, invariants, vocabulary, source identity,
+   and verification commands.
+2. Put that policy in the new skipped binding file.
+3. Accept the released kit copy for `SKILL.md`, general references, assets,
+   scripts, and `agents/openai.yaml`.
+4. Validate the binding against the kit-owned binding contract.
+5. Confirm no repository name, domain object, source URL, or local verification
+   command remains in the managed core.
+
+For `explain-layman`:
 
 ```bash
-uvx copier update           # in the consumer repo; re-reads .copier-answers.yml
+python .codex/skills/explain-layman/scripts/validate_explainer.py \
+  --binding .codex/skills/explain-layman/references/repo-bindings.md \
+  --binding-only
 ```
 
-Copier 3-way-merges kit-owned files and **leaves `_skip_if_exists` seeds alone**.
-Review the diff: kit-owned files (`docs/rules/*`, the two scripts, `ruff_base.toml`,
-`AGENTS.md`) should update cleanly; a conflict there means someone edited a
-kit-owned file locally — move that change upstream to the kit instead. Re-run
-`check_docs.py` and, if the symlink map changed, `bootstrap_agents.py`.
+Then validate maintained explainer HTML files and run the binding's repository
+verification command.
 
-## C. Promoting a refinement upstream (the other direction)
+## C. Promoting a refinement upstream
 
-A doctrine refinement discovered while working a consumer repo does **not** stay
-local. Patch the kit's `template/docs/rules/*` (or the scripts), bump/tag the kit,
-then `copier update` the consumers. Binding changes (anything repo-specific) stay
-in the consumer's `CLAUDE.md`. This is the housekeeping loop in
-`docs/rules/governance.md` "Kit propagation".
+1. Classify the change:
+   - reusable workflow, doctrine, template, script, validator, or visual pattern
+     → patch the kit;
+   - local authority, vocabulary, paths, language, or source identity → patch the
+     consumer binding only.
+2. Update the kit template and bump the affected skill's semver.
+3. Validate the template and run a first-copy smoke test plus an update smoke
+   test that proves skipped bindings survive.
+4. Commit and tag the kit.
+5. Run `copier update` in consumers and reconcile their bindings individually.
 
-## What is kit-owned vs repo-owned
+## Explain-layman ownership contract
 
-| Kit-owned (overwritten on update) | Repo-owned (seeded once) |
-|:--|:--|
-| `docs/rules/*.md` | `CLAUDE.md` |
-| `scripts/check_docs.py` | `docs/index.md` |
-| `scripts/bootstrap_agents.py` | `docs/todo/backlog.md`, `docs/glossary/*` |
-| `ruff_base.toml` | seeded skills (`doc-hygiene-audit`, `governance-sync`) |
-| `AGENTS.md` | `pyproject.toml` (merge the block once) |
+Copier manages everything under `.codex/skills/explain-layman/` except
+`references/repo-bindings.md`. The kit owns
+`references/binding-contract.md`; a schema change must make old bindings fail
+clearly. The agent then performs a semantic local migration. Copier must never
+invent or overwrite repository authority.
 
 ## Pitfalls
 
-- **`bootstrap_agents.py` fails on a real dir.** Intended: it refuses to clobber a
-  real `.agents`/`.claude/skills`. Consolidate into `.codex/` by hand first.
-- **Editing a kit-owned file locally.** It gets overwritten on the next
-  `copier update`. Push the change to the kit instead, or the repo will drift.
-- **Forgetting `.copier-answers.yml`.** Without it committed, `copier update` has
-  no baseline and can't 3-way-merge.
-- **`code_dirs` too narrow.** If a top-level code dir is missing from
-  `repo_path_dirs`, backticked paths to it in authority docs won't be validated
-  (silent gap), not a hard error.
+- **Dirty consumer:** unrelated changes make ownership review unreliable. Stop
+  or explicitly isolate the sync diff.
+- **Managed core edited locally:** move the reusable change upstream before the
+  next update; do not rely on a conflict preserving it.
+- **Binding schema changed:** a skipped file will not gain new sections. Follow
+  the managed contract and reconcile manually.
+- **Real agent directories:** `bootstrap_agents.py` intentionally refuses to
+  clobber them; consolidate first.
+- **Missing `.copier-answers.yml`:** update has no baseline.
+- **Narrow `code_dirs`:** path validation silently misses omitted top-level code
+  directories.
