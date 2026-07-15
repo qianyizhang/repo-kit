@@ -3,6 +3,7 @@ description: Rules for authoring, maintaining, and pruning agent skills under .c
 scope: skill authoring rules
 status: stable
 last_update: 2026-07-13
+document_class: coordination
 ---
 
 # Skill rules
@@ -44,8 +45,28 @@ session in this repo; each word pays rent. Target ≤ ~45 words: what the skill
 is, one trigger clause per *genuinely distinct* branch, plus any reach clause a
 sibling skill depends on (e.g. extraction routes pack repair to
 `guideline-ingestion`). Synonym triggers restating one branch are duplication;
-operating policy ("do not implement unless…") belongs in the body, never the
-description.
+the invocation boundary is part of the trigger and belongs here. Other
+operating policy ("do not implement unless…") belongs in the body.
+
+Classify invocation deliberately:
+
+- **Agent-invokable:** a bounded, low-surprise workflow that directly answers a
+  recognized request. Keep the description narrow enough that ordinary work
+  does not accidentally match it.
+- **Explicit-user only:** an interaction mode or substantial artifact workflow
+  whose surprise/cost is material. Set `disable-model-invocation: true` in
+  `SKILL.md` and `policy.allow_implicit_invocation: false` in
+  `agents/openai.yaml`. Keep its description picker-oriented rather than
+  trigger-oriented. The agent may suggest it, but recognition is not consent.
+- A mixed skill must state the bounded agent-invokable phase and the point that
+  requires user intent. Prefer this over duplicating most of a workflow across
+  two skills.
+
+The two explicit-only controls are toolchain adapters for one policy and must
+agree; `scripts/check_docs.py` rejects drift. User-invoked skills orchestrate
+model-invokable disciplines, never another user-invoked skill. If a workflow
+needs composition, extract the reusable discipline only when a real second
+caller exists; do not create a wrapper/primitive pair speculatively.
 
 ## body
 

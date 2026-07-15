@@ -2,3 +2,5 @@ interface:
   display_name: "Grill With Docs"
   short_description: "Decision interview with glossary and ADR capture"
   default_prompt: "Use $grill-with-docs to stress-test this plan one decision at a time and capture settled terms or ADRs."
+policy:
+  allow_implicit_invocation: false

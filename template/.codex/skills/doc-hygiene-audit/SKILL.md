@@ -8,6 +8,7 @@ description: >-
 scope: documentation hygiene skill
 status: stable
 last_update: 2026-07-10
+document_class: artifact
 ---
 
 # Documentation Hygiene Round

@@ -3,6 +3,7 @@ description: Navigator over every doc, rule, glossary, and skill in {{ project_n
 scope: documentation navigator index
 status: stable
 last_update: 2026-07-07
+document_class: coordination
 ---
 
 # Docs index
@@ -46,10 +47,9 @@ Skills live under `.codex/skills/`. Add a row per skill as it lands.
 | `doc-hygiene-audit` | Capture/reconcile/restructure the doc corpus |
 | `governance-sync` | Adopt or update the shared governance kit (copier + reconcile) |
 | `domain-modeling` | Keep the glossary & ADRs current; verify naming; capture settled decisions |
-| `grill-with-docs` | Stress-test a plan one decision at a time, capturing glossary/ADR |
-| `show-gap` | Map a feature intent against built/planned/rejected/deferred work |
-| `explain-layman` | Governed stakeholder explainers as pages, slides, series, or focused interactive maps |
+| `grill-with-docs` | Explicit-user decision interview, with settled glossary/ADR capture |
+| `show-gap` | Bounded agent-invokable fit audit; discussion/spec writing require user intent |
+| `explain-layman` | Explicit-user governed stakeholder explainer artifacts |
 
-<!-- Fill in: product/plan/architecture/design rows and module README rows as the
-     repo grows. Every new doc matching index_required_globs needs a row here or
-     check_docs.py fails. -->
+<!-- Keep this a compact task/concept router. Configure area routes in
+     pyproject.toml; generated Human View owns complete discovery. -->

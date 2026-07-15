@@ -3,6 +3,7 @@ description: Repo-governance doctrine — the doctrine/binding split, SSOT & nav
 scope: repo governance rules
 status: stable
 last_update: 2026-07-13
+document_class: coordination
 ---
 
 # Governance rules

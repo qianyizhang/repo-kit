@@ -1,14 +1,14 @@
 ---
 name: show-gap
-version: "0.6.0"
+version: "0.7.0"
 description: >-
-  Map a fuzzy or emerging feature intent against what the repo already built,
-  planned, rejected, or deferred; discuss concrete shapes, then deliver an
-  evidence-backed fit report, implementation-ready spec, or canceled memo.
-  Use for feature gap/status/fit questions before implementation.
+  Audit a fuzzy feature or readiness question against built, planned, rejected,
+  and deferred repo evidence. May be agent-invoked for the bounded read-only fit
+  pass; discussion and spec writing require clear user intent.
 scope: repo feature gap analysis skill
 status: experimental
 last_update: 2026-07-10
+document_class: artifact
 ---
 
 # Show Gap
@@ -20,6 +20,10 @@ Turn "I vaguely want X" into a repo-grounded understanding and, when it
 converges, a spec. The artifact is the conversation-shaped decision record — a
 fit report, then an implementation spec or a canceled memo. Code is not an output
 of this skill.
+
+An agent may invoke the initial evidence audit to prevent speculative work. Stop
+after the fit report unless the user asks to explore options, answer the grill,
+or produce a specification.
 
 ## Operating contract
 

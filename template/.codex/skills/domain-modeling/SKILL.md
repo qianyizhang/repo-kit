@@ -10,6 +10,7 @@ description: >-
 scope: domain modeling skill
 status: stable
 last_update: 2026-07-07
+document_class: artifact
 ---
 
 # Domain Modeling & Architecture Decisions

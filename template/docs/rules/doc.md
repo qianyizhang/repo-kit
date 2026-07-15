@@ -2,18 +2,43 @@
 description: Rules for documentation, glossaries, and durable backlog-item records.
 scope: documentation rules
 status: stable
-last_update: 2026-07-10
+last_update: 2026-07-15
+document_class: coordination
 ---
 
 ## general
-all docs (including this file) should start with a meta with: `description` (very concise), `scope`, `status` (experimental/stable/deprecated), `last_update`
+all governed Markdown (including this file) starts with `description` (very
+concise), `scope`, `status` (experimental/stable/deprecated), `last_update`, and
+one declared `document_class`.
+
+Portable classes are `coordination`, `work_record`, `report`, `source`,
+`artifact`, `generated`, and `tombstone`. Repositories configure each class's
+required fields and allowed locations under
+`[tool.doc_governance.document_classes]`. Unknown classes, missing profile
+fields, and class/location mismatches fail closed. A class does not transfer
+authority: the owning SSOT, source bytes, Work Record, or machine artifact stays
+authoritative for its concern.
+
+## coordination spine
+
+- `docs/` is the compact Coordination Spine, not the complete readable corpus.
+  Keep current product/domain authority, ADRs, glossary, rules, guides,
+  reference syntheses, and active forward design there.
+- Work Records live under `records/work-items/`; reports under
+  `records/reports/`; faithful payloads under `sources/`; generated outputs in
+  their configured artifact area.
+- `docs/index.md` routes areas and concepts. It does not enumerate every file.
+  Complete discovery belongs to deterministic, disposable Human View.
+- Task Context includes only explicit paths or declared sections, each with a
+  reason and digest. Human View and Task Context are projections, never edit
+  targets or independent authorities.
 - transcript/control trailer tokens such as `</content>` and `</invoke>` must never appear as standalone committed doc lines
 - `docs/design/` holds **active, forward-looking** design only — specs for work
   not yet landed, plus living architecture docs still maintained as SSOT for
   their area
-- standalone ledgers / operating records live in `docs/reports/`, never
+- standalone ledgers / operating records live in `records/reports/`, never
   `docs/design/`; the implementation ledger for a backlog item lives directly
-  in that item's durable record under `docs/todo/items/`
+  in that item's durable record under `records/work-items/items/`
 - deprecated docs live under `docs/deprecated/`; keep their frontmatter
   `status: deprecated`, add an explicit supersession note, and link to the
   active SSOT before moving them there
@@ -27,9 +52,9 @@ all docs (including this file) should start with a meta with: `description` (ver
 
 ## backlog items
 
-- `docs/todo/backlog.md` is the lifecycle/schema navigator; it does not duplicate
-  item status. Each work item is one durable file under `docs/todo/items/`, named
-  `<WORK-ID>-<slug>.md`, and stays at that path after closure.
+- `records/work-items/backlog.md` is the lifecycle/schema navigator; it does not
+  duplicate item status. Each active or not-yet-archived work item is one durable
+  file under `records/work-items/items/`, named `<WORK-ID>-<slug>.md`.
 - Backlog files use normal document frontmatter plus `work_id`, `work_status`,
   `added`, `tags`, `depends_on`, `residual_of`, and `residual_items`. Canonical
   work statuses are `deferred`, `ready`, `wip`, `blocked`, `done`, `partial`, and

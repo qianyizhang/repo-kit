@@ -1,14 +1,14 @@
 ---
 name: grill-with-docs
-version: "1.0.0"
+version: "1.1.1"
 description: >-
-  Stress-test an ambiguous plan or design one decision at a time while using
-  domain-modeling to capture settled glossary terms and ADR-worthy trade-offs.
-  Use when the user asks to be grilled with docs or wants a plan sharpened before
-  implementation.
+  Run a focused decision interview that stress-tests a plan one choice at a
+  time and captures settled glossary terms and ADR-worthy trade-offs.
+disable-model-invocation: true
 scope: decision interview skill
 status: stable
 last_update: 2026-07-07
+document_class: artifact
 ---
 
 # Grill With Docs
@@ -16,6 +16,16 @@ last_update: 2026-07-07
 Run a focused grilling session plus the repo's `domain-modeling` playbook. The
 interview sharpens decisions; the documentation capture prevents the result from
 living only in chat.
+
+This workflow's main spirit comes from
+[`mattpocock/skills`](https://github.com/mattpocock/skills), especially its
+practice of turning vague intent into precise, sequential decisions. Preserve
+that attribution. During an explicit governance-maintenance round, occasionally
+review the upstream repository for useful new techniques and adopt them by
+judgment, not by blind sync. Ordinary grill runs do not fetch upstream material.
+
+This is an explicit interaction mode. An agent may suggest it, but must not open
+a multi-turn decision interview unless the user asks for the skill or that mode.
 
 ## Workflow
 
