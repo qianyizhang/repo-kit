@@ -226,6 +226,19 @@ def check_document_class(rel_path: str, metadata: dict[str, str], cfg: Governanc
         rel_path.startswith(prefix) for prefix in profile.allowed_prefixes
     ):
         errors.append(f"Frontmatter: Class '{class_name}' is not allowed at '{rel_path}'")
+    if class_name == "report":
+        outcome = metadata.get("report_outcome", "")
+        allowed_outcomes = {"promoted", "inconclusive", "archive_eligible"}
+        if outcome not in allowed_outcomes:
+            errors.append(f"Frontmatter: Report has invalid report_outcome '{outcome}'")
+        if outcome == "inconclusive":
+            for key in ("inconclusive_reason", "review_trigger"):
+                if not metadata.get(key):
+                    errors.append(f"Frontmatter: Inconclusive report missing required key '{key}'")
+        if outcome == "archive_eligible":
+            for key in ("archive_id", "promoted_destinations"):
+                if not metadata.get(key):
+                    errors.append(f"Frontmatter: Archive-eligible report missing required key '{key}'")
     return errors
 
 

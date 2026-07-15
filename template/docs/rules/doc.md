@@ -32,6 +32,10 @@ authoritative for its concern.
 - Task Context includes only explicit paths or declared sections, each with a
   reason and digest. Human View and Task Context are projections, never edit
   targets or independent authorities.
+- Reports declare exactly one outcome: `promoted`, `inconclusive`, or
+  `archive_eligible`. An inconclusive report names its reason and review
+  trigger. An archive-eligible report names its Archive ID and promoted
+  destinations; terminal status or age alone is insufficient.
 - transcript/control trailer tokens such as `</content>` and `</invoke>` must never appear as standalone committed doc lines
 - `docs/design/` holds **active, forward-looking** design only — specs for work
   not yet landed, plus living architecture docs still maintained as SSOT for
