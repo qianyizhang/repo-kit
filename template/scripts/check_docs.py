@@ -72,11 +72,17 @@ class GovernanceConfig:
 def load_config(repo_root: Path) -> GovernanceConfig:
     pyproject = repo_root / "pyproject.toml"
     try:
-        raw = tomllib.loads(pyproject.read_text(encoding="utf-8")).get("tool", {}).get("doc_governance")
+        raw = (
+            tomllib.loads(pyproject.read_text(encoding="utf-8"))
+            .get("tool", {})
+            .get("doc_governance")
+        )
     except (OSError, tomllib.TOMLDecodeError) as e:
         sys.exit(f"check_docs: cannot read {pyproject}: {e}")
     if raw is None:
-        sys.exit("check_docs: missing [tool.doc_governance] in pyproject.toml (see docs/rules/governance.md)")
+        sys.exit(
+            "check_docs: missing [tool.doc_governance] in pyproject.toml (see docs/rules/governance.md)"
+        )
     try:
         return GovernanceConfig(
             exclude_dirs=frozenset(raw["exclude_dirs"]),
@@ -97,7 +103,9 @@ def load_config(repo_root: Path) -> GovernanceConfig:
 def glob_match(rel_path: str, pattern: str) -> bool:
     """Anchored glob where `*` does not cross `/` (fnmatch's does)."""
     # SAMPLE: "docs/*.md" matches "docs/mvp.md", not "docs/todo/backlog.md"
-    regex = "".join("[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in pattern)
+    regex = "".join(
+        "[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in pattern
+    )
     return re.fullmatch(regex, rel_path) is not None
 
 
@@ -114,11 +122,16 @@ def is_file_excluded(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> 
         return True
     if any(part in cfg.exclude_dirs for part in Path(rel).parts):
         return True
-    if any(token in filepath.resolve().as_posix() for token in cfg.exclude_path_contains):
+    if any(
+        token in filepath.resolve().as_posix() for token in cfg.exclude_path_contains
+    ):
         return True
     # Inside a skills dir only the SKILL.md manifest is doc-governed; references/
     # examples/prompts under a skill are working material.
-    if any(rel.startswith(f"{sd}/") for sd in cfg.skills_dirs) and filepath.name != "SKILL.md":
+    if (
+        any(rel.startswith(f"{sd}/") for sd in cfg.skills_dirs)
+        and filepath.name != "SKILL.md"
+    ):
         return True
     return False
 
@@ -137,7 +150,9 @@ def get_markdown_files(repo_root: Path, cfg: GovernanceConfig) -> list[Path]:
 
 def is_authority_doc(rel_path: str, cfg: GovernanceConfig) -> bool:
     """Limit bare-path validation to active authority docs where path drift is actionable."""
-    return rel_path in cfg.authority_files or any(glob_match(rel_path, g) for g in cfg.authority_globs)
+    return rel_path in cfg.authority_files or any(
+        glob_match(rel_path, g) for g in cfg.authority_globs
+    )
 
 
 def is_skill_manifest(rel_path: str, cfg: GovernanceConfig) -> bool:
@@ -193,7 +208,9 @@ def parse_frontmatter(content: str) -> tuple[dict[str, str], int, str]:
     return metadata, end_line_idx + 1, ""
 
 
-def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[list[str], bool]:
+def check_file(
+    filepath: Path, repo_root: Path, cfg: GovernanceConfig
+) -> tuple[list[str], bool]:
     """Run hygiene checks on a single markdown file. Returns (list of error strings, is_ignored)."""
     try:
         content = filepath.read_text(encoding="utf-8")
@@ -204,7 +221,11 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
     for line in lines[:10]:
         line_strip = line.strip()
         if "doc-hygiene-disable" in line_strip or "doc-hygiene-ignore" in line_strip:
-            if line_strip.startswith("#!") or line_strip.startswith("<!--") or line_strip.startswith("[//]:"):
+            if (
+                line_strip.startswith("#!")
+                or line_strip.startswith("<!--")
+                or line_strip.startswith("[//]:")
+            ):
                 return [], True
 
     rel_path = rel_posix(filepath, repo_root) or filepath.as_posix()
@@ -222,26 +243,41 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
         status = metadata.get("status")
         valid_statuses = {"experimental", "stable", "deprecated"}
         if status and status not in valid_statuses:
-            errors.append(f"Frontmatter: Invalid status '{status}' (must be one of {valid_statuses})")
+            errors.append(
+                f"Frontmatter: Invalid status '{status}' (must be one of {valid_statuses})"
+            )
 
         is_deprecated_folder = rel_path.startswith(f"{cfg.deprecated_dir}/")
-        is_deprecated_readme = is_deprecated_folder and filepath.name.lower() in ("readme.md", "readme")
+        is_deprecated_readme = is_deprecated_folder and filepath.name.lower() in (
+            "readme.md",
+            "readme",
+        )
         if is_deprecated_folder and not is_deprecated_readme and status != "deprecated":
-            errors.append(f"Frontmatter: File in {cfg.deprecated_dir}/ but status is '{status}' (must be 'deprecated')")
+            errors.append(
+                f"Frontmatter: File in {cfg.deprecated_dir}/ but status is '{status}' (must be 'deprecated')"
+            )
         elif not is_deprecated_folder and status == "deprecated":
-            errors.append(f"Frontmatter: Status is 'deprecated' but file is not in {cfg.deprecated_dir}/")
+            errors.append(
+                f"Frontmatter: Status is 'deprecated' but file is not in {cfg.deprecated_dir}/"
+            )
 
         if is_skill_manifest(rel_path, cfg):
             version = metadata.get("version")
             if not version:
-                errors.append("Frontmatter: Skill manifest missing required key 'version'")
+                errors.append(
+                    "Frontmatter: Skill manifest missing required key 'version'"
+                )
             elif not SEMVER_PATTERN.match(version):
-                errors.append(f"Frontmatter: Skill version '{version}' is not semver (major.minor.patch)")
+                errors.append(
+                    f"Frontmatter: Skill version '{version}' is not semver (major.minor.patch)"
+                )
 
     for idx, line in enumerate(lines, 1):
         for token_pat in FORBIDDEN_TOKENS:
             if token_pat.match(line):
-                errors.append(f"Line {idx}: Contains forbidden generated trailer token '{token_pat.pattern}'")
+                errors.append(
+                    f"Line {idx}: Contains forbidden generated trailer token '{token_pat.pattern}'"
+                )
 
     check_backticks = is_authority_doc(rel_path, cfg)
     backtick_pattern = cfg.backtick_path_pattern
@@ -253,7 +289,9 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
 
             if clean_url.startswith("file:///"):
                 target_path = Path(clean_url.replace("file://", ""))
-            elif clean_url.startswith(("http://", "https://", "mailto:", "javascript:")):
+            elif clean_url.startswith(
+                ("http://", "https://", "mailto:", "javascript:")
+            ):
                 continue
             else:
                 target_path = (filepath.parent / clean_url).resolve()
@@ -263,11 +301,15 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
                     target_path = (repo_root / clean_url.lstrip("/")).resolve()
 
                 if not target_path.exists():
-                    errors.append(f"Line {idx}: Broken local link to '{url}' (resolved to '{target_path}')")
+                    errors.append(
+                        f"Line {idx}: Broken local link to '{url}' (resolved to '{target_path}')"
+                    )
 
         if check_backticks:
             for raw_path in backtick_pattern.findall(line):
-                if any(token in raw_path for token in ("<", ">", "*", "{", "}", "...", "…")):
+                if any(
+                    token in raw_path for token in ("<", ">", "*", "{", "}", "...", "…")
+                ):
                     continue
 
                 clean_path = re.split(r"[\s§#?:]", raw_path, maxsplit=1)[0]
@@ -275,11 +317,15 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
                 try:
                     target_path.relative_to(repo_root.resolve())
                 except ValueError:
-                    errors.append(f"Line {idx}: Backticked repo path escapes repo: '{raw_path}'")
+                    errors.append(
+                        f"Line {idx}: Backticked repo path escapes repo: '{raw_path}'"
+                    )
                     continue
 
                 if not target_path.exists():
-                    errors.append(f"Line {idx}: Broken backticked repo path '{raw_path}' (resolved to '{target_path}')")
+                    errors.append(
+                        f"Line {idx}: Broken backticked repo path '{raw_path}' (resolved to '{target_path}')"
+                    )
 
     return errors, False
 
@@ -295,17 +341,25 @@ def check_symlink_layout(repo_root: Path, cfg: GovernanceConfig) -> list[str]:
                     f"Symlink layout: '{link}' exists but is a real path, not a symlink → '{expected_target}'"
                 )
             else:
-                errors.append(f"Symlink layout: '{link}' is missing (expected symlink → '{expected_target}')")
+                errors.append(
+                    f"Symlink layout: '{link}' is missing (expected symlink → '{expected_target}')"
+                )
             continue
         actual_target = os.readlink(link_path)
         if actual_target != expected_target:
-            errors.append(f"Symlink layout: '{link}' points to '{actual_target}', expected '{expected_target}'")
+            errors.append(
+                f"Symlink layout: '{link}' points to '{actual_target}', expected '{expected_target}'"
+            )
         elif not link_path.resolve().exists():
-            errors.append(f"Symlink layout: '{link}' → '{expected_target}' is a broken link")
+            errors.append(
+                f"Symlink layout: '{link}' → '{expected_target}' is a broken link"
+            )
     return errors
 
 
-def check_index_coverage(repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]) -> list[str]:
+def check_index_coverage(
+    repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]
+) -> list[str]:
     """Every doc matching index_required_globs must be referenced from the navigator index."""
     index_path = repo_root / cfg.index_file
     if not index_path.exists():
@@ -320,13 +374,19 @@ def check_index_coverage(repo_root: Path, cfg: GovernanceConfig, md_files: list[
             continue
         if not any(glob_match(rel, g) for g in cfg.index_required_globs):
             continue
-        rel_to_index = os.path.relpath(rel, start=index_dir) if index_dir != "." else rel
+        rel_to_index = (
+            os.path.relpath(rel, start=index_dir) if index_dir != "." else rel
+        )
         if rel not in index_text and rel_to_index not in index_text:
-            errors.append(f"Index coverage: '{rel}' is not referenced from '{cfg.index_file}'")
+            errors.append(
+                f"Index coverage: '{rel}' is not referenced from '{cfg.index_file}'"
+            )
     return errors
 
 
-def check_skill_invocation_policies(repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]) -> list[str]:
+def check_skill_invocation_policies(
+    repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]
+) -> list[str]:
     """Keep Claude and Codex explicit-only skill metadata synchronized."""
     errors = []
     for filepath in sorted(md_files):
@@ -339,18 +399,24 @@ def check_skill_invocation_policies(repo_root: Path, cfg: GovernanceConfig, md_f
 
         claude_value = metadata.get("disable-model-invocation", "false").lower()
         if claude_value not in {"true", "false"}:
-            errors.append(f"Skill invocation: '{rel}' has invalid disable-model-invocation value '{claude_value}'")
+            errors.append(
+                f"Skill invocation: '{rel}' has invalid disable-model-invocation value '{claude_value}'"
+            )
             continue
         claude_explicit_only = claude_value == "true"
 
         openai_path = filepath.parent / "agents/openai.yaml"
-        openai_text = openai_path.read_text(encoding="utf-8") if openai_path.exists() else ""
+        openai_text = (
+            openai_path.read_text(encoding="utf-8") if openai_path.exists() else ""
+        )
         policy_match = re.search(
             r"^\s*allow_implicit_invocation:\s*(true|false)\s*$",
             openai_text,
             re.MULTILINE,
         )
-        codex_explicit_only = policy_match is not None and policy_match.group(1) == "false"
+        codex_explicit_only = (
+            policy_match is not None and policy_match.group(1) == "false"
+        )
         if claude_explicit_only != codex_explicit_only:
             openai_rel = rel_posix(openai_path, repo_root) or openai_path.as_posix()
             errors.append(
@@ -386,16 +452,22 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
             "residual_items",
         ):
             if not metadata.get(key):
-                errors.append(f"Backlog item: '{rel}' is missing frontmatter key '{key}'")
+                errors.append(
+                    f"Backlog item: '{rel}' is missing frontmatter key '{key}'"
+                )
 
         work_id = metadata.get("work_id", "")
         if work_id and not WORK_ID_PATTERN.fullmatch(work_id):
             errors.append(f"Backlog item: '{rel}' has invalid work_id '{work_id}'")
         if work_id and not filepath.stem.startswith(f"{work_id}-"):
-            errors.append(f"Backlog item: filename '{filepath.name}' must start with '{work_id}-'")
+            errors.append(
+                f"Backlog item: filename '{filepath.name}' must start with '{work_id}-'"
+            )
         if work_id in records:
             other = rel_posix(records[work_id][0], repo_root)
-            errors.append(f"Backlog item: duplicate work_id '{work_id}' in '{other}' and '{rel}'")
+            errors.append(
+                f"Backlog item: duplicate work_id '{work_id}' in '{other}' and '{rel}'"
+            )
         elif work_id:
             records[work_id] = (filepath, metadata, content)
 
@@ -413,10 +485,11 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
                 f"(must be one of {sorted(WORK_KINDS)})"
             )
 
-
         for heading in BACKLOG_REQUIRED_HEADINGS:
             if not re.search(rf"^{re.escape(heading)}\s*$", content, re.MULTILINE):
-                errors.append(f"Backlog item: '{rel}' is missing required heading '{heading}'")
+                errors.append(
+                    f"Backlog item: '{rel}' is missing required heading '{heading}'"
+                )
 
         status_history = markdown_section(content, "## Status History")
         if work_status and not re.search(
@@ -424,20 +497,33 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
             status_history,
             re.MULTILINE,
         ):
-            errors.append(f"Backlog item: '{rel}' has no Status History transition to current status '{work_status}'")
+            errors.append(
+                f"Backlog item: '{rel}' has no Status History transition to current status '{work_status}'"
+            )
 
         implementation_ledger = markdown_section(content, "## Implementation Ledger")
         if work_status in {"wip", "blocked", "done", "partial"} and (
-            not implementation_ledger.strip() or "No implementation events yet." in implementation_ledger
+            not implementation_ledger.strip()
+            or "No implementation events yet." in implementation_ledger
         ):
-            errors.append(f"Backlog item: '{rel}' status '{work_status}' requires an Implementation Ledger event")
+            errors.append(
+                f"Backlog item: '{rel}' status '{work_status}' requires an Implementation Ledger event"
+            )
 
         acceptance = markdown_section(content, "## Acceptance Criteria")
-        if work_status == "done" and re.search(r"^\s*[-*]\s+\[ \]", acceptance, re.MULTILINE):
-            errors.append(f"Backlog item: '{rel}' is done but has unchecked acceptance criteria")
+        if work_status == "done" and re.search(
+            r"^\s*[-*]\s+\[ \]", acceptance, re.MULTILINE
+        ):
+            errors.append(
+                f"Backlog item: '{rel}' is done but has unchecked acceptance criteria"
+            )
 
-        if work_status == "partial" and not metadata_work_ids(metadata.get("residual_items", "")):
-            errors.append(f"Backlog item: '{rel}' is partial but has no residual_items work ID")
+        if work_status == "partial" and not metadata_work_ids(
+            metadata.get("residual_items", "")
+        ):
+            errors.append(
+                f"Backlog item: '{rel}' is partial but has no residual_items work ID"
+            )
 
     known_ids = set(records)
     for work_id, (filepath, metadata, _) in records.items():
@@ -445,9 +531,13 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         for key in ("depends_on", "residual_of", "residual_items"):
             for linked_id in metadata_work_ids(metadata.get(key, "")):
                 if linked_id not in known_ids:
-                    errors.append(f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'")
+                    errors.append(
+                        f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'"
+                    )
                 elif linked_id == work_id:
-                    errors.append(f"Backlog item: '{rel}' {key} cannot reference itself")
+                    errors.append(
+                        f"Backlog item: '{rel}' {key} cannot reference itself"
+                    )
 
     return errors
 
@@ -483,7 +573,11 @@ def run(repo_root: Path, file_args: list[str] | None = None) -> int:
         print(f"[FAIL] {err}")
 
     for filepath in sorted(md_files):
-        rel_path = filepath.relative_to(repo_root) if filepath.is_relative_to(repo_root) else filepath
+        rel_path = (
+            filepath.relative_to(repo_root)
+            if filepath.is_relative_to(repo_root)
+            else filepath
+        )
         errors, ignored = check_file(filepath, repo_root, cfg)
         if ignored:
             ignored_count += 1
