@@ -31,8 +31,9 @@ all docs (including this file) should start with a meta with: `description` (ver
   item status. Each work item is one durable file under `docs/todo/items/`, named
   `<WORK-ID>-<slug>.md`, and stays at that path after closure.
 - Backlog files use normal document frontmatter plus `work_id`, `work_status`,
-  `added`, `tags`, `depends_on`, `residual_of`, and `residual_items`. Canonical
-  work statuses are `deferred`, `ready`, `wip`, `blocked`, `done`, `partial`, and
+  `work_kind`, `added`, `tags`, `depends_on`, `residual_of`, and `residual_items`.
+  Canonical work kinds are `decision`, `build`, and `research`. Canonical work
+  statuses are `deferred`, `ready`, `wip`, `blocked`, `done`, `partial`, and
   `canceled`.
 - `partial` is terminal, not another spelling of `wip`: record what landed and
   why the original acceptance criteria did not, then create and link one or more

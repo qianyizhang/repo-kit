@@ -1,14 +1,14 @@
 ---
 name: show-gap
-version: "0.6.0"
+version: "0.8.0"
 description: >-
-  Map a fuzzy or emerging feature intent against what the repo already built,
-  planned, rejected, or deferred; discuss concrete shapes, then deliver an
-  evidence-backed fit report, implementation-ready spec, or canceled memo.
-  Use for feature gap/status/fit questions before implementation.
+  Audit a fuzzy feature or readiness question against built, planned, rejected,
+  and deferred repo evidence. May be agent-invoked for the bounded read-only fit
+  pass; discussion and spec writing require clear user intent.
 scope: repo feature gap analysis skill
 status: experimental
-last_update: 2026-07-10
+last_update: 2026-07-16
+document_class: artifact
 ---
 
 # Show Gap
@@ -20,6 +20,10 @@ Turn "I vaguely want X" into a repo-grounded understanding and, when it
 converges, a spec. The artifact is the conversation-shaped decision record — a
 fit report, then an implementation spec or a canceled memo. Code is not an output
 of this skill.
+
+An agent may invoke the initial evidence audit to prevent speculative work. Stop
+after the fit report unless the user asks to explore options, answer the grill,
+or produce a specification.
 
 ## Operating contract
 
@@ -37,8 +41,8 @@ of this skill.
 ## Ground rules
 
 - Start at `CLAUDE.md`, then `docs/index.md` as the navigator; never rely on
-  memory for runnable/stubbed status. `docs/todo/backlog.md` owns the lifecycle;
-  durable active and terminal records live under `docs/todo/items/`.
+  memory for runnable/stubbed status. `records/work-items/backlog.md` owns the lifecycle;
+  durable active and terminal records live under `records/work-items/items/`.
   `docs/deprecated/` is history, never authority.
 - **Keep the repo's governing invariant intact.** Whatever `CLAUDE.md` declares as
   the backbone/authority contract (a deterministic spine, a review gate, a safety
@@ -82,9 +86,9 @@ your repo):
 ```bash
 rg -n "<alias-regex>" docs <code-dirs> .codex/skills -S
 sed -n '1,280p' docs/index.md
-sed -n '1,220p' docs/todo/backlog.md
-find docs/todo/items -maxdepth 1 -name '*.md' -print | sort
-rg -n '^work_status:|\*\*Review:\*\* (pending|audit-requested)' docs/todo/items
+sed -n '1,220p' records/work-items/backlog.md
+find records/work-items/items -maxdepth 1 -name '*.md' -print | sort
+rg -n '^work_status:|\*\*Review:\*\* (pending|audit-requested)' records/work-items/items
 ```
 
 Then open only the directly relevant bodies, including each relevant item's
@@ -127,8 +131,12 @@ Answer these before proposing:
   owns it? Which layer only renders, adapts, or demonstrates it?
 - **Boundary:** Could the feature cross a safety/authority boundary the repo
   declares? If yes, route to review or keep it as non-authoritative draft.
-- **Maturity target:** what is the honest next step (a prototype, a shaped slice,
-  a fully live capability)? Do not force "live" when a shaped slice is right.
+- **Maturity target (drug-safety rungs):** use the CLAUDE.md done ladder —
+  `code green` / `candidate` / `release-eligible` / `released` / `deployed`;
+  use `FAITHFUL raw` vs `SYNTHESIZE design doc` for background. Do not force a
+  later rung when the applicable policy or named deployment workflow has not
+  closed it. A named human clinical assurance gate is `blocked` for the agent,
+  not a coding task the agent can close alone.
 
 ### 4. Envision before locking
 
@@ -151,14 +159,18 @@ continue — do not jump to implementation because the feature now sounds clear.
 
 ## Grill the decisions
 
-Ask only the questions needed to choose scope — usually 3-6, phrased as decisions
-(not abstract prompts), each with your recommended answer. After answers, record
-**Locked Decisions** and **Still Open**; "user answered the grill questions" is
-not "requirements are locked". A late answer that adds a *first-class noun*
-ripples through domain placement, glossary, safety, and the plan — re-run step 3
-and the glossary check rather than stapling it onto the existing spec.
+**Invoke `grilling`** for residual scope choices (serial or frontier batch when
+≥3 independent decisions are unblocked). Ask only what is needed to choose scope —
+usually 3–6 decisions. After answers, record **Locked Decisions** and **Still
+Open**; "user answered the grill questions" is not "requirements are locked". A
+late answer that adds a *first-class noun* ripples through domain placement,
+glossary, safety, and the plan — re-run step 3 and the glossary check rather than
+stapling it onto the existing spec.
 
-Reusable decision axes:
+Before proposing new work, grep canceled items, relevant ADRs, and
+`docs/deprecated/` so rejected or superseded shapes are not re-opened by accident.
+
+Reusable decision axes (feed into `grilling` as the frontier when independent):
 
 1. Is the first win a visible product surface, a durable domain model change, or a
    governance decision?

@@ -2,7 +2,8 @@
 description: Repo-governance doctrine — the doctrine/binding split, SSOT & navigator-index pattern, glossary discipline, agent-toolchain symlink layout, and the mechanical-enforcement inventory.
 scope: repo governance rules
 status: stable
-last_update: 2026-07-13
+last_update: 2026-07-16
+document_class: coordination
 ---
 
 # Governance rules
@@ -103,6 +104,19 @@ A new prose rule should ask "can `check_docs.py` own this?" before settling for
 vigilance. The semantic layer that cannot be mechanized (contradictions, stale
 terms, capture of emergent knowledge) belongs to a hygiene skill run
 periodically (`doc-hygiene-audit`).
+
+## context hygiene
+
+Portable coordination of agent **context windows** (not product releases):
+
+- Keep DECIDE / fit / slice packaging in **one continuous window** until a
+  durable handoff packet exists (work item + plan paths, stop condition, mode).
+- Prefer a **fresh window per IMPLEMENT work item**, starting from the item and
+  its Implementation Ledger — not chat memory.
+- Near degraded context (long thread, compaction pressure, tool switch): write a
+  **session handoff** before continuing; do not push on a foggy window.
+- Parallel writers use a **claim ledger**; single-writer cuts use session handoff
+  only (see the multi-agent handoff skill when present).
 
 ## housekeeping loop
 

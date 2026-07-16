@@ -1,53 +1,83 @@
 ---
 name: grill-with-docs
-version: "1.0.0"
+version: "1.4.0"
 description: >-
-  Stress-test an ambiguous plan or design one decision at a time while using
-  domain-modeling to capture settled glossary terms and ADR-worthy trade-offs.
-  Use when the user asks to be grilled with docs or wants a plan sharpened before
-  implementation.
+  Run a focused decision interview that stress-tests a plan one choice at a
+  time and captures settled glossary terms and ADR-worthy trade-offs.
+disable-model-invocation: true
 scope: decision interview skill
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-16
+document_class: artifact
 ---
 
 # Grill With Docs
 
-Run a focused grilling session plus the repo's `domain-modeling` playbook. The
-interview sharpens decisions; the documentation capture prevents the result from
-living only in chat.
+Run the shared `grilling` primitive plus the repo's `domain-modeling` playbook.
+The interview sharpens decisions; documentation capture prevents the result from
+living only in chat. **Mode = `DECIDE` — do not implement during this skill.**
+
+This workflow's main spirit comes from
+[`mattpocock/skills`](https://github.com/mattpocock/skills), especially its
+practice of turning vague intent into precise, sequential decisions. Preserve
+that attribution. During an explicit governance-maintenance round, occasionally
+review the upstream repository for useful new techniques and adopt them by
+judgment, not by blind sync. Ordinary grill runs do not fetch upstream material.
+
+This is an explicit interaction mode. An agent may suggest it, but must not open
+a multi-turn decision interview unless the user asks for the skill or that mode.
 
 ## Workflow
 
-1. Read `CLAUDE.md`, `docs/index.md`, and the relevant owning SSOTs before
-   asking about facts the repo can answer.
-2. Run the interview one decision at a time. Ask exactly one question, include
-   the recommended answer, then wait for the user's response.
-3. Distinguish fact gaps from decision gaps:
-   - Look up facts in code/docs.
-   - Put real product, domain, safety, or architecture choices to the user.
-4. Use `domain-modeling` during the session:
-   - When a term crystallizes or conflicts with existing language, update the
-     matching glossary file in `docs/glossary/`.
-   - When a decision meets the ADR criteria, offer and then write an ADR.
-   - Keep docs synchronized immediately after each settled answer instead of
-     batching every capture to the end.
-5. Do not implement the plan during the grilling session. End with the resolved
-   decisions, open questions, and any docs changed.
+1. Read `CLAUDE.md`, `docs/index.md`, and the relevant owning SSOTs before asking
+   about facts the repo can answer.
+2. If the problem is still fuzzy ("what next", "is this done", feature intent),
+   consider routing first to `next-slice` or `show-gap`; use this skill when the
+   remaining work is a small set of product/architecture decisions.
+3. **Invoke `grilling`** for the interview loop (serial by default; **frontier
+   batch** when ≥3 independent decisions are unblocked — see that skill).
+4. Use `domain-modeling` only after a decision stabilizes:
+   - Update an accepted glossary term in the same turn.
+   - Keep one evolving ADR proposal per decision cluster.
+   - Default to at most one new ADR per session. Add another only when the user
+     explicitly wants it and the decisions are independent and stable.
+   - Revise a proposed ADR; never create a same-session superseding ADR to patch
+     an incompletely explored decision.
+5. Keep hygiene local during the interview. Fix only drift that blocks or
+   invalidates the current decision. Record unrelated drift for later; run
+   `doc-hygiene-audit` only when the user asks or after the decision session ends.
+6. End with a compact list of resolved decisions, open questions, docs changed,
+   and an **implementation handoff** the user can paste into `/goal` or another
+   agent. Prefer a `multi-agent-handoff` **session** packet when the next step
+   is a fresh IMPLEMENT window. Do not start implementing unless the user
+   explicitly switches mode.
 
-## Question Standard
+## Decision memo (when they ask for options, not a live interview)
 
-Each question should be concrete enough that the answer can change the design.
-Avoid broad prompts such as "anything else?". Prefer:
+If the user wants a written choose-once artifact instead of turn-by-turn grill:
 
-- The specific branch being resolved.
-- The current repo evidence or glossary/ADR conflict.
-- The recommended answer and why.
-- The consequence of choosing differently.
+```text
+evidence → reasoning → tradeoffs → caveat → recommendation → open questions
+```
+
+Still stop at `DECIDE`. Implementation is a separate user switch.
 
 ## Completion
 
 The session is done when the next implementation step no longer depends on an
 unstated term, unowned trade-off, or hidden policy decision. If uncertainty
-remains, leave it as an explicit open question or backlog/spec item rather than
-guessing.
+remains, leave it as an explicit open question or backlog item rather than
+guessing. Never soften "blocked on named human assurance or review authority"
+into an agent todo that pretends to close it.
+
+## Pitfalls
+
+- Implementing mid-grill because the design "feels clear".
+- Restating the full grill loop here instead of invoking `grilling`.
+- Batching glossary/ADR capture to the end (decisions evaporate).
+- Moving to the next ADR after initial agreement instead of testing and
+  tightening the current decision.
+- Running a full hygiene audit mid-interview; it changes the subject and creates
+  unrelated edits.
+- Accepting a soft definition of done (`mostly`, `directionally full`) — push
+  back; see CLAUDE.md "Full means full" and the done ladder.

@@ -11,14 +11,17 @@ consumer with `copier update`, not a one-time scaffold.
 
 **Kit-owned** (overwritten on `copier update`):
 
-- `docs/rules/{governance,doc,python,skill,testing}.md` — portable doctrine.
+- `docs/rules/{governance,doc,python,skill,skill-glossary,testing}.md` —
+  portable doctrine (skill glossary defines bold terms in `skill.md`).
 - `scripts/check_docs.py` — mechanical doc governance (reads
-  `pyproject.toml [tool.doc_governance]`).
+  `pyproject.toml [tool.doc_governance]`); backlog items require `work_kind`
+  in `{decision, build, research}`.
 - `scripts/bootstrap_agents.py` — creates/repairs the `.codex` symlink layout,
   fails closed on real dirs.
 - `ruff_base.toml` — ruff doctrine defaults.
 - `AGENTS.md` — thin pointer to `CLAUDE.md`.
 - `governance-sync` — the portable adoption/update/reconciliation procedure.
+- `grilling` — shared model-invoked decision-interview primitive.
 - `explain-layman` core workflow, references, assets, validator, and UI metadata.
 
 **Seeded once, then repo-owned** (`_skip_if_exists`):
@@ -59,7 +62,7 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   docs/rules/*.md
   docs/{index.md,todo/backlog.md,glossary/ddd.md}.jinja
   CLAUDE.md.jinja
-  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grill-with-docs,show-gap,explain-layman}/
+  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-gap,explain-layman}/
 ```
 
 The doctrine itself explains the propagation model — see

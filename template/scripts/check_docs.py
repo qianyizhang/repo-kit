@@ -19,6 +19,7 @@ Checks:
 8. Agent-toolchain symlink layout matches `[tool.doc_governance.symlinks]`.
 9. Backlog-item records have valid identity, lifecycle, lineage, and ledger
    structure.
+10. Claude and Codex explicit-only skill invocation policies agree.
 """
 
 import os
@@ -37,6 +38,7 @@ MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 WORK_ID_PATTERN = re.compile(r"^AB-[A-Z0-9]+-\d{3}$")
 WORK_STATUSES = {"deferred", "ready", "wip", "blocked", "done", "partial", "canceled"}
+WORK_KINDS = {"decision", "build", "research"}
 BACKLOG_ITEM_DIR = "docs/todo/items"
 BACKLOG_REQUIRED_HEADINGS = (
     "## Intent",
@@ -324,6 +326,41 @@ def check_index_coverage(repo_root: Path, cfg: GovernanceConfig, md_files: list[
     return errors
 
 
+def check_skill_invocation_policies(repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]) -> list[str]:
+    """Keep Claude and Codex explicit-only skill metadata synchronized."""
+    errors = []
+    for filepath in sorted(md_files):
+        rel = rel_posix(filepath, repo_root)
+        if rel is None or not is_skill_manifest(rel, cfg):
+            continue
+        metadata, _, fm_err = parse_frontmatter(filepath.read_text(encoding="utf-8"))
+        if fm_err:
+            continue
+
+        claude_value = metadata.get("disable-model-invocation", "false").lower()
+        if claude_value not in {"true", "false"}:
+            errors.append(f"Skill invocation: '{rel}' has invalid disable-model-invocation value '{claude_value}'")
+            continue
+        claude_explicit_only = claude_value == "true"
+
+        openai_path = filepath.parent / "agents/openai.yaml"
+        openai_text = openai_path.read_text(encoding="utf-8") if openai_path.exists() else ""
+        policy_match = re.search(
+            r"^\s*allow_implicit_invocation:\s*(true|false)\s*$",
+            openai_text,
+            re.MULTILINE,
+        )
+        codex_explicit_only = policy_match is not None and policy_match.group(1) == "false"
+        if claude_explicit_only != codex_explicit_only:
+            openai_rel = rel_posix(openai_path, repo_root) or openai_path.as_posix()
+            errors.append(
+                f"Skill invocation: '{rel}' and '{openai_rel}' disagree; explicit-only "
+                "skills require disable-model-invocation: true and "
+                "policy.allow_implicit_invocation: false"
+            )
+    return errors
+
+
 def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
     """Validate durable one-file-per-item backlog records and their lineage."""
     records: dict[str, tuple[Path, dict[str, str], str]] = {}
@@ -341,6 +378,7 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         for key in (
             "work_id",
             "work_status",
+            "work_kind",
             "added",
             "tags",
             "depends_on",
@@ -367,6 +405,14 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
                 f"Backlog item: '{rel}' has invalid work_status '{work_status}' "
                 f"(must be one of {sorted(WORK_STATUSES)})"
             )
+
+        work_kind = metadata.get("work_kind", "")
+        if work_kind and work_kind not in WORK_KINDS:
+            errors.append(
+                f"Backlog item: '{rel}' has invalid work_kind '{work_kind}' "
+                f"(must be one of {sorted(WORK_KINDS)})"
+            )
+
 
         for heading in BACKLOG_REQUIRED_HEADINGS:
             if not re.search(rf"^{re.escape(heading)}\s*$", content, re.MULTILINE):
@@ -414,6 +460,7 @@ def run(repo_root: Path, file_args: list[str] | None = None) -> int:
     global_errors = (
         check_symlink_layout(repo_root, cfg)
         + check_index_coverage(repo_root, cfg, all_md_files)
+        + check_skill_invocation_policies(repo_root, cfg, all_md_files)
         + check_backlog_items(repo_root, all_md_files)
     )
 

@@ -2,3 +2,5 @@ interface:
   display_name: "Explain Layman"
   short_description: "Build governed stakeholder explainers"
   default_prompt: "Use $explain-layman to turn this repository topic into the clearest suitable stakeholder artifact while preserving the local binding."
+policy:
+  allow_implicit_invocation: false

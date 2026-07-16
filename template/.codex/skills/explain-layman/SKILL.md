@@ -1,11 +1,11 @@
 ---
 name: explain-layman
-version: "1.7.0"
+version: "1.8.1"
 description: >-
   Create or revise plain-language stakeholder explainers as standalone pages,
-  narrative slide decks, linked series, or focused interactive maps. Use for
-  non-technical communication that must preserve a repository's authority,
-  safety, provenance, terminology, and release boundaries.
+  narrative slide decks, linked series, or focused interactive maps while
+  preserving repository authority and provenance.
+disable-model-invocation: true
 scope: stakeholder explainer skill
 status: stable
 last_update: 2026-07-13
@@ -15,6 +15,10 @@ last_update: 2026-07-13
 
 Turn one teaching job into a non-technical stakeholder artifact without
 weakening the repository's contracts.
+
+This is an explicit interaction mode. An agent may suggest it, but must not
+start producing or revising an explainer merely because plain-language
+communication could be useful.
 
 ## Ownership and role split
 

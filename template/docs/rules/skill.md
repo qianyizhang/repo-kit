@@ -2,7 +2,8 @@
 description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
 scope: skill authoring rules
 status: stable
-last_update: 2026-07-13
+last_update: 2026-07-16
+document_class: coordination
 ---
 
 # Skill rules
@@ -10,7 +11,8 @@ last_update: 2026-07-13
 What a skill is *allowed* to do is governed by `CLAUDE.md` ("Skills are the
 document-processing substrate" + the governing invariant); this file is how to
 write one well. `.codex/skills/` is the single home (symlink layout in
-`CLAUDE.md`); `docs/index.md` §Playbooks is the skill map.
+`CLAUDE.md`); `docs/index.md` §Playbooks is the skill map. Bold terms are defined
+in [`skill-glossary.md`](skill-glossary.md).
 
 The root virtue is **predictability**: the agent takes the same *process* every
 run, not the same output. Every rule below is a lever on it. (Vocabulary adapted
@@ -44,8 +46,34 @@ session in this repo; each word pays rent. Target ≤ ~45 words: what the skill
 is, one trigger clause per *genuinely distinct* branch, plus any reach clause a
 sibling skill depends on (e.g. extraction routes pack repair to
 `guideline-ingestion`). Synonym triggers restating one branch are duplication;
-operating policy ("do not implement unless…") belongs in the body, never the
-description.
+the invocation boundary is part of the trigger and belongs here. Other
+operating policy ("do not implement unless…") belongs in the body.
+
+Classify invocation deliberately:
+
+- **Model-invoked (agent-invokable):** a bounded, low-surprise workflow that
+  directly answers a recognized request. Keep the description narrow enough that
+  ordinary work does not accidentally match it. Front-load **leading words**;
+  one trigger clause per genuine **branch**.
+- **User-invoked (explicit-user only):** an interaction mode or substantial
+  artifact workflow whose surprise/cost is material. Set
+  `disable-model-invocation: true` in `SKILL.md` and
+  `policy.allow_implicit_invocation: false` in `agents/openai.yaml`. Description
+  is a **human one-liner** (picker-oriented): strip "Use when…" trigger lists.
+  The agent may suggest it; recognition is not consent.
+- A mixed skill must state the bounded agent-invokable phase and the point that
+  requires user intent. Prefer this over duplicating most of a workflow across
+  two skills.
+- Trade **context load** (more model-invoked descriptions) against **cognitive
+  load** (more user-only names). When user-only skills multiply past memory,
+  prefer a **Main flows** map in the navigator index; add a **router skill**
+  only if humans still cannot find the path.
+
+The two explicit-only controls are toolchain adapters for one policy and must
+agree; `scripts/check_docs.py` rejects drift. User-invoked skills orchestrate
+model-invokable disciplines, never another user-invoked skill. If a workflow
+needs composition, extract the reusable discipline only when a real second
+caller exists; do not create a wrapper/primitive pair speculatively.
 
 ## body
 
@@ -57,7 +85,14 @@ description.
 - **Completion criteria are checkable, preferably machine-checkable.** Prefer a
   gate that exits non-zero (`validate`, `coverage --require-full`, `ledger
   report FULL ✓`, fail-closed `resolve`/`mint`) over prose bounds. "Full" is a
-  gate verdict, not a feeling.
+  gate verdict, not a feeling. Vague bounds invite **premature completion**.
+- **Premature completion defence (order):** sharpen the completion criterion
+  first; only if it is irreducibly fuzzy *and* the agent rushes, hide
+  **post-completion steps** behind a real context boundary (fresh session or
+  subagent) — an inline model-invoked call does not clear them.
+- **Leading words.** Collapse restated policy triads into one pretrained (or
+  clearly defined) token used in the body and, when model-invoked, the
+  description.
 - **Role split stated explicitly.** Every skill names what the agent judges vs
   what deterministic code gates — the governing invariant applied to authoring.
 - **Subagent durability.** Any fan-out contract tells subagents to write their
@@ -65,7 +100,7 @@ description.
 - **Prohibitions are for hard rails only.** Safety/authority invariants stay as
   explicit "never" lines, each paired with the positive route ("route to
   `UNBOUND_LIBRARY`", "defer rather than guess"). Soft preferences are phrased
-  as the target behaviour, not a "do not".
+  as the target behaviour, not a "do not" (**negation** failure mode).
 
 ## pruning — on every edit round
 

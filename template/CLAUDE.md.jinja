@@ -103,6 +103,18 @@ today, the env vars that redirect side-effecting roots) go here.
 SSOT: `docs/rules/skill.md`. `.codex/skills/` is the single home; `docs/index.md`
 §Playbooks is the skill map.
 
+Invocation policy:
+
+- **Explicit-user only:** `explain-layman` and `grill-with-docs`. Their
+  `disable-model-invocation` and `agents/openai.yaml` policy fields enforce this
+  for Claude and Codex. An agent may suggest either, but does not invoke it.
+- **Shared grill loop:** model-invoked `grilling` (composed by
+  `grill-with-docs`, `show-gap`, and any local planner that needs the loop).
+- **Bounded automatic audit:** `show-gap` may be selected for an ambiguous
+  readiness/fit question because its first phase is read-only repo grounding.
+  Extending it into a decision interview or writing a specification requires
+  clear user intent.
+
 ## Housekeeping (after a task)
 
 - Revisit `CLAUDE.md` (this file): doctrine refinements go to `docs/rules/` and
