@@ -98,11 +98,10 @@ def build_parser() -> argparse.ArgumentParser:
     status = sub.add_parser("status", help="Coverage / mastery snapshot for this profile")
     status.add_argument("--json", action="store_true")
 
-    html_p = sub.add_parser("html", help="Write a self-contained offline HTML quiz")
-    html_p.add_argument("--out", type=Path, default=None, help="Default: <state-dir>/quiz.html")
+    html_p = sub.add_parser("html", help="Write the self-contained offline Mastery Ladder game")
+    html_p.add_argument("--out", type=Path, default=None, help="Default: <state-dir>/ladder.html")
     html_p.add_argument("--count", type=int, default=15)
-    html_p.add_argument("--seed", type=int, default=None)
-    html_p.add_argument("--title", default="Glossary Drill · 通用语言")
+    html_p.add_argument("--title", default="Glossary Mastery Ladder")
     html_p.add_argument("--mode", choices=["quiz", "onboard"], default="quiz")
     html_p.add_argument("--open", action="store_true", help="Open the file in the default browser")
     return parser
@@ -212,28 +211,22 @@ def _cmd_status(ctx: Context, args: argparse.Namespace) -> int:
 
 
 def _cmd_html(ctx: Context, args: argparse.Namespace) -> int:
-    from .html_export import write_html
+    from .html_export import build_ladder_payload, write_html
 
     ordered = _ordered_for(ctx, args.mode, args.all)
     if not ordered:
         print("No cards in deck. Add docs/glossary/*.md tables or pass --glossary-dir.", file=sys.stderr)
         return 1
-    if args.mode == "quiz":
-        bump_session(ctx.state)
-        ctx.save()
 
-    rng = random.Random(args.seed) if args.seed is not None else random.Random()
-    deck = ctx.deck(args.all)
-    items = [
-        build_mcq(card, deck, state=ctx.state, locale=ctx.locale, rng=rng) for card in ordered[: max(1, args.count)]
-    ]
+    board = ordered[: max(1, args.count)]
+    payload = build_ladder_payload(board, state=ctx.state, locale=ctx.locale)
 
-    out = args.out or (ctx.state_dir / "quiz.html")
+    out = args.out or (ctx.state_dir / "ladder.html")
     if not out.is_absolute():
         out = ctx.repo_root / out
     path = write_html(
         out,
-        items,
+        payload,
         title=args.title,
         subtitle=f"{args.mode} · {ctx.locale} · SSOT docs/glossary",
     )

@@ -1,6 +1,6 @@
 ---
 name: explain-layman
-version: "1.8.1"
+version: "1.8.2"
 description: >-
   Create or revise plain-language stakeholder explainers as standalone pages,
   narrative slide decks, linked series, or focused interactive maps while
@@ -8,7 +8,7 @@ description: >-
 disable-model-invocation: true
 scope: stakeholder explainer skill
 status: stable
-last_update: 2026-07-13
+last_update: 2026-07-16
 document_class: artifact
 ---
 

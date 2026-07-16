@@ -152,6 +152,18 @@ def test_mcq_explain_teaches_on_miss() -> None:
     assert item.option_terms[wrong_idx] in msg  # names what you picked
 
 
+def test_decoy_pool_shared_with_html_export_never_fabricates() -> None:
+    from glossary_drill.mcq import decoy_pool
+
+    deck = default_deck(_cards(), binding_from_dict({}))
+    real_terms = {c.term for c in deck}
+    card = next(c for c in deck if c.term == "Candidate")
+    pool = decoy_pool(card, deck, limit=8)
+    assert set(pool) <= real_terms
+    assert card.term not in pool
+    assert len(pool) == len(set(pool))  # no duplicates
+
+
 def test_mcq_never_leaks_term_zh_calque() -> None:
     cards = _cards()
     card = next(c for c in cards if c.term == "ProtocolAtom")
@@ -290,30 +302,72 @@ def test_cli_lint_record_nudges_queue(tmp_path: Path, capsys: pytest.CaptureFixt
 
 def test_cli_html(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     out = tmp_path / "vibe.html"
-    assert main(_base(tmp_path, "html", "--out", str(out), "--count", "3", "--seed", "1")) == 0
+    assert main(_base(tmp_path, "html", "--out", str(out), "--count", "3")) == 0
     printed = capsys.readouterr().out.strip()
     assert Path(printed) == out
     text = out.read_text(encoding="utf-8")
-    assert "Glossary Drill" in text and "application/json" in text
+    assert "Mastery Ladder" in text and "application/json" in text
 
 
-# ---------------------------------------------------------------- HTML export
+# ---------------------------------------------------------------- HTML export (Mastery Ladder)
 
 
-def test_html_export_theme_and_no_calque(tmp_path: Path) -> None:
-    from glossary_drill.html_export import build_quiz_items, render_html, write_html
+def test_ladder_payload_seeds_box_from_state_no_calque() -> None:
+    from glossary_drill.html_export import build_ladder_payload
 
     deck = default_deck(_cards(), binding_from_dict({"spine": ["Candidate", "Bounded Context"]}))
-    items = build_quiz_items(deck, state=DrillState(), locale="bilingual", count=3, seed=9)
-    html = render_html(items, title="Test Drill")
-    assert "Test Drill" in html and "quiz-data" in html
-    # Both themes styled, plus a resume/sync bridge back to the CLI store.
+    state = DrillState()
+    record_answer(state, "Candidate", correct=True)
+    record_answer(state, "Candidate", correct=True)
+
+    payload = build_ladder_payload(deck, state=state, locale="bilingual")
+    by_term = {row["term"] for row in payload}
+    assert {c.term for c in deck} == by_term
+
+    candidate = next(row for row in payload if row["term"] == "Candidate")
+    assert candidate["box"] == 2  # seeded from CLI state, continuity across surfaces
+    assert "抽取候选" not in candidate["en"] and "抽取候选" not in candidate["zh"]
+
+    unseen = next(row for row in payload if row["term"] != "Candidate")
+    assert unseen["box"] == 0  # never-drilled terms start at the bottom rung
+
+    # Decoys are always real sibling terms from the same deck — never fabricated.
+    real_terms = {c.term for c in deck}
+    for row in payload:
+        assert set(row["neighbors"]) <= real_terms
+        assert row["term"] not in row["neighbors"]
+
+
+def test_html_export_theme_and_offline_and_no_calque(tmp_path: Path) -> None:
+    from glossary_drill.html_export import build_ladder_payload, render_html, write_html
+
+    deck = default_deck(_cards(), binding_from_dict({"spine": ["Candidate", "Bounded Context"]}))
+    payload = build_ladder_payload(deck, state=DrillState(), locale="bilingual")
+    html = render_html(payload, title="Test Ladder")
+    assert "Test Ladder" in html and "ladder-data" in html
+    # Both themes styled, plus a sync bridge back to the CLI store.
     assert "prefers-color-scheme: dark" in html
     assert 'data-theme="light"' in html
     assert "glossary-drill record" in html  # browser → CLI sync bridge
     assert "抽取候选" not in html  # term-name calque never rendered as quiz content
-    out = write_html(tmp_path / "q.html", items)
+    # Self-contained: no network calls anywhere in the artifact.
+    for token in ("fetch(", "XMLHttpRequest", "<link", "http://", "https://"):
+        assert token not in html, token
+    out = write_html(tmp_path / "q.html", payload)
     assert out.is_file() and out.stat().st_size > 500
+
+
+def test_ladder_mastered_box_switches_to_recall() -> None:
+    from glossary_drill.html_export import build_ladder_payload
+    from glossary_drill.models import MASTERED_BOX
+
+    deck = default_deck(_cards(), binding_from_dict({"spine": ["Candidate"]}))
+    state = DrillState()
+    for _ in range(MASTERED_BOX):
+        record_answer(state, "Candidate", correct=True)
+    payload = build_ladder_payload(deck, state=state, locale="en")
+    candidate = next(row for row in payload if row["term"] == "Candidate")
+    assert candidate["box"] >= MASTERED_BOX  # client swaps MCQ for type-the-term at this box
 
 
 def test_real_confusable_glosses_are_short() -> None:

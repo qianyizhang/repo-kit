@@ -22,6 +22,7 @@ consumer with `copier update`, not a one-time scaffold.
 - `AGENTS.md` — thin pointer to `CLAUDE.md`.
 - `governance-sync` — the portable adoption/update/reconciliation procedure.
 - `grilling` — shared model-invoked decision-interview primitive.
+- `handoff` — session handoff packet and multi-agent claim-ledger protocol.
 - `explain-layman` core workflow, references, assets, validator, and UI metadata.
 
 **Seeded once, then repo-owned** (`_skip_if_exists`):
@@ -29,7 +30,7 @@ consumer with `copier update`, not a one-time scaffold.
 - `CLAUDE.md`, `docs/index.md`, `records/work-items/backlog.md`, `docs/glossary/ddd.md`
   (jinja skeletons with the repo's bindings).
 - Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `domain-modeling`,
-  `glossary-drill`, `grill-with-docs`, and `show-gap`.
+  `glossary-drill`, `grill-with-docs`, `show-gap`, and `handoff`.
 - `.codex/skills/explain-layman/references/repo-bindings.md` — the consumer's
   audience, authority, vocabulary, paths, source identity, and verification
   profile.
@@ -63,7 +64,7 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   docs/{index.md,glossary/ddd.md}.jinja
   records/work-items/backlog.md.jinja
   CLAUDE.md.jinja
-  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-gap,explain-layman}/
+  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-gap,explain-layman,handoff}/
 ```
 
 The doctrine itself explains the propagation model — see

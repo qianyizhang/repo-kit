@@ -27,7 +27,8 @@ uv run --project .codex/skills/glossary-drill glossary-drill lint --text "…"
 uv run --project .codex/skills/glossary-drill glossary-drill --repo-root . html --count 15 --open
 ```
 
-HTML quiz is a self-contained offline file (default `artifacts/glossary-drill/quiz.html`).
+HTML output is the self-contained offline Mastery Ladder game (default
+`artifacts/glossary-drill/ladder.html`).
 
 Wire tests (optional, recommended):
 

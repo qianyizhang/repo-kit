@@ -1,13 +1,13 @@
 ---
 name: doc-hygiene-audit
-version: "1.2.1"
+version: "1.2.2"
 description: >-
   Keep the doc corpus honest: capture knowledge, reconcile drift, review
   implementation decisions/deviations with the user, and restructure when the
   layout causes drift. Use after pivots/refactors or for doc hygiene.
 scope: documentation hygiene skill
 status: stable
-last_update: 2026-07-10
+last_update: 2026-07-16
 document_class: artifact
 ---
 
@@ -72,7 +72,7 @@ home — don't just note it.
 |:--|:--|
 | A domain term not in the glossary | `docs/glossary/` (format per `docs/rules/doc.md`) |
 | A settled decision living only in a report / PR / conversation | the owning design/architecture SSOT |
-| A `TODO`/`HACK`/`WHY` deferral in code that's untracked | a new or existing `docs/todo/items/` record |
+| A `TODO`/`HACK`/`WHY` deferral in code that's untracked | a new or existing `records/work-items/items/` record |
 | A resolved or abandoned backlog item still marked open | that item's Status History + current `work_status` |
 | An emerged concept with no doc home | propose a home (§3) |
 
@@ -113,7 +113,7 @@ rg -n "docs/deprecated/" docs -g '!docs/deprecated/**'   # inspect framing of ea
 
 ## 3. Review implementation intelligence
 
-Scan `docs/todo/items/` for `pending` / `audit-requested` review states,
+Scan `records/work-items/items/` for `pending` / `audit-requested` review states,
 decisions not reflected in their owning SSOT, deviations that changed acceptance
 or authority boundaries, assumptions contradicted by later evidence, repeated
 verification failures, and `partial` items without valid residual work.

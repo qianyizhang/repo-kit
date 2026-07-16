@@ -1,15 +1,16 @@
 ---
 name: glossary-drill
-version: "0.3.1"
+version: "0.4.0"
 description: >-
-  Onboard and quiz ubiquitous-language glossary terms (MCQ) with spaced
-  repetition and miss-explanations, and lint prose for _Avoid_ / confusable
-  misuse. Use when onboarding engineers, drilling vocab, or checking design
-  notes against docs/glossary. Portable across kit repos.
+  Onboard and quiz ubiquitous-language glossary terms (MCQ + a Mastery Ladder
+  game with free-recall at high boxes) with spaced repetition and
+  miss-explanations, and lint prose for _Avoid_ / confusable misuse. Use when
+  onboarding engineers, drilling vocab, or checking design notes against
+  docs/glossary. Portable across kit repos.
 scope: glossary onboard quiz lint skill
 status: experimental
-last_update: 2026-07-11
 document_class: artifact
+last_update: 2026-07-16
 ---
 
 # Glossary Drill
@@ -27,7 +28,7 @@ uv run --project .codex/skills/glossary-drill glossary-drill --help
 uv run --project .codex/skills/glossary-drill glossary-drill quiz --count 5
 uv run --project .codex/skills/glossary-drill glossary-drill status
 uv run --project .codex/skills/glossary-drill glossary-drill lint --text "paste design notes"
-# Self-contained offline HTML quiz (light/dark, keyboard, resume):
+# Self-contained offline Mastery Ladder game (light/dark, keyboard, ladder board):
 uv run --project .codex/skills/glossary-drill glossary-drill --repo-root . html --count 15 --open
 ```
 
@@ -54,9 +55,17 @@ latitude belongs to the agent.
 4. **`record`** — persist one answer (`--correct` / `--wrong --confused-with T`).
 5. **`lint`** — paste (`--text`) / `--file` / stdin → `_Avoid_` and confusable
    findings. `--record` nudges flagged terms up the drill queue.
-6. **`html`** — self-contained offline HTML quiz (light/dark toggle, A–D keys,
-   resume from last round, weak-first practice, and a copy-paste bridge back to
-   CLI state). Presentation only — glossary MD stays SSOT.
+6. **`html`** — self-contained offline **Mastery Ladder** game (light/dark
+   toggle, A–D keys, combo/XP, a full ladder board, and a copy-paste bridge
+   back to CLI state). Every term climbs boxes `0..MAX_BOX`; a correct answer
+   climbs a rung, a miss drops the chip back to box 0 — this always plays the
+   weakest terms soonest, superseding the old separate "weak-first" button.
+   Boxes below `MASTERED_BOX` are multiple choice (real confusable-neighbour
+   decoys); `MASTERED_BOX`+ swaps to **free recall** — type the term from
+   memory, graded client-side. Challenge selection and MCQ decoys run in
+   vanilla JS from a per-card payload (glosses + real-term decoy pool); Python
+   only bakes that payload and each card's starting box from CLI state — no
+   network, no agent at runtime. Presentation only — glossary MD stays SSOT.
 
 ### Default deck
 
@@ -110,7 +119,8 @@ For **lint**: run on PR descriptions, design dumps, or agent plans before implem
 
 ## Non-goals
 
-- Scenario packs / free-text answers / type-the-term hard mode.
+- Scenario packs / applied "which term fits this stem" items (agent-authored
+  enrichment is future work — see `docs/design/glossary-drill-agent-driven.md`).
 - Web workbench coupling or dual committed card banks.
 - Auto-writing glossary `_Avoid_` (`promote` later via `domain-modeling`).
 - User-global leaderboards / networked sync.
@@ -126,5 +136,7 @@ See [`references/adopt.md`](references/adopt.md). Kit seeds this skill once
 - Distractors are real sibling terms; a tiny glossary yields fewer options (never
   fabricated fillers). Add more terms for richer MCQs.
 - `correct_term=` in CLI output is for agents/tests — hide from learners if desired.
-- The HTML quiz stores progress in the browser; use its **Sync to CLI** block to
-  fold browser rounds into `artifacts/glossary-drill` state.
+- The Mastery Ladder stores live progress in the browser (its own
+  `glossary-drill:ladder:v1` localStorage key, seeded from CLI state but not
+  shared with it); use its **Sync to CLI** block to fold a browser run into
+  `artifacts/glossary-drill` state via `record` calls.

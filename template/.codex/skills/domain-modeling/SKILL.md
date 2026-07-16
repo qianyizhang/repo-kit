@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-version: "1.1.0"
+version: "1.2.0"
 description: >-
   Build and sharpen the project's domain model: keep glossary files updated with
   ubiquitous language, record architectural decisions as sequential ADR files,
@@ -9,7 +9,7 @@ description: >-
   decisions.
 scope: domain modeling skill
 status: stable
-last_update: 2026-07-07
+last_update: 2026-07-16
 document_class: artifact
 ---
 
@@ -22,9 +22,8 @@ This playbook governs how we define, evolve, and document the project's
 ubiquitous language (glossaries) and durable design choices (Architecture
 Decision Records, or ADRs).
 
-Active domain modeling prevents "vibe coding" and software entropy. We record
-decisions *as they crystallize* instead of letting them dissolve into code
-comments or rot in long documentation headers.
+Record stable vocabulary and durable decisions. Do not turn exploratory
+conversation into a sequence of premature records.
 
 When paired with `grill-with-docs`, this skill is the documentation hand: the
 interview asks one decision at a time, while this skill updates glossary entries
@@ -101,8 +100,8 @@ All three criteria MUST be met:
 1. Scan `docs/adr/` for the highest existing number and increment it. If none
    exist, start with `0001`.
 2. Create `docs/adr/NNNN-slug.md` using lowercase, hyphen-separated slugs.
-3. Write the ADR using `references/ADR-FORMAT.md`. Keep it concise: a single
-   paragraph of context, decision, and rationale is often enough.
+3. Write the ADR using `references/ADR-FORMAT.md`. Use short bullets and tables;
+   include only facts that change the decision or explain a non-obvious cost.
 4. Update the `docs/index.md` navigator to register the new ADR.
 5. Replace duplicated decision prose in docs and code comments with a short local
    binding plus an ADR reference. Keep operational details in the owning SSOT;
@@ -112,10 +111,20 @@ All three criteria MUST be met:
 
 ### During decision interviews
 Ask at most one ADR question at a time. Phrase it as a concrete decision with the
-recommended answer, the alternative that remains plausible, and the cost of
-changing later. When the user accepts and all three criteria hold, write the ADR
-immediately; otherwise record the unresolved question in the owning spec/backlog
-rather than manufacturing an ADR.
+recommended answer, the plausible alternative, and the cost of changing later.
+
+Before creating or accepting an ADR:
+
+1. Restate the proposed lock in precise language.
+2. Test scope, boundaries, exceptions, and consequences.
+3. Resolve or list remaining uncertainty.
+4. Let the user review the final compact wording.
+
+The first answer starts this pass; it does not finish it. Keep one `proposed` ADR
+per decision cluster and revise it while the discussion evolves. Default to one
+new ADR per session. A second requires explicit user intent plus a genuinely
+independent, stable decision. Never supersede or deprecate an ADR created in the
+same session; that signals the first decision was recorded too early.
 
 ## Pitfalls
 
@@ -130,3 +139,5 @@ rather than manufacturing an ADR.
   accepted, ADRs are immutable. If a decision changes, create
   `NNNN-new-decision.md` (status `accepted`) and set the old ADR's status to
   `superseded by ADR-NNNN`.
+- **Essay ADRs**: Long narrative hides the actual lock. Use the smallest set of
+  structured facts, options, and consequences that preserves the decision.

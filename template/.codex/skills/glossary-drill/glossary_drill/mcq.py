@@ -88,6 +88,26 @@ def explain(item: McqItem, chosen_index: int, *, locale: Locale = "bilingual") -
     return "\n".join(lines)
 
 
+def decoy_pool(
+    card: Card,
+    pool: Sequence[Card],
+    *,
+    state: DrillState | None = None,
+    limit: int = 8,
+) -> list[str]:
+    """Ordered real-term decoy candidates for ``card`` — best distractors first.
+
+    Shared by ``build_mcq`` (server-rendered CLI quiz) and the offline HTML
+    ladder game's client-side MCQ builder, so both draw from exactly one
+    "distractors are always real sibling terms, never fabricated" selection
+    algorithm. The order is baked at build time; a per-round RNG in the
+    consumer picks and shuffles from this pool.
+    """
+    by_term = {c.term: c for c in pool}
+    ordered = _decoy_cards(card, pool, by_term, state=state, rng=random.Random(0), n=limit)
+    return [c.term for c in ordered]
+
+
 def _decoy_cards(
     card: Card,
     pool: Sequence[Card],
@@ -131,6 +151,11 @@ def _split_neighbors(text: str) -> list[str]:
     import re
 
     return [p.strip() for p in re.split(r"[,;/]| or ", text) if p.strip()]
+
+
+def note_for(card: Card) -> str:
+    """The ``≠`` / do-not-confuse caveat shown on a miss. Public: shared with html_export."""
+    return _short_note(card)
 
 
 def _short_note(card: Card) -> str:
