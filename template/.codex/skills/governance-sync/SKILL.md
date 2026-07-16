@@ -1,6 +1,6 @@
 ---
 name: governance-sync
-version: "1.1.0"
+version: "1.2.0"
 description: >-
   Adopt or update the shared governance kit in a repository: run Copier for
   managed files, reconcile seeded bindings and skill profiles, consolidate the
@@ -8,7 +8,8 @@ description: >-
   kit updates, or promoting portable refinements upstream.
 scope: governance kit adoption and sync skill
 status: stable
-last_update: 2026-07-13
+last_update: 2026-07-15
+document_class: artifact
 ---
 
 # Governance kit sync
@@ -25,6 +26,11 @@ bindings. Never let either side silently take the other's authority.
 | `governance-sync` skill core | Repository implementation and product documentation |
 | `explain-layman` core, references, assets, validator, and UI metadata | `explain-layman/references/repo-bindings.md` |
 | Other paths not listed in Copier `_skip_if_exists` | Exact paths listed in Copier `_skip_if_exists` |
+
+Governance-kit releases from `v0.6.0` onward carry the portable document-class
+profiles and Coordination Spine doctrine. Consumer repositories own the exact
+class locations, route areas, and any declared extension classes in
+`pyproject.toml`; do not encode those local bindings in the managed validator.
 
 Portable changes go to the kit first. Repository contracts go to their binding
 file. Never customize a managed skill core in a consumer.

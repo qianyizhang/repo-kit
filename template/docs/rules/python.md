@@ -3,6 +3,7 @@ description: Python style doctrine — semantic typehints, closed value sets (Li
 scope: python style rules
 status: stable
 last_update: 2026-07-07
+document_class: coordination
 ---
 
 # Python rules

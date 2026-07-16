@@ -26,7 +26,7 @@ consumer with `copier update`, not a one-time scaffold.
 
 **Seeded once, then repo-owned** (`_skip_if_exists`):
 
-- `CLAUDE.md`, `docs/index.md`, `docs/todo/backlog.md`, `docs/glossary/ddd.md`
+- `CLAUDE.md`, `docs/index.md`, `records/work-items/backlog.md`, `docs/glossary/ddd.md`
   (jinja skeletons with the repo's bindings).
 - Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `domain-modeling`,
   `glossary-drill`, `grill-with-docs`, and `show-gap`.
@@ -60,7 +60,8 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   pyproject-doc-governance.toml.jinja
   scripts/{check_docs,bootstrap_agents}.py
   docs/rules/*.md
-  docs/{index.md,todo/backlog.md,glossary/ddd.md}.jinja
+  docs/{index.md,glossary/ddd.md}.jinja
+  records/work-items/backlog.md.jinja
   CLAUDE.md.jinja
   .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-gap,explain-layman}/
 ```

@@ -9,6 +9,7 @@ disable-model-invocation: true
 scope: stakeholder explainer skill
 status: stable
 last_update: 2026-07-13
+document_class: artifact
 ---
 
 # Explain Layman

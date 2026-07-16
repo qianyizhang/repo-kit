@@ -18,7 +18,7 @@ _envops:
 _skip_if_exists:
   - CLAUDE.md
   - docs/index.md
-  - docs/todo/backlog.md
+  - records/work-items/backlog.md
   - docs/glossary/ddd.md
   - pyproject-doc-governance.toml
   - ".codex/skills/doc-hygiene-audit/SKILL.md"

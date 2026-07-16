@@ -14,12 +14,13 @@ Checks:
 5. Backticked repo-relative path references in authority docs point to
    existing files/directories.
 6. Skill manifests (SKILL.md under a skills dir) carry a semver `version:`.
-7. Navigator-index coverage: every doc matching `index_required_globs` is
-   referenced from `index_file`.
-8. Agent-toolchain symlink layout matches `[tool.doc_governance.symlinks]`.
-9. Backlog-item records have valid identity, lifecycle, lineage, and ledger
+7. Document classes are declared, configured, complete, and location-valid.
+8. Navigator routability: every configured area exists and is routed from the
+   compact `index_file` (complete discovery belongs to generated Human View).
+9. Agent-toolchain symlink layout matches `[tool.doc_governance.symlinks]`.
+10. Backlog-item records have valid identity, lifecycle, lineage, and ledger
    structure.
-10. Claude and Codex explicit-only skill invocation policies agree.
+11. Claude and Codex explicit-only skill invocation policies agree.
 """
 
 import os
@@ -39,7 +40,7 @@ SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 WORK_ID_PATTERN = re.compile(r"^AB-[A-Z0-9]+-\d{3}$")
 WORK_STATUSES = {"deferred", "ready", "wip", "blocked", "done", "partial", "canceled"}
 WORK_KINDS = {"decision", "build", "research"}
-BACKLOG_ITEM_DIR = "docs/todo/items"
+BACKLOG_ITEM_DIR = "records/work-items/items"
 BACKLOG_REQUIRED_HEADINGS = (
     "## Intent",
     "## Acceptance Criteria",
@@ -47,6 +48,13 @@ BACKLOG_REQUIRED_HEADINGS = (
     "## Status History",
     "## Implementation Ledger",
 )
+
+
+@dataclass(frozen=True)
+class DocumentClassProfile:
+    required_fields: tuple[str, ...]
+    allowed_prefixes: tuple[str, ...]
+    allowed_paths: frozenset[str]
 
 
 @dataclass(frozen=True)
@@ -59,7 +67,8 @@ class GovernanceConfig:
     skills_dirs: tuple[str, ...]
     deprecated_dir: str
     index_file: str
-    index_required_globs: tuple[str, ...]
+    index_route_areas: tuple[str, ...]
+    document_classes: dict[str, DocumentClassProfile]
     symlinks: dict[str, str]
 
     @property
@@ -93,7 +102,15 @@ def load_config(repo_root: Path) -> GovernanceConfig:
             skills_dirs=tuple(raw["skills_dirs"]),
             deprecated_dir=raw["deprecated_dir"],
             index_file=raw["index_file"],
-            index_required_globs=tuple(raw["index_required_globs"]),
+            index_route_areas=tuple(raw["index_route_areas"]),
+            document_classes={
+                name: DocumentClassProfile(
+                    required_fields=tuple(profile.get("required_fields", [])),
+                    allowed_prefixes=tuple(profile.get("allowed_prefixes", [])),
+                    allowed_paths=frozenset(profile.get("allowed_paths", [])),
+                )
+                for name, profile in raw["document_classes"].items()
+            },
             symlinks=dict(raw.get("symlinks", {})),
         )
     except KeyError as e:
@@ -102,7 +119,7 @@ def load_config(repo_root: Path) -> GovernanceConfig:
 
 def glob_match(rel_path: str, pattern: str) -> bool:
     """Anchored glob where `*` does not cross `/` (fnmatch's does)."""
-    # SAMPLE: "docs/*.md" matches "docs/mvp.md", not "docs/todo/backlog.md"
+    # SAMPLE: "docs/*.md" matches "docs/mvp.md", not "records/work-items/backlog.md"
     regex = "".join(
         "[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c) for c in pattern
     )
@@ -208,6 +225,47 @@ def parse_frontmatter(content: str) -> tuple[dict[str, str], int, str]:
     return metadata, end_line_idx + 1, ""
 
 
+def check_document_class(
+    rel_path: str, metadata: dict[str, str], cfg: GovernanceConfig
+) -> list[str]:
+    """Validate the declared class profile and its repository-owned location."""
+    class_name = metadata.get("document_class", "")
+    if not class_name:
+        return ["Frontmatter: Missing required key 'document_class'"]
+    profile = cfg.document_classes.get(class_name)
+    if profile is None:
+        return [f"Frontmatter: Undeclared document_class '{class_name}'"]
+    errors = [
+        f"Frontmatter: Class '{class_name}' missing required key '{key}'"
+        for key in profile.required_fields
+        if not metadata.get(key)
+    ]
+    if rel_path not in profile.allowed_paths and not any(
+        rel_path.startswith(prefix) for prefix in profile.allowed_prefixes
+    ):
+        errors.append(
+            f"Frontmatter: Class '{class_name}' is not allowed at '{rel_path}'"
+        )
+    if class_name == "report":
+        outcome = metadata.get("report_outcome", "")
+        allowed_outcomes = {"promoted", "inconclusive", "archive_eligible"}
+        if outcome not in allowed_outcomes:
+            errors.append(f"Frontmatter: Report has invalid report_outcome '{outcome}'")
+        if outcome == "inconclusive":
+            for key in ("inconclusive_reason", "review_trigger"):
+                if not metadata.get(key):
+                    errors.append(
+                        f"Frontmatter: Inconclusive report missing required key '{key}'"
+                    )
+        if outcome == "archive_eligible":
+            for key in ("archive_id", "promoted_destinations"):
+                if not metadata.get(key):
+                    errors.append(
+                        f"Frontmatter: Archive-eligible report missing required key '{key}'"
+                    )
+    return errors
+
+
 def check_file(
     filepath: Path, repo_root: Path, cfg: GovernanceConfig
 ) -> tuple[list[str], bool]:
@@ -239,6 +297,7 @@ def check_file(
         for key in required_keys:
             if key not in metadata:
                 errors.append(f"Frontmatter: Missing required key '{key}'")
+        errors.extend(check_document_class(rel_path, metadata, cfg))
 
         status = metadata.get("status")
         valid_statuses = {"experimental", "stable", "deprecated"}
@@ -357,10 +416,8 @@ def check_symlink_layout(repo_root: Path, cfg: GovernanceConfig) -> list[str]:
     return errors
 
 
-def check_index_coverage(
-    repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]
-) -> list[str]:
-    """Every doc matching index_required_globs must be referenced from the navigator index."""
+def check_index_routes(repo_root: Path, cfg: GovernanceConfig) -> list[str]:
+    """The compact navigator routes configured areas; it does not enumerate files."""
     index_path = repo_root / cfg.index_file
     if not index_path.exists():
         return [f"Index coverage: navigator index '{cfg.index_file}' does not exist"]
@@ -368,18 +425,23 @@ def check_index_coverage(
     index_dir = Path(cfg.index_file).parent.as_posix()
 
     errors = []
-    for filepath in sorted(md_files):
-        rel = rel_posix(filepath, repo_root)
-        if rel is None or rel == cfg.index_file:
+    for area in cfg.index_route_areas:
+        if not (repo_root / area).exists():
+            errors.append(f"Index routes: configured area '{area}' does not exist")
             continue
-        if not any(glob_match(rel, g) for g in cfg.index_required_globs):
-            continue
+        normalized = area.rstrip("/")
         rel_to_index = (
-            os.path.relpath(rel, start=index_dir) if index_dir != "." else rel
+            os.path.relpath(normalized, start=index_dir)
+            if index_dir != "."
+            else normalized
         )
-        if rel not in index_text and rel_to_index not in index_text:
+        if (
+            area not in index_text
+            and normalized not in index_text
+            and rel_to_index not in index_text
+        ):
             errors.append(
-                f"Index coverage: '{rel}' is not referenced from '{cfg.index_file}'"
+                f"Index routes: area '{area}' is not routed from '{cfg.index_file}'"
             )
     return errors
 
@@ -481,8 +543,7 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         work_kind = metadata.get("work_kind", "")
         if work_kind and work_kind not in WORK_KINDS:
             errors.append(
-                f"Backlog item: '{rel}' has invalid work_kind '{work_kind}' "
-                f"(must be one of {sorted(WORK_KINDS)})"
+                f"Backlog item: '{rel}' has invalid work_kind '{work_kind}' (must be one of {sorted(WORK_KINDS)})"
             )
 
         for heading in BACKLOG_REQUIRED_HEADINGS:
@@ -549,7 +610,7 @@ def run(repo_root: Path, file_args: list[str] | None = None) -> int:
     all_md_files = get_markdown_files(repo_root, cfg)
     global_errors = (
         check_symlink_layout(repo_root, cfg)
-        + check_index_coverage(repo_root, cfg, all_md_files)
+        + check_index_routes(repo_root, cfg)
         + check_skill_invocation_policies(repo_root, cfg, all_md_files)
         + check_backlog_items(repo_root, all_md_files)
     )

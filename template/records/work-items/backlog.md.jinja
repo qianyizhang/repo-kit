@@ -3,13 +3,15 @@ description: Backlog-item lifecycle, schema, and discovery for {{ project_name }
 scope: backlog
 status: stable
 last_update: 2026-07-10
+document_class: work_record
 ---
 
 # Backlog
 
 This page owns the backlog lifecycle and schema. It does not duplicate item
-status. Every item is one durable file under `docs/todo/items/`; terminal items
-remain at the same path so implementation history and inbound links survive.
+status. Every active or not-yet-archived item is one durable file under
+`records/work-items/items/`; terminal items pass through the repository's
+promotion and archive lifecycle.
 
 ## Triage Tags
 
@@ -39,6 +41,7 @@ description: <one concise sentence>
 scope: backlog item
 status: stable
 last_update: YYYY-MM-DD
+document_class: work_record
 work_id: AB-AREA-001
 work_status: deferred
 added: YYYY-MM-DD
@@ -76,7 +79,7 @@ review state (`not-required`, `pending`, `ratified`, `rejected`, `superseded`, o
 ## Discovery
 
 ```bash
-find docs/todo/items -maxdepth 1 -name '*.md' -print | sort
-rg -n '^work_status: (ready|wip|blocked)$' docs/todo/items
-rg -n '^[-*] \*\*Review:\*\* (pending|audit-requested)$' docs/todo/items
+find records/work-items/items -maxdepth 1 -name '*.md' -print | sort
+rg -n '^work_status: (ready|wip|blocked)$' records/work-items/items
+rg -n '^[-*] \*\*Review:\*\* (pending|audit-requested)$' records/work-items/items
 ```

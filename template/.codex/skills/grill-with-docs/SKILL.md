@@ -48,7 +48,7 @@ a multi-turn decision interview unless the user asks for the skill or that mode.
    `doc-hygiene-audit` only when the user asks or after the decision session ends.
 6. End with a compact list of resolved decisions, open questions, docs changed,
    and an **implementation handoff** the user can paste into `/goal` or another
-   agent. Prefer a `multi-agent-handoff` **session** packet when the next step
+   agent. Prefer a `handoff` **session** packet when the next step
    is a fresh IMPLEMENT window. Do not start implementing unless the user
    explicitly switches mode.
 

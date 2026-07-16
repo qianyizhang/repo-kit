@@ -116,7 +116,7 @@ Portable coordination of agent **context windows** (not product releases):
 - Near degraded context (long thread, compaction pressure, tool switch): write a
   **session handoff** before continuing; do not push on a foggy window.
 - Parallel writers use a **claim ledger**; single-writer cuts use session handoff
-  only (see the multi-agent handoff skill when present).
+  only (see the `handoff` skill when present).
 
 ## housekeeping loop
 

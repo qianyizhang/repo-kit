@@ -9,6 +9,7 @@ description: >-
 scope: glossary onboard quiz lint skill
 status: experimental
 last_update: 2026-07-11
+document_class: artifact
 ---
 
 # Glossary Drill

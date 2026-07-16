@@ -3,6 +3,7 @@ description: Portable testing doctrine — when a module earns tests, where test
 scope: testing rules
 status: stable
 last_update: 2026-07-07
+document_class: coordination
 ---
 
 # Testing rules

@@ -3,6 +3,7 @@ description: System rules, invariants, and guidelines for developer agents.
 scope: system guidelines
 status: stable
 last_update: 2026-07-07
+document_class: coordination
 ---
 
 # CLAUDE.md
@@ -47,7 +48,7 @@ without a hop:
 
 ## Implementation records
 
-Every `IMPLEMENT` task names one primary file under `docs/todo/items/`. Before
+Every `IMPLEMENT` task names one primary file under `records/work-items/items/`. Before
 changing implementation surfaces, transition it to `wip` and append its Status
 History. Append material findings, assumptions, decisions, deviations,
 verification, and handoff information directly to its Implementation Ledger; do
@@ -119,6 +120,7 @@ Invocation policy:
 
 - Revisit `CLAUDE.md` (this file): doctrine refinements go to `docs/rules/` and
   are promoted to the kit; repo bindings stay here.
-- Unfinished/deferred work gets an individual record under `docs/todo/items/`;
-  `docs/todo/backlog.md` owns the lifecycle and schema.
+- Unfinished/deferred work gets an individual record under
+  `records/work-items/items/`; `records/work-items/backlog.md` owns the lifecycle
+  and schema.
 - All docs carry frontmatter per `docs/rules/doc.md`.

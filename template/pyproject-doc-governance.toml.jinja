@@ -5,7 +5,8 @@
 
 [tool.doc_governance]
 exclude_dirs = [
-    ".git", ".venv", "venv", ".cache", "node_modules", "__pycache__",
+    ".git", ".venv", "venv", ".cache", ".state", ".workspaces",
+    "node_modules", "__pycache__",
     ".import_linter_cache", ".pytest_cache", ".ruff_cache",
     "scratch", "artifacts", "audit_logs", "resources", "dist", "build",
 ]
@@ -20,10 +21,41 @@ authority_globs = ["docs/glossary/*.md"]
 skills_dirs = [".codex/skills", ".agents/skills"]
 deprecated_dir = "docs/deprecated"
 index_file = "docs/index.md"
-# docs that must be individually referenced from the navigator index
-index_required_globs = [
-    "docs/*.md", "docs/rules/*.md", "docs/glossary/*.md",
+# Area routes required in the compact navigator. Complete file discovery belongs
+# to generated Human View, not docs/index.md.
+index_route_areas = [
+    "docs/", "docs/adr/", "docs/glossary/", "docs/rules/",
+    "records/work-items/", "records/reports/", "sources/", "archive/",
 ]
+
+[tool.doc_governance.document_classes.coordination]
+required_fields = []
+allowed_prefixes = ["docs/"]
+allowed_paths = ["AGENTS.md", "CLAUDE.md", "README.md", "readme.md"]
+
+[tool.doc_governance.document_classes.work_record]
+required_fields = ["work_id", "work_status", "added", "tags", "depends_on", "residual_of", "residual_items"]
+allowed_prefixes = ["records/work-items/"]
+
+[tool.doc_governance.document_classes.report]
+required_fields = ["report_outcome"]
+allowed_prefixes = ["records/reports/"]
+
+[tool.doc_governance.document_classes.source]
+required_fields = ["source_kind"]
+allowed_prefixes = ["sources/"]
+
+[tool.doc_governance.document_classes.artifact]
+required_fields = []
+allowed_prefixes = ["data/", ".codex/skills/"]
+
+[tool.doc_governance.document_classes.generated]
+required_fields = ["derived_from", "generator"]
+allowed_prefixes = ["generated/"]
+
+[tool.doc_governance.document_classes.tombstone]
+required_fields = ["superseded_by"]
+allowed_prefixes = ["docs/deprecated/"]
 
 # INVARIANT: .codex/ holds the real agent assets; discovery paths are relative
 # symlinks into it (docs/rules/governance.md "agent toolchains & symlink layout").
