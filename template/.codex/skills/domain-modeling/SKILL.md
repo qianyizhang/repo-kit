@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-version: "1.2.0"
+version: "1.3.0"
 description: >-
   Build and sharpen the project's domain model: keep glossary files updated with
   ubiquitous language, record architectural decisions as sequential ADR files,
@@ -9,7 +9,7 @@ description: >-
   decisions.
 scope: domain modeling skill
 status: stable
-last_update: 2026-07-16
+last_update: 2026-07-21
 document_class: artifact
 ---
 
@@ -40,17 +40,22 @@ Two main forms of domain documentation:
    a subject-matter file).
 2. **Architecture Decision Records (ADRs)** (`docs/adr/NNNN-slug.md`): Record
    significant, hard-to-reverse design decisions.
+3. **Core-models layer** (`docs/models.md`, optional): An orientation page
+   naming the few system-level models the ADRs serve, written in a small frozen
+   notation. Adopt it once a repo has enough ADRs that readers reverse-engineer
+   the underlying models from them. See `references/MODEL-NOTATION.md`.
 
 ```
 /
 ├── docs/
 │   ├── glossary/
 │   │   └── ddd.md                   ← + repo-specific glossaries as needed
+│   ├── models.md                    ← optional core-models layer (see MODEL-NOTATION.md)
 │   └── adr/                          ← Lazily created when the first ADR is written
 │       └── 0001-<slug>.md
 └── .codex/skills/domain-modeling/
     ├── SKILL.md
-    └── references/{ADR-FORMAT.md, GLOSSARY-FORMAT.md}
+    └── references/{ADR-FORMAT.md, GLOSSARY-FORMAT.md, MODEL-NOTATION.md}
 ```
 
 Create files lazily: if `docs/adr/` does not exist, initialize it only when the
@@ -101,7 +106,10 @@ All three criteria MUST be met:
    exist, start with `0001`.
 2. Create `docs/adr/NNNN-slug.md` using lowercase, hyphen-separated slugs.
 3. Write the ADR using `references/ADR-FORMAT.md`. Use short bullets and tables;
-   include only facts that change the decision or explain a non-obvious cost.
+   include only facts that change the decision or explain a non-obvious cost. In
+   a repo that maintains a `docs/models.md` core-models layer, add the one-line
+   `Serves:` note naming the coordinate the decision serves (see
+   `references/MODEL-NOTATION.md`); omit it otherwise.
 4. Update the `docs/index.md` navigator to register the new ADR.
 5. Replace duplicated decision prose in docs and code comments with a short local
    binding plus an ADR reference. Keep operational details in the owning SSOT;
@@ -125,6 +133,19 @@ per decision cluster and revise it while the discussion evolves. Default to one
 new ADR per session. A second requires explicit user intent plus a genuinely
 independent, stable decision. Never supersede or deprecate an ADR created in the
 same session; that signals the first decision was recorded too early.
+
+## 3. Core-models layer (optional)
+
+Once a repo accumulates enough ADRs that readers reverse-engineer the underlying
+models from them, add a `docs/models.md` orientation page that names the few
+system-level models the ADRs serve, written in a small frozen notation. It sits
+below `CLAUDE.md` and above the ADRs in reading order; on any specific decision
+the owning ADR wins and `models.md` is fixed to match. Each model part carries a
+frozen coordinate that proposals and ADRs cite via the `Serves:` note. Full
+doctrine — pattern, coordinates, notation grammar, and the per-repo choice of
+symbol set or DSL — lives in `references/MODEL-NOTATION.md`. Do not stand this up
+speculatively; it earns its place only when the ADR count makes the models hard
+to see.
 
 ## Pitfalls
 

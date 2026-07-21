@@ -2,6 +2,7 @@
 
 - **Status**: `proposed | accepted | deprecated | superseded by ADR-NNNN`
 - **Last Update**: YYYY-MM-DD
+- **Serves**: {the core-model coordinate this decision serves — include only in repos that maintain a `docs/models.md` core-models layer (`references/MODEL-NOTATION.md`); omit the line otherwise}
 
 {1-3 sentences: what's the context, what did we decide, and why.}
 
