@@ -1,6 +1,6 @@
 ---
 name: handoff
-version: "0.5.0"
+version: "0.6.0"
 description: >-
   Coordinate parallel agents or multi-session work with a claim ledger, stop
   conditions, and a single integrator merge; or write a lightweight session
@@ -10,7 +10,7 @@ description: >-
   claim protocol.
 scope: session and multi-agent coordination skill
 status: experimental
-last_update: 2026-07-16
+last_update: 2026-07-20
 document_class: artifact
 ---
 
@@ -118,7 +118,7 @@ Create or update a single claim file (default:
 
 ```markdown
 # Claim ledger — <topic>
-produced_by: handoff@0.5.0 · agent=<model> · <date>
+produced_by: handoff@0.6.0 · agent=<model> · <date>
 stop_condition: <checkable done>
 
 | Surface (path or pack id) | Owner (agent/session) | Status | Notes |
@@ -143,6 +143,27 @@ Rules:
 - Status values: `claimed` | `wip` | `done` | `blocked` | `dropped`.
 - **Full means full** on each claimed surface; `dropped` requires a reason, not
   a silent shrink of scope.
+
+### 1b. Worker seeding — packet, never fork
+
+Spawn each worker as a **fresh session seeded from a claim packet**: the claim
+row, the work slice (worklist/blocks/records), the input corpus or its hashes,
+the output contract/schema, and the validator entrypoint — everything the claim
+needs and nothing else. Do **not** fork/clone the coordinating session into
+workers: identical priors make parallel workers race shared namespaces (three
+cross-fork slug collisions in one campaign), and the inherited history re-feeds
+megatokens of context the packet replaces at ~76 KB — a full-history fork has
+twice exhausted a weekly rate window in a single stage. On Codex `spawn_agent`
+this is one parameter: **`fork_turns: "none"`** (`none` / `all` / `"<N>"`;
+**defaults to `all`**, the full-history fork that caused both burns) with the
+packet brief as the spawn message, which keeps the integrator's mailbox
+(`wait_agent` / `send_message`) intact. A fully separate session is the fallback
+if `none` proves too bare. Fork-cloning is reserved for handing off the
+*integrator* role itself. A worker brief is four steps: read spec → read packet
+→ work claim → finalize (write + hash + seal outputs). Shell workers source the
+campaign env script first. A resumed/forked session trusts the latest durable
+preflight snapshot instead of re-verifying, unless it is absent, stale, or HEAD
+moved.
 
 ### 2. Per-agent run ledger
 
@@ -173,6 +194,24 @@ When resuming or switching tools under parallel mode, the packet must answer:
 
 A pure context cut with one writer should use **`session`** mode instead of an
 empty claim table.
+
+### 3b. Worker-class scorecard (long campaigns)
+
+When a campaign fans out repeatedly, keep one structured scorecard (default:
+`<campaign-root>/delegation-quality.checkpoint.md`) instead of free-form notes.
+One row per worker-class × stage:
+
+| Worker class | Stage | Batches | Fan-in rejections (form / namespace / semantic / citation) | Sample audits | Trust tier |
+| --- | --- | --- | --- | --- | --- |
+| local Codex | 1 | 17 | 2 / 1 / 0 / 0 | pass | trusted-disjoint |
+
+Trust tier ∈ `calibrating` (first claim is a small sample or eval packet,
+integrator reviews everything) · `trusted-disjoint` (full batch size, sampled
+audit) · `blocked-env` / `blocked` (no further claims; record why). **Batch size
+and sampling rate are functions of the tier, not vibes** — promote or demote a
+class only on scorecard evidence, and record environment denials (e.g. tenant
+policy blocks, zero-content probes) as environment evidence, never as provider
+quality.
 
 ### 4. Integrator merge (one agent only)
 
