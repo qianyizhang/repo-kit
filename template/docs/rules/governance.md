@@ -33,14 +33,18 @@ The split that makes governance reusable across repos:
 - **One meaning lives once.** Every topic has exactly one authoritative doc
   (its SSOT); everything else points at it. Duplicated prose is a future
   contradiction.
-- `docs/index.md` is a **navigator, not an authority**: it maps every doc,
-  module README, report, and skill with status and audience, and carries an
-  explicit **Authority & precedence** order for overlap. When the index and a
-  target disagree, the target wins — fix the index.
+- `docs/index.md` is a **thin navigator, not an authority**: it routes areas and
+  the **structural authority docs** (product spine, ADRs, rules, glossary, design,
+  module contracts) with an explicit **Authority & precedence** order for overlap.
+  It does **not** enumerate every file — operating records (reports, work-items,
+  generated outputs) are reached by directory route + disposable Human View, not
+  per-file rows. When the index and a target disagree, the target wins — fix the index.
 - Docs live on an abstraction ladder (charter → product → plan → architecture →
   design → code) plus cross-cutting layers (reference/glossary, operating
-  record/reports, playbooks/skills, archive/deprecated). A new doc states its
-  rung and gets an index row in the same change.
+  record/reports, playbooks/skills, archive/deprecated). A new **structural
+  authority doc** (rule/design/glossary and the like) states its rung and gets an
+  index row in the same change; a report, work-item, or generated output does not
+  — its directory route already covers it.
 - Lifecycle (frontmatter, deprecation contract, spec promotion, backlog
   hygiene) is owned by `docs/rules/doc.md`.
 
@@ -125,7 +129,8 @@ After a task:
 - Revisit the agent-instruction SSOT (`CLAUDE.md`) — doctrine refinements go to
   `docs/rules/`, bindings to `CLAUDE.md`; when unsure which doc is the SSOT, ask.
 - Unfinished/deferred work goes to the backlog, not into silence.
-- Every new doc carries frontmatter and an index row.
+- Every new doc carries frontmatter; a new **structural authority doc** also gets
+  an index row (operating records are directory-routed, not indexed per file).
 - After grinding with a project skill, propose improvements to it
   (`docs/rules/skill.md` field-notes loop).
 - **Kit propagation.** This doctrine corpus is consumed from a shared

@@ -32,6 +32,9 @@ authoritative for its concern.
 - Task Context includes only explicit paths or declared sections, each with a
   reason and digest. Human View and Task Context are projections, never edit
   targets or independent authorities.
+- A report is warranted for a **durable finding, decision, or measurement worth
+  citing later** — not a routine run. Transient run notes live in the work-item
+  ledger or the run's own digest, not a fresh dated report.
 - Reports declare exactly one outcome: `promoted`, `inconclusive`, or
   `archive_eligible`. An inconclusive report names its reason and review
   trigger. An archive-eligible report names its Archive ID and promoted
@@ -75,7 +78,10 @@ authoritative for its concern.
   `not-required`, `pending`, `ratified`, `rejected`, `superseded`, or
   `audit-requested`. Promote a settled durable contract to its owning SSOT or ADR
   and link it; the backlog item is not a shadow architecture authority.
-- An implementation task names one primary backlog-item path. Before changing
+- A work-item is warranted only when work **crosses a session boundary** — it
+  spans sessions, is left `partial`/`blocked`, or carries decisions/deviations/residual
+  worth transferring. A self-contained one-off finished in-session leaves no item.
+- When one is warranted it names one primary backlog-item path. Before changing
   implementation surfaces, transition it to `wip`; at each material checkpoint
   and stop condition, update the same item. Temporary worker/run ledgers are
   allowed for parallel execution, but the integrator distills their durable

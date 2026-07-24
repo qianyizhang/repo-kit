@@ -13,6 +13,12 @@ Disclosed reference for [`skill.md`](skill.md). Vocabulary adapted from
 A skill wrangles determinism from a stochastic system; the root virtue is
 **predictability** (same *process* every run, not the same output).
 
+Sibling: [`agentic-glossary.md`](agentic-glossary.md) — the broader
+agent-collaboration register (lock, slice, handoff, packet, seam…). This sheet is
+for skill **authors**; that one is for anyone **driving a task**. Terms this sheet
+owns (*Frontier*, *Frontier batch*, *Context hygiene*, *leading word*, *SSOT*) are
+pointed to from there, not redefined.
+
 ## Invocation
 
 | Term | Meaning |
