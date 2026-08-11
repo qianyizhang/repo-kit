@@ -41,11 +41,11 @@ without a hop:
 - **Concise is the key.**
 - **Full means full.** When asked to complete, extend, or verify coverage, do the
   actual work — never relabel a partial run as "full".
-- **Verify before claiming done.** After any change, run the full suite *and* lint
+- **Before claiming done, verify.** After any change, run the full suite *and* lint
   (`make test` / `make lint`) green before reporting. Numeric claims are
   re-checked against the code, not quoted from memory.
-- **Symlinks are load-bearing** (see below). Verify link targets before `rm` or
-  bulk file ops near them.
+- **Symlinks are load-bearing** (see below). Before `rm` or bulk file ops near
+  symlinks, verify their targets.
 
 ## Implementation records
 
