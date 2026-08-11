@@ -60,6 +60,8 @@ requires Python 3.11 or newer:
 
 ```bash
 python3.12 -m unittest discover -s tests -v
+ruff format --check --config template/ruff_base.toml template/scripts/check_authoring.py tests/test_check_authoring.py
+ruff check --config template/ruff_base.toml template/scripts/check_authoring.py tests/test_check_authoring.py
 ```
 
 ## Layout

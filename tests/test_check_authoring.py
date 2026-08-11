@@ -49,12 +49,8 @@ We need to preserve this excluded sentence.
 """,
             encoding="utf-8",
         )
-        (self.root / "CLAUDE.md").write_text(
-            "更新文件，然后运行测试。\n最好记录结果。\n", encoding="utf-8"
-        )
-        (self.root / "records" / "reports" / "history.md").write_text(
-            "Use the legacy term.\n", encoding="utf-8"
-        )
+        (self.root / "CLAUDE.md").write_text("更新文件\uff0c然后运行测试。\n最好记录结果。\n", encoding="utf-8")
+        (self.root / "records" / "reports" / "history.md").write_text("Use the legacy term.\n", encoding="utf-8")
         self._write_config(mode="advisory", blocking=())
 
     def tearDown(self) -> None:
@@ -85,62 +81,40 @@ sections = ["Intent", "Acceptance Criteria"]
         config = check_authoring.load_config(self.root)
         findings = check_authoring.check_repository(self.root, config)
         rule_ids = {finding.rule_id for finding in findings}
-        self.assertTrue(
-            {"TERM001", "ACTION001", "ACTOR001", "COND001", "MODAL001"} <= rule_ids
-        )
-        self.assertFalse(
-            any(finding.file.startswith("records/reports/") for finding in findings)
-        )
-        self.assertFalse(
-            any("excluded sentence" in finding.message for finding in findings)
-        )
+        self.assertTrue({"TERM001", "ACTION001", "ACTOR001", "COND001", "MODAL001"} <= rule_ids)
+        self.assertFalse(any(finding.file.startswith("records/reports/") for finding in findings))
+        self.assertFalse(any("excluded sentence" in finding.message for finding in findings))
 
     def test_safe_and_ambiguous_term_suggestions(self) -> None:
-        findings = check_authoring.check_repository(
-            self.root, check_authoring.load_config(self.root)
-        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
         legacy = next(
-            finding
-            for finding in findings
-            if finding.rule_id == "TERM001" and "legacy term" in finding.message
+            finding for finding in findings if finding.rule_id == "TERM001" and "legacy term" in finding.message
         )
         self.assertEqual(legacy.suggested_replacement, "CanonicalTerm")
         self.item.write_text(
-            self.item.read_text(encoding="utf-8").replace(
-                "legacy term", "shared alias"
-            ),
+            self.item.read_text(encoding="utf-8").replace("legacy term", "shared alias"),
             encoding="utf-8",
         )
-        findings = check_authoring.check_repository(
-            self.root, check_authoring.load_config(self.root)
-        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
         shared = next(finding for finding in findings if finding.rule_id == "TERM001")
         self.assertIsNone(shared.suggested_replacement)
 
     def test_confusable_neighbors_are_not_replacement_aliases(self) -> None:
         self.item.write_text(
-            self.item.read_text(encoding="utf-8").replace(
-                "legacy term", "NeighborTerm"
-            ),
+            self.item.read_text(encoding="utf-8").replace("legacy term", "NeighborTerm"),
             encoding="utf-8",
         )
-        findings = check_authoring.check_repository(
-            self.root, check_authoring.load_config(self.root)
-        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
         self.assertFalse(any(finding.rule_id == "TERM001" for finding in findings))
 
     def test_advisory_and_per_rule_enforcement(self) -> None:
         self.assertEqual(check_authoring.main(["--repo-root", str(self.root)]), 0)
         self._write_config(mode="enforcing", blocking=("TERM001",))
-        self.assertEqual(
-            check_authoring.main(["--repo-root", str(self.root), "--json"]), 1
-        )
+        self.assertEqual(check_authoring.main(["--repo-root", str(self.root), "--json"]), 1)
 
     def test_check_is_non_mutating(self) -> None:
         before = hashlib.sha256(self.item.read_bytes()).hexdigest()
-        check_authoring.check_repository(
-            self.root, check_authoring.load_config(self.root)
-        )
+        check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
         after = hashlib.sha256(self.item.read_bytes()).hexdigest()
         self.assertEqual(before, after)
 

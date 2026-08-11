@@ -11,10 +11,9 @@ import argparse
 import json
 import re
 import sys
+import tomllib
 from dataclasses import asdict, dataclass
 from pathlib import Path
-
-import tomllib
 
 HEADING_RE = re.compile(r"^##\s+(.+?)\s*$")
 ASCII_WORD = r"A-Za-z0-9_"
@@ -50,9 +49,7 @@ ACTION_START = {
         r"^(?:add|create|update|remove|run|check|verify|write|read|move|set|record|return|use|keep|preserve)\b",
         re.IGNORECASE,
     ),
-    "zh": re.compile(
-        r"^(?:添加|创建|更新|删除|运行|检查|验证|编写|读取|移动|设置|记录|返回|使用|保留)"
-    ),
+    "zh": re.compile(r"^(?:添加|创建|更新|删除|运行|检查|验证|编写|读取|移动|设置|记录|返回|使用|保留)"),
 }
 MULTI_ACTION = {
     "en": re.compile(
@@ -67,7 +64,7 @@ MULTI_ACTION = {
 }
 TRAILING_CONDITION = {
     "en": re.compile(r"^.+\b(?:if|when|unless|after|before)\b.+[.!?]?$", re.IGNORECASE),
-    "zh": re.compile(r"^.+[，,](?:如果|当|除非|在).+[。！？]?$"),
+    "zh": re.compile(r"^.+[\uFF0C,](?:如果|当|除非|在).+[\u3002\uFF01\uFF1F]?$"),
 }
 
 
@@ -104,9 +101,7 @@ def load_config(repo_root: Path, config_path: Path | None = None) -> Config:
     try:
         raw = tomllib.loads(path.read_text(encoding="utf-8"))["tool"]["authoring_check"]
     except (OSError, KeyError, tomllib.TOMLDecodeError) as exc:
-        raise ValueError(
-            f"cannot load [tool.authoring_check] from {path}: {exc}"
-        ) from exc
+        raise ValueError(f"cannot load [tool.authoring_check] from {path}: {exc}") from exc
     mode = str(raw.get("mode", "advisory"))
     if mode not in {"advisory", "enforcing"}:
         raise ValueError("authoring_check.mode must be advisory or enforcing")
@@ -119,16 +114,12 @@ def load_config(repo_root: Path, config_path: Path | None = None) -> Config:
         for item in raw.get("targets", [])
     )
     if not targets:
-        raise ValueError(
-            "authoring_check needs at least one [[tool.authoring_check.targets]]"
-        )
+        raise ValueError("authoring_check needs at least one [[tool.authoring_check.targets]]")
     return Config(
         mode=mode,
         languages=tuple(str(value) for value in raw.get("languages", ["en"])),
         glossary_globs=tuple(str(value) for value in raw.get("glossary_globs", [])),
-        blocking_rule_ids=frozenset(
-            str(value) for value in raw.get("blocking_rule_ids", [])
-        ),
+        blocking_rule_ids=frozenset(str(value) for value in raw.get("blocking_rule_ids", [])),
         targets=targets,
     )
 
@@ -140,21 +131,13 @@ def _split_row(line: str) -> list[str]:
 
 def _strip_ticks(value: str) -> str:
     value = value.strip()
-    return (
-        value[1:-1].strip()
-        if len(value) > 1 and value.startswith("`") and value.endswith("`")
-        else value
-    )
+    return value[1:-1].strip() if len(value) > 1 and value.startswith("`") and value.endswith("`") else value
 
 
 def _split_terms(value: str) -> tuple[str, ...]:
-    if not value or value.strip() in {"—", "-", "–", "N/A", "n/a"}:
+    if not value or value.strip() in {"\u2014", "-", "\u2013", "N/A", "n/a"}:
         return ()
-    return tuple(
-        token
-        for part in re.split(r"[,;/]|\s+or\s+", value)
-        if (token := _strip_ticks(part.strip()))
-    )
+    return tuple(token for part in re.split(r"[,;/]|\s+or\s+", value) if (token := _strip_ticks(part.strip())))
 
 
 def _is_table_separator(line: str) -> bool:
@@ -162,9 +145,7 @@ def _is_table_separator(line: str) -> bool:
     return not remainder
 
 
-def _glossary_terms(
-    repo_root: Path, config: Config
-) -> tuple[dict[str, set[tuple[str, str]]], set[str]]:
+def _glossary_terms(repo_root: Path, config: Config) -> tuple[dict[str, set[tuple[str, str]]], set[str]]:
     avoid: dict[str, set[tuple[str, str]]] = {}
     canonical: set[str] = set()
     for pattern in config.glossary_globs:
@@ -183,21 +164,12 @@ def _glossary_terms(
                     index += 1
                 if len(rows) < 2:
                     continue
-                headers = [
-                    re.sub(r"\s+", " ", cell.lower().replace("`", "")).strip()
-                    for cell in _split_row(rows[0])
-                ]
+                headers = [re.sub(r"\s+", " ", cell.lower().replace("`", "")).strip() for cell in _split_row(rows[0])]
                 term_col = next(
-                    (
-                        i
-                        for i, value in enumerate(headers)
-                        if value in {"term", "terms"}
-                    ),
+                    (i for i, value in enumerate(headers) if value in {"term", "terms"}),
                     None,
                 )
-                avoid_col = next(
-                    (i for i, value in enumerate(headers) if "avoid" in value), None
-                )
+                avoid_col = next((i for i, value in enumerate(headers) if "avoid" in value), None)
                 if term_col is None:
                     continue
                 start = 2 if _is_table_separator(rows[1]) else 1
@@ -215,9 +187,7 @@ def _glossary_terms(
                     authority = path.relative_to(repo_root).as_posix()
                     for raw in raw_values:
                         if raw.casefold() != term.casefold():
-                            avoid.setdefault(raw.casefold(), set()).add(
-                                (term, authority)
-                            )
+                            avoid.setdefault(raw.casefold(), set()).add((term, authority))
     return avoid, canonical
 
 
@@ -226,11 +196,7 @@ def _selected_lines(path: Path, sections: tuple[str, ...]) -> list[tuple[int, st
     frontmatter_end = 0
     if lines and lines[0].strip() == "---":
         frontmatter_end = next(
-            (
-                line_number
-                for line_number, line in enumerate(lines[1:], 2)
-                if line.strip() == "---"
-            ),
+            (line_number for line_number, line in enumerate(lines[1:], 2) if line.strip() == "---"),
             len(lines),
         )
     if not sections:
@@ -260,19 +226,14 @@ def _selected_lines(path: Path, sections: tuple[str, ...]) -> list[tuple[int, st
             continue
         cleaned = re.sub(r"^\s*(?:[-*+] |\d+[.)]\s+)", "", line).strip()
         cleaned = cleaned.replace("**", "").replace("__", "")
-        for sentence in re.split(r"(?<=[.!?。！？])\s+", cleaned):
+        for sentence in re.split(r"(?<=[.!?\u3002\uFF01\uFF1F])\s+", cleaned):
             if sentence:
                 prose.append((line_number, sentence))
     return prose
 
 
 def _contains_phrase(text: str, phrase: str) -> bool:
-    if (
-        re.search(r"[\u3400-\u9fff]", phrase)
-        or " " in phrase
-        or "-" in phrase
-        or "/" in phrase
-    ):
+    if re.search(r"[\u3400-\u9fff]", phrase) or " " in phrase or "-" in phrase or "/" in phrase:
         return phrase.casefold() in text.casefold()
     return (
         re.search(
@@ -301,9 +262,7 @@ def _findings_for_line(
     canonical: set[str],
 ) -> list[Finding]:
     findings: list[Finding] = []
-    for token, destinations in sorted(
-        avoid.items(), key=lambda item: len(item[0]), reverse=True
-    ):
+    for token, destinations in sorted(avoid.items(), key=lambda item: len(item[0]), reverse=True):
         if token in canonical or not _contains_phrase(text, token):
             continue
         terms = sorted({term for term, _ in destinations})
@@ -415,9 +374,7 @@ def check_repository(repo_root: Path, config: Config) -> list[Finding]:
                         canonical=canonical,
                     )
                 )
-    return sorted(
-        findings, key=lambda finding: (finding.file, finding.line, finding.rule_id)
-    )
+    return sorted(findings, key=lambda finding: (finding.file, finding.line, finding.rule_id))
 
 
 def format_findings(findings: list[Finding]) -> str:
@@ -425,22 +382,15 @@ def format_findings(findings: list[Finding]) -> str:
         return "authoring-check: no findings"
     lines = [f"authoring-check: {len(findings)} finding(s)"]
     for finding in findings:
-        replacement = (
-            f" -> {finding.suggested_replacement!r}"
-            if finding.suggested_replacement
-            else ""
-        )
+        replacement = f" -> {finding.suggested_replacement!r}" if finding.suggested_replacement else ""
         lines.append(
-            f"{finding.file}:{finding.line}: [{finding.severity}] {finding.rule_id} "
-            f"{finding.message}{replacement}"
+            f"{finding.file}:{finding.line}: [{finding.severity}] {finding.rule_id} {finding.message}{replacement}"
         )
     return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Check selected technical prose against a repository profile."
-    )
+    parser = argparse.ArgumentParser(description="Check selected technical prose against a repository profile.")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--config", type=Path, default=None)
     parser.add_argument("--json", action="store_true")
@@ -457,11 +407,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"authoring-check: {exc}", file=sys.stderr)
         return 2
     if args.json:
-        print(
-            json.dumps(
-                [asdict(finding) for finding in findings], ensure_ascii=False, indent=2
-            )
-        )
+        print(json.dumps([asdict(finding) for finding in findings], ensure_ascii=False, indent=2))
     else:
         print(format_findings(findings))
     return 1 if any(finding.severity == "error" for finding in findings) else 0
