@@ -2,7 +2,7 @@
 description: Rules for documentation, glossaries, and durable backlog-item records.
 scope: documentation rules
 status: stable
-last_update: 2026-07-15
+last_update: 2026-08-11
 document_class: coordination
 ---
 
@@ -88,9 +88,11 @@ authoritative for its concern.
   findings and decisions into the primary item.
 
 ## glossary
-- meant to be read by human readers who does NOT familiar with this project
-- audience is chinese; but keep the term as english
-- can have some general explaination section
-- should organize into semantic groups of tables
-    - Term, Full form, 中文, 中文解释
-    - obiously, DDD should have organzied with BC
+
+- Glossaries are written for readers who are not already familiar with the
+  repository and remain the SSOT for canonical domain vocabulary.
+- The consumer repository owns its audience language, required columns,
+  semantic grouping, and bounded-context organization.
+- Portable doctrine must not hard-code a consumer locale or domain table shape.
+- Authoring checks consume glossary entries as a projection and never create a
+  second vocabulary authority; see `docs/rules/authoring.md`.

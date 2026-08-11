@@ -63,6 +63,31 @@ allowed_prefixes = ["docs/deprecated/"]
 ".agents" = ".codex"
 ".claude/skills" = "../.codex/skills"
 
+# Optional, non-mutating technical-authoring checks. These repository-owned
+# bindings are intentionally narrower than the structural documentation scan.
+[tool.authoring_check]
+mode = "advisory"
+languages = ["en", "zh"]
+glossary_globs = ["docs/glossary/*.md"]
+blocking_rule_ids = []
+
+[[tool.authoring_check.targets]]
+glob = "CLAUDE.md"
+profile = "instruction"
+
+[[tool.authoring_check.targets]]
+glob = "docs/adr/*.md"
+profile = "decision"
+
+[[tool.authoring_check.targets]]
+glob = "docs/design/*.md"
+profile = "design"
+
+[[tool.authoring_check.targets]]
+glob = "records/work-items/items/*.md"
+profile = "requirements"
+sections = ["Intent", "Acceptance Criteria"]
+
 # Doctrine ruff defaults live in ruff_base.toml (docs/rules/python.md); extend
 # them here and keep only repo-specific `ignore` exceptions in [tool.ruff.lint].
 [tool.ruff]

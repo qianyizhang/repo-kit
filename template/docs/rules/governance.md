@@ -2,7 +2,7 @@
 description: Repo-governance doctrine — the doctrine/binding split, SSOT & navigator-index pattern, glossary discipline, agent-toolchain symlink layout, and the mechanical-enforcement inventory.
 scope: repo governance rules
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-11
 document_class: coordination
 ---
 
@@ -99,15 +99,20 @@ Prose rules rot; every rule that *can* be checked mechanically is, via
   navigator-index coverage of rule/design/glossary docs, skill-manifest semver,
   durable backlog-item identity/lifecycle/lineage/ledger structure, and the
   symlink layout above.
+- `scripts/check_authoring.py` — profile-scoped terminology and prose findings.
+  It is advisory by default, never edits source text, and reads consumer-owned
+  targets, sections, languages, and blocking rule IDs from
+  `[tool.authoring_check]`.
 - `import-linter` — architecture rules as import contracts
   (`[tool.importlinter]`); a broken contract is a design signal, not a hurdle.
 - `ruff` — style baseline; doctrine defaults in `ruff_base.toml`, repo
   exceptions in `pyproject.toml`.
 
-A new prose rule should ask "can `check_docs.py` own this?" before settling for
-vigilance. The semantic layer that cannot be mechanized (contradictions, stale
-terms, capture of emergent knowledge) belongs to a hygiene skill run
-periodically (`doc-hygiene-audit`).
+A new rule first asks whether it is structural or authoring-related. Stable
+structural invariants belong to `check_docs.py`; profile-specific terminology
+and prose signals belong to `check_authoring.py`. The semantic layer that cannot
+be mechanized (contradictions, stale terms, capture of emergent knowledge)
+belongs to a periodic hygiene skill (`doc-hygiene-audit`).
 
 ## context hygiene
 

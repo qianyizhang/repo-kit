@@ -1,8 +1,8 @@
 # repo-kit — shared governance kit
 
 A [copier](https://copier.readthedocs.io/) template for the portable
-repo-governance layer used across `~/pkgs/*`: doctrine docs, mechanical doc/style
-checks, the agent-toolchain symlink layout, and the two hygiene skills.
+repo-governance layer used across `~/pkgs/*`: doctrine docs, structural and
+authoring checks, the agent-toolchain symlink layout, and hygiene skills.
 
 Copier (not cookiecutter) so that a doctrine refinement propagates to every
 consumer with `copier update`, not a one-time scaffold.
@@ -11,11 +11,13 @@ consumer with `copier update`, not a one-time scaffold.
 
 **Kit-owned** (overwritten on `copier update`):
 
-- `docs/rules/{governance,doc,python,skill,skill-glossary,testing}.md` —
+- `docs/rules/{governance,authoring,agentic-glossary,doc,python,skill,skill-glossary,testing}.md` —
   portable doctrine (skill glossary defines bold terms in `skill.md`).
 - `scripts/check_docs.py` — mechanical doc governance (reads
   `pyproject.toml [tool.doc_governance]`); backlog items require `work_kind`
   in `{decision, build, research}`.
+- `scripts/check_authoring.py` — non-mutating, profile-scoped terminology and
+  prose findings; advisory unless the consumer promotes individual rule IDs.
 - `scripts/bootstrap_agents.py` — creates/repairs the `.codex` symlink layout,
   fails closed on real dirs.
 - `ruff_base.toml` — ruff doctrine defaults.
@@ -51,6 +53,15 @@ uvx copier copy ~/pkgs/repo-kit <target-repo>
 cd <target-repo> && uvx copier update
 ```
 
+## Verification
+
+The checker implementation is covered by repository-local unit tests and
+requires Python 3.11 or newer:
+
+```bash
+python3.12 -m unittest discover -s tests -v
+```
+
 ## Layout
 
 ```
@@ -59,7 +70,7 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   AGENTS.md
   ruff_base.toml
   pyproject-doc-governance.toml.jinja
-  scripts/{check_docs,bootstrap_agents}.py
+  scripts/{check_docs,check_authoring,bootstrap_agents}.py
   docs/rules/*.md
   docs/{index.md,glossary/ddd.md}.jinja
   records/work-items/backlog.md.jinja

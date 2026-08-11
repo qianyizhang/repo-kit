@@ -40,10 +40,13 @@ _message_after_copy: |
        `python scripts/bootstrap_agents.py` to create the symlink layout.
     3. Add frontmatter to authority docs and fill the CLAUDE.md bindings.
     4. `python scripts/check_docs.py` until green; wire it into `make lint`.
+    5. Review `[tool.authoring_check]`, then wire
+       `python scripts/check_authoring.py` into a separate advisory target.
 
 _message_after_update: |
   Kit files updated. Reconcile seeded repository bindings, including
-  `.codex/skills/explain-layman/references/repo-bindings.md`, then re-run
+  `.codex/skills/explain-layman/references/repo-bindings.md` and the optional
+  `[tool.authoring_check]` profile, then re-run
   `python scripts/check_docs.py` and, if the symlink map changed,
   `python scripts/bootstrap_agents.py`.
 
