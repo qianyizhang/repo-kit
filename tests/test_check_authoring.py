@@ -23,10 +23,10 @@ class AuthoringCheckTest(unittest.TestCase):
         (self.root / "records" / "work-items" / "items").mkdir(parents=True)
         (self.root / "records" / "reports").mkdir(parents=True)
         (self.root / "docs" / "glossary" / "ddd.md").write_text(
-            """| Term | Meaning | ≠ (do not confuse) |
-| --- | --- | --- |
-| `CanonicalTerm` | One meaning. | legacy term, shared alias |
-| `OtherTerm` | Another meaning. | shared alias |
+            """| Term | Meaning | _Avoid_ | ≠ (do not confuse) |
+| --- | --- | --- | --- |
+| `CanonicalTerm` | One meaning. | legacy term, shared alias | NeighborTerm |
+| `OtherTerm` | Another meaning. | shared alias | CanonicalTerm |
 """,
             encoding="utf-8",
         )
@@ -116,6 +116,18 @@ sections = ["Intent", "Acceptance Criteria"]
         )
         shared = next(finding for finding in findings if finding.rule_id == "TERM001")
         self.assertIsNone(shared.suggested_replacement)
+
+    def test_confusable_neighbors_are_not_replacement_aliases(self) -> None:
+        self.item.write_text(
+            self.item.read_text(encoding="utf-8").replace(
+                "legacy term", "NeighborTerm"
+            ),
+            encoding="utf-8",
+        )
+        findings = check_authoring.check_repository(
+            self.root, check_authoring.load_config(self.root)
+        )
+        self.assertFalse(any(finding.rule_id == "TERM001" for finding in findings))
 
     def test_advisory_and_per_rule_enforcement(self) -> None:
         self.assertEqual(check_authoring.main(["--repo-root", str(self.root)]), 0)

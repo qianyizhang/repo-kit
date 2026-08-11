@@ -198,16 +198,6 @@ def _glossary_terms(
                 avoid_col = next(
                     (i for i, value in enumerate(headers) if "avoid" in value), None
                 )
-                confuse_col = next(
-                    (
-                        i
-                        for i, value in enumerate(headers)
-                        if "do not confuse" in value
-                        or "not confuse" in value
-                        or "≠" in value
-                    ),
-                    None,
-                )
                 if term_col is None:
                     continue
                 start = 2 if _is_table_separator(rows[1]) else 1
@@ -222,8 +212,6 @@ def _glossary_terms(
                     raw_values = []
                     if avoid_col is not None and avoid_col < len(cells):
                         raw_values.extend(_split_terms(cells[avoid_col]))
-                    if confuse_col is not None and confuse_col < len(cells):
-                        raw_values.extend(_split_terms(cells[confuse_col]))
                     authority = path.relative_to(repo_root).as_posix()
                     for raw in raw_values:
                         if raw.casefold() != term.casefold():
