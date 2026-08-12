@@ -1,13 +1,13 @@
 ---
 name: grill-with-docs
-version: "1.4.0"
+version: "1.5.0"
 description: >-
-  Run a focused decision interview that stress-tests a plan one choice at a
-  time and captures settled glossary terms and ADR-worthy trade-offs.
+  Run a focused frontier-batch decision interview that stress-tests a plan and
+  captures settled glossary terms and ADR-worthy trade-offs.
 disable-model-invocation: true
 scope: decision interview skill
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-12
 document_class: artifact
 ---
 
@@ -34,8 +34,8 @@ a multi-turn decision interview unless the user asks for the skill or that mode.
 2. If the problem is still fuzzy ("what next", "is this done", feature intent),
    consider routing first to `next-slice` or `show-gap`; use this skill when the
    remaining work is a small set of product/architecture decisions.
-3. **Invoke `grilling`** for the interview loop (serial by default; **frontier
-   batch** when ≥3 independent decisions are unblocked — see that skill).
+3. **Invoke `grilling`** for its default frontier-batch loop. Dependent choices
+   stay in later rounds; use serial rounds only when the user requests them.
 4. Use `domain-modeling` only after a decision stabilizes:
    - Update an accepted glossary term in the same turn.
    - Keep one evolving ADR proposal per decision cluster.

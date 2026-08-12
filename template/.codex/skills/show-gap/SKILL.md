@@ -1,13 +1,13 @@
 ---
 name: show-gap
-version: "0.8.0"
+version: "0.9.0"
 description: >-
   Audit a fuzzy feature or readiness question against built, planned, rejected,
   and deferred repo evidence. May be agent-invoked for the bounded read-only fit
   pass; discussion and spec writing require clear user intent.
 scope: repo feature gap analysis skill
 status: experimental
-last_update: 2026-07-16
+last_update: 2026-08-12
 document_class: artifact
 ---
 
@@ -159,8 +159,8 @@ continue — do not jump to implementation because the feature now sounds clear.
 
 ## Grill the decisions
 
-**Invoke `grilling`** for residual scope choices (serial or frontier batch when
-≥3 independent decisions are unblocked). Ask only what is needed to choose scope —
+**Invoke `grilling`** for residual scope choices using its default frontier-batch
+loop. Ask only what is needed to choose scope —
 usually 3–6 decisions. After answers, record **Locked Decisions** and **Still
 Open**; "user answered the grill questions" is not "requirements are locked". A
 late answer that adds a *first-class noun* ripples through domain placement,

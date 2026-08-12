@@ -1,14 +1,14 @@
 ---
 name: grilling
-version: "1.0.0"
+version: "1.1.0"
 description: >-
-  Decision-interview primitive: serial one-at-a-time or frontier-batch rounds,
-  recommended answers, facts from the tree, no implementation. Use when a
-  plan needs stress-testing or when grill-with-docs / show-gap / next-slice
-  need the shared grill loop.
+  Decision-interview primitive: frontier-batch rounds by default, recommended
+  answers, facts from the tree, and no implementation. Use when a plan needs
+  stress-testing or when grill-with-docs / show-gap / next-slice need the
+  shared grill loop.
 scope: decision interview primitive
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-12
 document_class: artifact
 ---
 
@@ -29,35 +29,25 @@ compose it; they do not restate these rules.
 Vocabulary adapted from [mattpocock/skills](https://github.com/mattpocock/skills)
 (`grilling`, `batch-grill-me`).
 
-## Modes
-
-### Serial (default)
-
-One decision at a time.
+## Frontier-batch loop (default)
 
 1. Restate the user's intent in one precise sentence when the request is fuzzy.
-2. Ask **one** question. Give the recommended answer and the consequence of the
-   main alternative. Wait.
-3. Treat the first answer as **direction**, not a lock: restate a short proposed
-   lock, probe scope/boundaries/exceptions, let the user correct wording.
-4. Only then open the next decision.
-
-### Frontier batch
-
-Use when **≥3 independent decisions** already have settled prerequisites (their
-answers do not depend on each other).
-
-1. Map the open space as a design tree; the **frontier** is every decision whose
+2. Map the open space as a design tree; the **frontier** is every decision whose
    prerequisites are settled.
-2. Ask the **whole frontier in one numbered round**. Each item: question +
+3. Ask the **whole frontier in one numbered round**. Each item: question +
    recommended answer (+ brief alternative cost when material).
-3. Wait for the batch. Accept `1. yes  2. your rec  3. defer` style replies.
-4. Lock what settled; recompute the frontier; run the next round.
-5. **Never** put a question in the same round as another answer it depends on.
+4. Wait for the batch. Accept `1. yes  2. your rec  3. defer` style replies.
+5. Treat each first answer as **direction**, not a lock. Restate the proposed
+   locks, probe material scope/boundary/exception ambiguity, and let the user
+   correct the wording.
+6. Lock what settled; recompute the frontier; run the next round.
+7. **Never** put a question in the same round as another answer it depends on.
    Facts you can look up are not frontier questions — resolve them yourself
    (or dispatch read-only legwork) without blocking independent decisions.
 
-Serial remains correct when entropy is low or dependencies are tight.
+Use serial one-question rounds only when the user asks for them. A frontier with
+one unblocked decision is naturally a one-question round; do not delay it to
+manufacture a batch.
 
 ## Standing rules
 

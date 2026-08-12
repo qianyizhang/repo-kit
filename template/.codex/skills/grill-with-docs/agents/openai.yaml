@@ -1,6 +1,6 @@
 interface:
   display_name: "Grill With Docs"
-  short_description: "Stabilize one decision before concise ADR capture"
-  default_prompt: "Use $grill-with-docs to restate my intent, stress-test one decision until stable, and only then capture a concise term or ADR."
+  short_description: "Stress-test the decision frontier with docs"
+  default_prompt: "Use $grill-with-docs to map my decision frontier, stress-test each unblocked choice, and capture only settled terms or ADRs."
 policy:
   allow_implicit_invocation: false

@@ -33,10 +33,9 @@ source, never an authority to overwrite repo-kit.
     there is no local behavior delta to adopt.
   - Frontier rounds, fact/decision separation, and an explicit confirmation
     gate are already covered by repo-kit's `grilling` workflow.
-  - Upstream makes frontier batching the default. Repo-kit currently uses
-    serial grilling by default and batches only three or more independent,
-    unblocked decisions. This is a real workflow-default choice; retain the
-    local hybrid until the user decides otherwise.
+  - Upstream makes frontier batching the default. The user adopted that default
+    for repo-kit on 2026-08-12; dependent questions remain in later rounds and
+    serial rounds remain an explicit user option.
   - Upstream `resolving-merge-conflicts` says never abort. Reject that rule for
     repo-kit governance: unresolved authority or unsafe conflict state must be
     allowed to stop without inventing a resolution.
