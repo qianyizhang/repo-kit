@@ -1,13 +1,13 @@
 ---
 name: doc-hygiene-audit
-version: "1.2.2"
+version: "1.2.3"
 description: >-
   Keep the doc corpus honest: capture knowledge, reconcile drift, review
   implementation decisions/deviations with the user, and restructure when the
   layout causes drift. Use after pivots/refactors or for doc hygiene.
 scope: documentation hygiene skill
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-12
 document_class: artifact
 ---
 
@@ -190,7 +190,7 @@ supersession banner.
 ## Output
 
 A round closes with the changes landed and a short report of what's left to
-decide. Write it to `docs/reports/doc-hygiene-YYYY-MM-DD.md` with standard
+decide. Write it to `records/reports/doc-hygiene-YYYY-MM-DD.md` with standard
 frontmatter **including a `produced_by:` stamp**
 (`doc-hygiene-audit@<version> · agent=<model-id> · effort=<level> · <date>`), as
 a table — every row a concrete action, not a bare observation:
