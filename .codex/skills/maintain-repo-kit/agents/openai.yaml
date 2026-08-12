@@ -1,0 +1,4 @@
+interface:
+  display_name: "Maintain repo-kit"
+  short_description: "Survey and reconcile repo-kit change flows"
+  default_prompt: "Use $maintain-repo-kit to survey local branches, downstream refinements, and external upstream changes, then propose approval-gated actions."
