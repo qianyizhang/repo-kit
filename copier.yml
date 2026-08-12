@@ -27,6 +27,7 @@ _skip_if_exists:
   - ".codex/skills/grill-with-docs/**"
   - ".codex/skills/show-gap/**"
   - ".codex/skills/handoff/**"
+  - ".codex/skills/next-slice/**"
   - ".codex/skills/explain-layman/references/repo-bindings.md"
 
 _message_after_copy: |

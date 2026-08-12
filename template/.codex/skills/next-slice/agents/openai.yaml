@@ -1,0 +1,4 @@
+interface:
+  display_name: "Next slice"
+  short_description: "Choose one verified next implementation slice"
+  default_prompt: "Use $next-slice to verify current planning state and recommend one small, valuable, testable next slice."
