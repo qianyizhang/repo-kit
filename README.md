@@ -24,6 +24,7 @@ consumer with `copier update`, not a one-time scaffold.
 - `AGENTS.md` — thin pointer to `CLAUDE.md`.
 - `governance-sync` — the portable adoption/update/reconciliation procedure.
 - `grilling` — shared model-invoked decision-interview primitive.
+- `show-me` — compact, evidence-grounded visual explanations using the smallest useful diagram shape.
 - `handoff` — session handoff packet and multi-agent claim-ledger protocol.
 - `explain-layman` core workflow, references, assets, validator, and UI metadata.
 
@@ -77,7 +78,7 @@ template/                  # the payload (_subdirectory), *.jinja files are rend
   docs/{index.md,glossary/ddd.md}.jinja
   records/work-items/backlog.md.jinja
   CLAUDE.md.jinja
-  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-gap,explain-layman,handoff,next-slice}/
+  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-me,show-gap,explain-layman,handoff,next-slice}/
 ```
 
 The doctrine itself explains the propagation model — see

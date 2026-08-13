@@ -39,3 +39,36 @@ source, never an authority to overwrite repo-kit.
   - Upstream `resolving-merge-conflicts` says never abort. Reject that rule for
     repo-kit governance: unresolved authority or unsafe conflict state must be
     allowed to stop without inventing a resolution.
+
+## humanlayer/skills
+
+- Source: `https://github.com/humanlayer/skills.git`
+- Branch: `main`
+- Local mappings: `show-me`
+- Attribution: keep the upstream MIT license with the managed skill and retain
+  the reviewed commit in `SKILL.md`.
+- Compare: visual-shape selection, evidence grounding, artifact-creation
+  boundary, portability, accessibility, and handoff behavior.
+
+### Review procedure
+
+1. Resolve `refs/heads/main` and record its commit.
+2. Shallow-clone or fetch into an OS temporary directory.
+3. Read `plugins/show-me/skills/show-me/SKILL.md` and its license.
+4. Compare the visual grammar and artifact boundary against repo-kit skill
+   doctrine and supported tool environments.
+5. Classify each semantic delta and preserve attribution for adopted material.
+
+### Last reviewed snapshot
+
+- Date: 2026-08-13
+- Commit: `4d8d644ca747517973f58d7953f58d7cd07520cd`
+- Findings:
+  - Adopt the smallest-useful-visual grammar; it closes the gap between prose
+    answers and heavyweight governed explainer artifacts.
+  - Adapt the platform-specific `Bash(open ...)` instruction to the active
+    environment's supported visualization and artifact handoff.
+  - Require real source labels when available and mark hypothetical shapes so a
+    concise diagram does not silently become repository authority.
+  - Keep inline explanation model-invokable, but require explicit user intent
+    before creating a durable HTML artifact.
