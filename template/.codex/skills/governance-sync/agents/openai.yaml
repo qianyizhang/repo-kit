@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governance sync"
+  short_description: "Adopt or update the shared governance kit"
+  default_prompt: "Use $governance-sync to adopt or update the shared governance kit and reconcile bindings."

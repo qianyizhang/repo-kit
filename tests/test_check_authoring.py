@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import io
 import sys
 import tempfile
 import unittest
@@ -108,9 +110,13 @@ sections = ["Intent", "Acceptance Criteria"]
         self.assertFalse(any(finding.rule_id == "TERM001" for finding in findings))
 
     def test_advisory_and_per_rule_enforcement(self) -> None:
-        self.assertEqual(check_authoring.main(["--repo-root", str(self.root)]), 0)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(check_authoring.main(["--repo-root", str(self.root)]), 0)
         self._write_config(mode="enforcing", blocking=("TERM001",))
-        self.assertEqual(check_authoring.main(["--repo-root", str(self.root), "--json"]), 1)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            self.assertEqual(check_authoring.main(["--repo-root", str(self.root), "--json"]), 1)
 
     def test_check_is_non_mutating(self) -> None:
         before = hashlib.sha256(self.item.read_bytes()).hexdigest()

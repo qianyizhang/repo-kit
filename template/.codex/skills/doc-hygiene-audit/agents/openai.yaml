@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc hygiene audit"
+  short_description: "Audit documentation corpus for drift, capture, and hygiene"
+  default_prompt: "Use $doc-hygiene-audit to inspect the documentation corpus and report drift, capture needs, or hygiene issues."

@@ -90,5 +90,5 @@ These belong to another SSOT; this sheet links, never forks them.
 | **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `CLAUDE.md` or `docs/models.md` · `.codex/skills/domain-modeling/references/MODEL-NOTATION.md` mechanics |
 | **Campaign** | [`governance.md`](governance.md) §Campaigns · [`doc.md`](doc.md) §Campaign records |
 | **Provenance**, **Witness** | domain — the repo's glossary (`docs/glossary/`) + product SSOT |
-| **Fail-closed** / **fail-open** | [`python.md`](python.md) |
+| **Fail-closed** / **fail-open** | [`governance.md`](governance.md) §Agent toolchains and symlinks · [`doc.md`](doc.md) §Frontmatter and classes |
 | Repository-specific mode names and done-ladder rungs | `CLAUDE.md` or another owning repository binding |

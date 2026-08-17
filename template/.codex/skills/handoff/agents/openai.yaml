@@ -1,0 +1,4 @@
+interface:
+  display_name: "Handoff"
+  short_description: "Package context across session cuts or parallel writers"
+  default_prompt: "Use $handoff to package session state or coordinate parallel writer claims."

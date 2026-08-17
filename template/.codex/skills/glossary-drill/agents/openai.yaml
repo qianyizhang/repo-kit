@@ -1,0 +1,4 @@
+interface:
+  display_name: "Glossary drill"
+  short_description: "Drill, quiz, and lint ubiquitous domain vocabulary"
+  default_prompt: "Use $glossary-drill to quiz ubiquitous terms or lint prose against the domain glossary."

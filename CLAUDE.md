@@ -54,6 +54,7 @@ Repo-kit stays manifest-free. Use Python 3.12 and pinned ephemeral tools:
 python3.12 -m unittest discover -s tests -v
 # opt-in networked Copier integration
 REPO_KIT_COPIER_SMOKE=1 python3.12 -m unittest tests/test_template_smoke.py -v
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml template/scripts/check_authoring.py tests
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml template/scripts/check_authoring.py tests
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml template/scripts tests .codex/skills/maintain-repo-kit/scripts
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml template/scripts tests .codex/skills/maintain-repo-kit/scripts
 ```
+

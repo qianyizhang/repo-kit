@@ -1,0 +1,4 @@
+interface:
+  display_name: "Domain modeling"
+  short_description: "Evolve core models, ubiquitous language, and ADRs"
+  default_prompt: "Use $domain-modeling to capture or evolve core models, ubiquitous language, or architectural decisions."
