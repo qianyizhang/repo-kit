@@ -2,74 +2,51 @@
 description: System rules, invariants, and guidelines for developer agents.
 scope: system guidelines
 status: stable
-last_update: 2026-07-07
+last_update: 2026-08-17
 document_class: coordination
 ---
 
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) and other agent
-toolchains when working with code in this repository. It is the **binding**: what
-is true of *this* repo. Portable doctrine lives in `docs/rules/*` and is pulled
-from the governance kit — refinements to it are promoted upstream, not edited
-here (see `docs/rules/governance.md` "Kit propagation").
+This file is the repository binding for developer agents. Keep project-specific
+identity, invariants, authority, and commands here. Portable doctrine lives in
+`docs/rules/` and is updated through the governance kit.
 
 ## What this project is
 
 {{ project_tagline }}
 
-<!-- Fill in: the spine of the system, the one deterministic backbone if any,
-     and the "no backward compatibility" stance if it applies. -->
+<!-- Fill in the system's purpose and deterministic backbone. -->
 
-## Where things are documented
+## Core model and governing invariant
 
-`docs/index.md` is the navigator over every doc, module README, report, and
-skill — with status, audience, and an **Authority & precedence** order. Start
-there; it routes, the linked target is the SSOT. Rules worth internalizing
-without a hop:
+<!-- State the few concepts and relationships needed to predict the system, or
+     point to docs/models.md. State the invariant that constrains implementation.
+     Use .codex/skills/domain-modeling/references/MODEL-NOTATION.md when the model
+     needs a durable graph or relationship specification. -->
 
-- `docs/rules/` holds portable doctrine (kit-owned): `governance.md` (repo
-  governance, symlink layout, kit propagation), `authoring.md` (profile-scoped
-  technical prose), `doc.md` (doc lifecycle), `python.md` (code style),
-  `skill.md` (skill authoring), and `testing.md`.
-- `docs/glossary/` is the ubiquitous-language SSOT; code names must match it, and
-  a new domain term updates the glossary in the same change.
-- `readme.md` / `README.md` is human setup + usage.
+## Authority map
+
+`docs/index.md` routes authority by concern and owns the human-facing flow map.
+Name repository-specific contracts, schemas, ADRs, and module authorities here
+or link them from that index. `README.md` owns human setup and usage.
 
 ## Working principles
 
 - **Concise is the key.**
 - **Full means full.** When asked to complete, extend, or verify coverage, do the
   actual work — never relabel a partial run as "full".
-- **Before claiming done, verify.** After any change, run the full suite *and* lint
-  (`make test` / `make lint`) green before reporting. Numeric claims are
-  re-checked against the code, not quoted from memory.
+- **Before claiming done, verify.** Run the repository checks below and
+  re-derive numeric claims from current evidence.
 - **Symlinks are load-bearing** (see below). Before `rm` or bulk file ops near
   symlinks, verify their targets.
 
-## Implementation records
+## Agent assets
 
-Every `IMPLEMENT` task names one primary file under `records/work-items/items/`. Before
-changing implementation surfaces, transition it to `wip` and append its Status
-History. Append material findings, assumptions, decisions, deviations,
-verification, and handoff information directly to its Implementation Ledger; do
-not leave them only in chat or a separate report. At the stop condition, update
-the item to `done`, `partial`, `blocked`, or leave it `wip` with an explicit
-handoff. Closing as `partial` requires linked residual backlog items.
-
-## Agent toolchains & symlink layout
-
-This repo is worked by multiple agent toolchains sharing one source of truth by
-symlink, not copy — full layout and rationale in `docs/rules/governance.md`.
-INVARIANT: `.codex/` holds the real assets; `.agents` and `.claude/skills` are
-**relative symlinks into it** (declared in `[tool.doc_governance.symlinks]`,
-verified by lint, created/repaired by `scripts/bootstrap_agents.py`). Create/edit
-skills only under `.codex/skills/` — never duplicate per toolchain.
-
-## The governing invariant
-
-<!-- Fill in: the enforced-from-day-one invariant that shapes every module, plus
-     its corollaries. Delete this section if the repo has no such invariant. -->
+`.codex/` holds the real shared agent assets. `.agents` and `.claude/skills` are
+relative symlinks into it, declared in `[tool.doc_governance.symlinks]` and
+created by `scripts/bootstrap_agents.py`. Edit skills only under
+`.codex/skills/`; resolve symlink targets before deleting anything nearby.
 
 ## Commands
 
@@ -83,27 +60,20 @@ make format    # auto-format and auto-fix
 
 ## Architecture rules
 
-<!-- Fill in: the module graph / bounded-context rules and their mechanical
-     enforcement (import-linter contracts, etc.). -->
-
-- **Ubiquitous language**: names in code must match `docs/glossary/`. A change
-  introducing a new domain term adds it to the glossary in the same change.
-
-## Code Style
-
-Doctrine (semantic typehints, `Literal`-vs-`StrEnum` promotion test, tagged
-comment taxonomy) lives in `docs/rules/python.md`. Repo-specific exemplars of the
-sanctioned patterns go here as they emerge.
+<!-- Fill in the module graph, bounded-context rules, owning contracts, and
+     mechanical enforcement. Link the canonical domain glossary. -->
 
 ## Testing
 
-SSOT: `docs/rules/testing.md`. Repo-specific bindings (which modules are runnable
-today, the env vars that redirect side-effecting roots) go here.
+Portable doctrine: `docs/rules/testing.md`.
+
+<!-- Fill in runnable suites, fixtures, and environment variables that redirect
+     side effects. -->
 
 ## Skills
 
-SSOT: `docs/rules/skill.md`. `.codex/skills/` is the single home; `docs/index.md`
-§Playbooks is the skill map.
+Portable doctrine: `docs/rules/skill.md`. `docs/index.md` §Main flows is the
+human-facing router.
 
 Invocation policy:
 
@@ -119,9 +89,7 @@ Invocation policy:
 
 ## Housekeeping (after a task)
 
-- Revisit `CLAUDE.md` (this file): doctrine refinements go to `docs/rules/` and
-  are promoted to the kit; repo bindings stay here.
-- Unfinished/deferred work gets an individual record under
-  `records/work-items/items/`; `records/work-items/backlog.md` owns the lifecycle
-  and schema.
-- All docs carry frontmatter per `docs/rules/doc.md`.
+- Keep repository bindings here and promote portable refinements to the kit.
+- Route precise unfinished work through `records/work-items/backlog.md`; use an
+  optional Campaign only at the threshold in `docs/rules/governance.md`.
+- Follow `docs/rules/doc.md` for documentation lifecycle and frontmatter.

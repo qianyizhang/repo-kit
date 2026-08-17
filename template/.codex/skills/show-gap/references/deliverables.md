@@ -1,45 +1,40 @@
-# Show Gap — final deliverable shapes
+# Show Gap — durable deliverables
 
-Reached from `SKILL.md` when a run converges. The draft report shape stays in the
-skill body (every run produces one); these are the end-of-run branches.
+Open this reference only after the fit discussion converges.
+
+## Campaign seed
+
+Use a Campaign only when the threshold in `docs/rules/governance.md` is met.
+Create or update `records/campaigns/<slug>.md` using the record shape in
+`docs/rules/doc.md`. Seed current understanding and uncertainty; link precise
+work items and durable decisions instead of copying them.
 
 ## Implementation spec
 
-Contents: feature goal, non-goals, evidence, locked decisions, target maturity,
-affected files/modules, staged implementation plan, tests, doc/glossary/backlog
-updates, acceptance criteria, and deferred work.
+Include the feature goal, non-goals, evidence, locked decisions, target maturity,
+affected authorities and modules, staged implementation plan, tests,
+documentation/glossary/work-item updates, acceptance criteria, and deferred
+work. Include core-model impact only when the feature materially changes a
+cross-cutting relationship.
 
-For speculative or early features the spec may be intentionally thin on file
-edits and rich on goal/non-goal, screen concept, data flow, and open questions.
-Do not pad it with fake certainty.
+An early feature may be intentionally thin on file edits and rich on goal,
+screen concept, data flow, and open questions. Do not pad it with fake certainty.
 
-When the spec lands as a repo doc (usually `docs/design/`), its frontmatter
-carries `produced_by: show-gap@<version> · agent=<model-id> · effort=<level> ·
-<date>` per the signed-output rule. Conversation-only reports need no stamp.
+When the spec becomes a repository document, stamp it:
+
+`produced_by: show-gap@<version> · agent=<model-id> · effort=<level> · <date>`
+
+Conversation-only reports need no stamp.
 
 ## Canceled feature memo
 
-Contents: original intent, evidence, why canceled or superseded, and what would
-make it worth revisiting. Track it as a durable `canceled` item under
-`docs/todo/items/`, with the revisit trigger in Context and Trade-offs. Same
-`produced_by` rule when it lands as a repo doc.
+Record the original intent, evidence, why it was canceled or superseded, and the
+trigger that would justify revisiting it. Store a durable canceled item under
+`records/work-items/items/` using the same `produced_by` rule.
 
-## Spec → build handoff
+## After acceptance
 
-Only when the user accepts the spec and explicitly says proceed. The discovery
-contract travels with you — don't drop discipline because you're now coding:
-
-1. **Name the primary backlog item first**; transition it to `wip` and append its
-   Status History before implementation.
-2. **Branch first** if on a shared/default or unrelated branch.
-3. **Pick the smallest independently-verifiable slice** (the spec's stage 0 —
-   models + one contract/safety rule + tests, not the whole feature). Land value
-   that compiles and tests green, not a broad half-built sweep.
-4. **Land the SSOT docs alongside the code**, in the same change: glossary terms,
-   module README, `docs/index.md` row, backlog entry, import contracts. A new
-   bounded context or domain noun updates the glossary in the same commit.
-5. **Verify before claiming done**: `make lint` + `make test` green; if a
-   pre-existing failure is unrelated, prove it (stash your change, re-run) and say
-   so rather than letting it read as your regression.
-6. **Checkpoint in the item**: append material decisions/deviations/verification
-   to its Implementation Ledger and set the honest terminal or handoff status.
+Implementation begins only after explicit user authorization. Use `next-slice`
+when the first independently verifiable slice is not already settled, and
+`handoff` only when another session needs a durable packet. Verification comes
+from repository authority, not this portable skill.

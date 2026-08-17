@@ -1,7 +1,7 @@
-**/.pytest_cache/
+.pytest_cache/
 *.pyc
 .DS_Store
-.pytest_cache/
+.cache/
 .ruff_cache/
 .venv/
 __pycache__/

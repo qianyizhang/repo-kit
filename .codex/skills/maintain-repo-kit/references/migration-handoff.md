@@ -1,0 +1,39 @@
+# Consumer migration handoff
+
+Maintainers only. Consumer propagation is outside the current refactor. No
+consumer was edited.
+
+## Before the next release or update
+
+1. Re-run `survey.py` and compare every consumer with its recorded `_commit`.
+2. Reconcile the ownership change: shared skill cores are kit-managed; only
+   true repository bindings and seeds remain consumer-owned.
+3. Classify existing consumer edits as portable evidence, local binding, or
+   obsolete before Copier can replace a formerly seeded core.
+4. Reconcile the new coordination paths into consumer-owned configuration and
+   navigation: allow advisory Campaigns under `records/campaigns/` and handoffs
+   or claim ledgers under `records/reports/`; add local routes only when useful.
+   Do not add a dedicated class, status machine, or required Campaign record.
+5. Exercise copy and update from representative recorded baselines in temporary
+   repositories, then run repo-kit and consumer checks.
+6. Propose the checkpoint/tag and each consumer update separately. Propagation,
+   tagging, and pushing remain approval-gated.
+
+## Survey snapshot
+
+The read-only survey on 2026-08-17 at repo-kit `9a0df0db00ce` used the
+pre-refactor ownership map. It found no deltas in then-managed paths. The
+seeded/local paths below become managed under the new contract and need semantic
+classification before any update; other drift from current repo-kit is update
+lag, not consumer authorship.
+
+| Consumer | Recorded baseline | Dirty | Seeded/local review |
+| --- | --- | --- | --- |
+| `biomed-concepts` | `v0.10.3` | no | none |
+| `chronical-management` | `v0.8.0` | no | `doc-hygiene-audit`, `domain-modeling`, `glossary-drill`, `handoff`, `show-gap` |
+| `drug-discovery` | `v0.10.3-5-g9a0df0d` | yes | `next-slice` |
+| `drug-safety` | `v0.9.0` | no | `doc-hygiene-audit`, `domain-modeling`, `handoff`, `show-gap` |
+| `med-track` | `v0.9.0` | yes | none |
+
+The dirty consumers block update work until separately reconciled. Re-run the
+survey rather than treating this snapshot as current truth.

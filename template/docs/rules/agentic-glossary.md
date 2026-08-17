@@ -2,7 +2,7 @@
 description: Portable agent-collaboration vocabulary — the register for directing an agent through work (control loop, coordination, epistemic honesty, craft).
 scope: agent-collaboration glossary
 status: stable
-last_update: 2026-07-24
+last_update: 2026-08-17
 document_class: coordination
 ---
 
@@ -18,8 +18,8 @@ Where they touch, that sheet owns the term — see **Pointers** below.
 
 Format: fuller than a one-liner because agent-facing terms must be *invocable* —
 each row says what the term is, how to reach for it, and the misuse to avoid.
-Repo-specific instances (this repo's mode names, done-ladder rungs) stay in
-`CLAUDE.md`; this sheet defines the portable concept and points there.
+Repo-specific mode names and completion rungs stay in their repository binding;
+this sheet defines only the portable concepts.
 
 ## Control loop
 
@@ -53,9 +53,9 @@ Naming the register you're in, and not overstating where the work stands.
 
 | Term | Meaning (why it exists) | How to invoke | _Avoid_ |
 | --- | --- | --- | --- |
-| **Mode** | The one **epistemic register** a task runs in; named before acting because it changes what authority you have. This repo's seven: `CLAUDE.md` Epistemic mode. | State the mode (and every transition) in one line before acting. | Silently drifting from AUDIT into fixing, or RESEARCH into deciding. |
+| **Mode** | The **epistemic register** a task runs in; named because it changes what authority you have. | Use the repository's named modes when it defines them; state material transitions. | Silently drifting from audit into fixing, or research into deciding. |
 | **Altitude** | The **abstraction level** you're working at; "raise/lower altitude" moves between overview and detail. | Match altitude to the artifact; call the shift when you change it. | Mixing altitudes in one artifact (spec prose next to line edits). |
-| **Done ladder** / **rung** | "Done" is **graded**; each rung a stricter bar. This repo's rungs (code-green → candidate → release-eligible → deployed): `CLAUDE.md` Done ladder. | Name which rung a result reached; never imply a higher one. | Collapsing rungs — calling a candidate "deployed" or a partial "full". |
+| **Done ladder** / **rung** | "Done" may be **graded**; each repository-defined rung is a stricter bar. | Name the concrete rung or proof reached; never imply a higher one. | Collapsing local verification, release, and deployment into one claim. |
 | **Faithful** | **Extract/strip only** — no rewrite, no synthesis. The FAITHFUL-mode virtue and the standard for raw source payloads. | Fetch / curate / "download" → preserve verbatim, strip only web noise. | Calling a rewrite or summary "faithful". |
 | **Corpus-silent** | A finding/candidate the **source never states** (e.g. an agent-proposed patch). Must stay a *candidate* pending human review. | Surface it as a candidate with provenance; never fold into the SSOT silently. | Adopting a corpus-silent claim as if the source said it. |
 | **Full means full** | Asked to complete/verify **coverage** → do the real work (re-extract, recount). Can't finish → say so and checkpoint. | Extend/verify/"full" tasks → actual re-derivation, then verify. | Relabeling a partial run as "full" or softening the definition to fit. |
@@ -86,7 +86,9 @@ These belong to another SSOT; this sheet links, never forks them.
 | --- | --- |
 | **Frontier**, **Frontier batch**, **Context hygiene** | [`skill-glossary.md`](skill-glossary.md) §Coordination |
 | **Leading word**, **Progressive disclosure**, **Completion criterion** | [`skill-glossary.md`](skill-glossary.md) |
-| **SSOT** (single source of truth) | `docs/index.md` Authority & precedence · [`skill-glossary.md`](skill-glossary.md) §Pruning |
+| **SSOT** (single source of truth) | `docs/index.md` Authority by concern · [`skill-glossary.md`](skill-glossary.md) §Pruning |
+| **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `CLAUDE.md` or `docs/models.md` · `.codex/skills/domain-modeling/references/MODEL-NOTATION.md` mechanics |
+| **Campaign** | [`governance.md`](governance.md) §Campaigns · [`doc.md`](doc.md) §Campaign records |
 | **Provenance**, **Witness** | domain — the repo's glossary (`docs/glossary/`) + product SSOT |
 | **Fail-closed** / **fail-open** | [`python.md`](python.md) |
-| **The seven epistemic modes**, **done-ladder rungs**, the default **control loop** | `CLAUDE.md` (repo binding — this sheet defines the portable concept, that file names this repo's instances) |
+| Repository-specific mode names and done-ladder rungs | `CLAUDE.md` or another owning repository binding |

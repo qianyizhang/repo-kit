@@ -1,85 +1,45 @@
-# repo-kit — shared governance kit
+# repo-kit
 
-A [copier](https://copier.readthedocs.io/) template for the portable
-repo-governance layer used across `~/pkgs/*`: doctrine docs, structural and
-authoring checks, the agent-toolchain symlink layout, and hygiene skills.
+A [Copier](https://copier.readthedocs.io/) product for portable repository
+governance. `template/` is the product authority; the root
+[`CLAUDE.md`](CLAUDE.md) governs maintenance of this repository only.
 
-Copier (not cookiecutter) so that a doctrine refinement propagates to every
-consumer with `copier update`, not a one-time scaffold.
+The [core model](docs/models.md) and [decision records](docs/adr/) explain how
+Candidates, Campaigns, the portable product, and consumer bindings relate.
 
-## What it ships
+## Ownership contract
 
-**Kit-owned** (overwritten on `copier update`):
+Kit-managed files are replaced by `copier update`: portable doctrine, checks,
+agent bootstrap, and every shared core under `template/.codex/skills/`.
 
-- `docs/rules/{governance,authoring,agentic-glossary,doc,python,skill,skill-glossary,testing}.md` —
-  portable doctrine (skill glossary defines bold terms in `skill.md`).
-- `scripts/check_docs.py` — mechanical doc governance (reads
-  `pyproject.toml [tool.doc_governance]`); backlog items require `work_kind`
-  in `{decision, build, research}`.
-- `scripts/check_authoring.py` — non-mutating, profile-scoped terminology and
-  prose findings; advisory unless the consumer promotes individual rule IDs.
-- `scripts/bootstrap_agents.py` — creates/repairs the `.codex` symlink layout,
-  fails closed on real dirs.
-- `ruff_base.toml` — ruff doctrine defaults.
-- `AGENTS.md` — thin pointer to `CLAUDE.md`.
-- `governance-sync` — the portable adoption/update/reconciliation procedure.
-- `grilling` — shared model-invoked decision-interview primitive.
-- `show-me` — compact, evidence-grounded visual explanations using the smallest useful diagram shape.
-- `handoff` — session handoff packet and multi-agent claim-ledger protocol.
-- `explain-layman` core workflow, references, assets, validator, and UI metadata.
+True seeds and bindings stay consumer-owned: the consumer constitution, index,
+backlog, glossary, local configuration merge, and explainer binding. Copier
+distributes shared behavior; it does not own local meaning.
 
-**Seeded once, then repo-owned** (`_skip_if_exists`):
+Each consumer records its source revision in `.copier-answers.yml`. Reconcile
+updates from that `_commit`. Tags are preferred release checkpoints, not the
+only valid source revisions.
 
-- `CLAUDE.md`, `docs/index.md`, `records/work-items/backlog.md`, `docs/glossary/ddd.md`
-  (jinja skeletons with the repo's bindings).
-- Seeded skills under `.codex/skills/`: `doc-hygiene-audit`, `domain-modeling`,
-  `glossary-drill`, `grill-with-docs`, `show-gap`, `handoff`, and `next-slice`.
-- `.codex/skills/explain-layman/references/repo-bindings.md` — the consumer's
-  audience, authority, vocabulary, paths, source identity, and verification
-  profile.
-- `pyproject-doc-governance.toml` — a block to merge into the repo's real
-  `pyproject.toml`, then delete.
+## Apply or update
 
-## Use it
-
-Adoption and updates are driven by the managed **`governance-sync`** skill
-(`template/.codex/skills/governance-sync/SKILL.md`) — it wraps the raw copier
-commands with the semantic reconciliation copier can't do (pyproject merge,
-consolidating duplicated skill copies, filling bindings, greening `check_docs`).
+Use the managed `governance-sync` skill for semantic reconciliation around the
+raw Copier operation.
 
 ```bash
 # first adoption
-uvx copier copy ~/pkgs/repo-kit <target-repo>
-# later, pull a kit update
-cd <target-repo> && uvx copier update
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
+  uvx --from copier==9.17.1 copier copy ~/pkgs/repo-kit <target-repo>
+
+# update from the recorded source
+cd <target-repo>
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
+  uvx --from copier==9.17.1 copier update
 ```
 
-## Verification
+Review preserved bindings and run the consumer's checks before accepting an
+update.
 
-The checker implementation is covered by repository-local unit tests and
-requires Python 3.11 or newer:
+## Verify repo-kit
 
-```bash
-python3.12 -m unittest discover -s tests -v
-ruff format --check --config template/ruff_base.toml template/scripts/check_authoring.py tests/test_check_authoring.py
-ruff check --config template/ruff_base.toml template/scripts/check_authoring.py tests/test_check_authoring.py
-```
-
-## Layout
-
-```
-copier.yml                 # questions + _skip_if_exists + after-copy message
-template/                  # the payload (_subdirectory), *.jinja files are rendered
-  AGENTS.md
-  ruff_base.toml
-  pyproject-doc-governance.toml.jinja
-  scripts/{check_docs,check_authoring,bootstrap_agents}.py
-  docs/rules/*.md
-  docs/{index.md,glossary/ddd.md}.jinja
-  records/work-items/backlog.md.jinja
-  CLAUDE.md.jinja
-  .codex/skills/{doc-hygiene-audit,governance-sync,domain-modeling,glossary-drill,grilling,grill-with-docs,show-me,show-gap,explain-layman,handoff,next-slice}/
-```
-
-The doctrine itself explains the propagation model — see
-`template/docs/rules/governance.md` "Kit propagation".
+Run the pinned unit, Copier-smoke, and Ruff commands in
+[`CLAUDE.md`](CLAUDE.md#verification).

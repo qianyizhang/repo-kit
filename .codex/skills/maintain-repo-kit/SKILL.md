@@ -1,55 +1,53 @@
 ---
 name: maintain-repo-kit
-description: Survey and reconcile repo-kit's local branches and worktrees, portable changes in Copier consumers, and external skill upstreams. Use for repo-kit maintenance, branch absorption, downstream promotion, upstream review, or governance release preparation.
+version: "1.4.0"
+description: Survey and reconcile repo-kit's local topology, downstream candidates, external upstream ideas, and Copier baselines. Use for maintenance, promotion, consumer reconciliation, or release preparation.
+scope: repo-kit maintenance
+status: stable
+last_update: 2026-08-17
+document_class: artifact
 ---
 
 # Maintain repo-kit
 
-Keep three change flows separate: local Git topology, downstream consumer
-refinements, and external upstream ideas. Survey first; preserve authority and
-provenance through every absorption.
+Read root `CLAUDE.md` first. Keep local Git topology, consumer evidence, and
+external ideas separate. All enter as Candidates; only explicit promotion
+changes `template/`. Consumer bindings remain consumer authority.
+
+Use a Campaign only when a destination spans sessions and material fog must be
+revisited. It links the frontier, work, evidence, learning, and decisions while
+their existing owners retain authority; see [ADR-0002](../../../docs/adr/0002-campaigns-for-bounded-uncertainty.md).
 
 ## Start with evidence
 
 Run the read-only survey from the repository root:
 
 ```bash
-python .codex/skills/maintain-repo-kit/scripts/survey.py
+python3.12 .codex/skills/maintain-repo-kit/scripts/survey.py
 ```
 
-Use `--base <branch>` or `--consumer-parent <path>` only when the defaults are
-wrong. Treat its classifications as candidate generation, not merge authority.
-
-Then inspect the exact diff, commits, ownership contract, and verification
-commands for every candidate. Stop when a relevant worktree is dirty, a ref is
-missing, or authorship is ambiguous.
+Use `--base` or `--consumer-parent` only when defaults are wrong. The survey
+classifies evidence; it never authorizes a mutation. Inspect exact commits,
+diffs, ownership, and checks. Stop on relevant dirt, missing refs, or ambiguous
+authorship.
 
 ## Reconcile one flow at a time
 
 ### Local branches and worktrees
 
-1. Classify each branch relative to the base: ahead-only, behind-only, diverged,
-   or base.
-2. For an ahead-only branch, review its commit range and diff, run the repo
-   gates, then prefer a fast-forward of the base.
-3. For a diverged branch, reconstruct both intents from commits and owning
-   artifacts before proposing merge or rebase. Never resolve by choosing the
-   newest text blindly.
-4. Remove a linked worktree only after its tree is clean and its branch is
-   merged or explicitly abandoned by the user. Delete a branch only after the
-   same proof.
-5. Re-run the survey after each mutation. Keep the base checkout clean before
-   starting the next flow.
+1. Classify each branch as base, ahead, behind, or diverged.
+2. Review the exact range and run gates; prefer fast-forward for ahead-only.
+3. Reconstruct both intents before proposing a merge or rebase.
+4. Remove a worktree or branch only after clean/merged proof or explicit
+   abandonment.
+5. Re-run the survey after each mutation.
 
-Branch merges, rebases, branch deletion, worktree removal, tagging, and pushing
-are approval-gated unless the user's current request explicitly authorizes the
-exact action class. Never infer push or deletion authority from permission to
-review or merge.
+Merges, rebases, deletion, worktree removal, tagging, and pushing are separately
+approval-gated. Never infer push or deletion authority from review or merge.
 
 ### Downstream refinements
 
-Consumers declare repo-kit through `.copier-answers.yml`. Compare each consumer
-against its recorded `_commit`, not only against current `HEAD`:
+Compare each consumer against the `_commit` in `.copier-answers.yml`:
 
 - a managed-file delta relative to `_commit` is a portable-change candidate;
 - a skipped/seeded delta may be portable or repository policy and needs semantic
@@ -57,16 +55,19 @@ against its recorded `_commit`, not only against current `HEAD`:
 - a difference from current kit alone is update lag, not downstream authorship;
 - a consumer-only skill is not automatically a kit candidate.
 
-For a portable candidate, identify the consumer commit and rationale, recreate
-the minimal change in `template/`, verify it here, then update consumers through
-`governance-sync`. Do not copy a dirty working-tree snapshot upstream. Keep
-repository vocabulary, paths, authority, and source identity downstream.
+For a portable Candidate, identify its commit and rationale, recreate the
+minimal change in `template/`, and verify it here. Never copy a dirty snapshot.
+Keep local vocabulary, paths, authority, and source identity downstream.
+
+Use the [migration handoff](references/migration-handoff.md) before a future
+release or consumer update. Consumer propagation is a separate, approval-gated
+operation. Tags are preferred checkpoints, but the recorded `_commit` is the
+actual reconciliation baseline.
 
 ### External upstreams
 
-Read [upstreams.md](references/upstreams.md) before fetching or proposing an
-external change. Fetch into a temporary directory, record the reviewed commit,
-and compare ideas and behavior rather than file names alone.
+Read [upstreams.md](references/upstreams.md). Fetch into a temporary directory,
+record the reviewed commit, and compare behavior rather than filenames.
 
 Classify each finding as:
 
@@ -76,23 +77,20 @@ Classify each finding as:
 - `reject` — violates safety, authority, or simplicity boundaries;
 - `already-covered` — no change needed.
 
-Include source commit, local evidence, affected paths, semantic delta, risk,
-and a recommendation. Preserve attribution when an idea is adopted.
+Record source, local evidence, affected paths, semantic delta, risk, and a
+recommendation. Preserve attribution for adopted work.
 
 ## Grill only decisions
 
-Resolve facts from the repositories. When adoption still depends on user
-preference or policy, invoke the local `grilling` primitive:
+Resolve facts from repositories. For remaining policy choices, use `grilling`:
 
 1. Present a compact triage table before any question.
 2. Ask only the unblocked decision frontier, with a recommended answer and the
    cost of the main alternative.
-3. Keep dependent questions for the next round.
-4. Do not implement an external proposal until the user confirms the lock.
+3. Defer dependent questions.
+4. Restate and confirm the lock before implementing it.
 
-Routine branch retirement with complete evidence is an operation, not a design
-interview. Conflicting intent, authority changes, and workflow-default changes
-are decisions and should be grilled.
+Conflicting intent, authority changes, and workflow defaults are decisions.
 
 ## Completion
 

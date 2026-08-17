@@ -2,17 +2,16 @@
 description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
 scope: skill authoring rules
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-17
 document_class: coordination
 ---
 
 # Skill rules
 
-What a skill is *allowed* to do is governed by `CLAUDE.md` ("Skills are the
-document-processing substrate" + the governing invariant); this file is how to
-write one well. `.codex/skills/` is the single home (symlink layout in
-`CLAUDE.md`); `docs/index.md` §Playbooks is the skill map. Bold terms are defined
-in [`skill-glossary.md`](skill-glossary.md).
+`CLAUDE.md` owns repository invocation policy; this file owns portable skill
+authoring rules. `.codex/skills/` is the single home, and `docs/index.md`
+§Main flows is the human-facing router. Bold terms are defined in
+[`skill-glossary.md`](skill-glossary.md).
 
 The root virtue is **predictability**: the agent takes the same *process* every
 run, not the same output. Every rule below is a lever on it. (Vocabulary adapted
@@ -35,9 +34,9 @@ from mattpocock/skills `writing-great-skills`.)
   in the skill body (+ version bump) or filed as a `# TODO:` / backlog item; a
   recurring-but-unfixed caveat lands in `## Pitfalls`. A skill that bit you and
   left no trace is an unfinished run.
-- **Map re-sync.** A skill add/rename/behaviour change re-syncs the
-  `docs/index.md` §Playbooks map in the same change — a map that omits or
-  misdescribes a skill routes agents wrong.
+- **Map re-sync.** A skill add, rename, or invocation-boundary change re-syncs
+  `docs/index.md` §Main flows when routing changes. Internal behavior changes do
+  not churn the navigator.
 
 ## description — the always-loaded trigger
 

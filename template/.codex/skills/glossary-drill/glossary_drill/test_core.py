@@ -35,6 +35,11 @@ def test_version_semver_shape() -> None:
     assert all(p.isdigit() for p in parts)
 
 
+def test_version_matches_skill_manifest() -> None:
+    manifest = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
+    assert f'version: "{__version__}"' in manifest
+
+
 def test_parse_fixture_terms_avoid_confusable() -> None:
     by_term = {c.term: c for c in _cards()}
     assert {"Candidate", "ProtocolAtom", "Bounded Context"} <= set(by_term)

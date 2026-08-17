@@ -1,41 +1,38 @@
 ---
 name: explain-layman
-version: "1.8.2"
+version: "1.9.1"
 description: >-
-  Create or revise plain-language stakeholder explainers as standalone pages,
+  Create or revise governed stakeholder explainers as maintained pages,
   narrative slide decks, linked series, or focused interactive maps while
   preserving repository authority and provenance.
 disable-model-invocation: true
 scope: stakeholder explainer skill
 status: stable
-last_update: 2026-07-16
+last_update: 2026-08-17
 document_class: artifact
 ---
 
 # Explain Layman
 
-Turn one teaching job into a non-technical stakeholder artifact without
-weakening the repository's contracts.
+Turn one teaching job into a maintained non-technical artifact without weakening
+repository contracts. Use `show-me` for a compact conversational visual; use
+this explicit skill when the output is a governed stakeholder artifact.
 
-This is an explicit interaction mode. An agent may suggest it, but must not
-start producing or revising an explainer merely because plain-language
-communication could be useful.
+An agent may suggest this mode but must not create or revise an explainer unless
+the user asks for it.
 
-## Ownership and role split
+## Ownership
 
-- The governance kit owns this workflow, its general references, templates,
-  validator, and UI metadata. Promote portable improvements upstream; do not
-  customize those files in a consumer repository.
-- The consumer owns `references/repo-bindings.md`. It names the local audience,
-  authority files, invariants, vocabulary, output locations, source identity,
-  and verification command.
-- The agent judges narrative structure, examples, and honest omission. Repository
-  SSOTs own meaning. `scripts/validate_explainer.py` gates mechanical contracts;
-  it does not judge clinical or domain truth.
+- The governance kit owns the managed workflow, general references, assets,
+  validator, and UI metadata.
+- The repository owns `references/repo-bindings.md`: audience, authority files,
+  invariants, vocabulary, output paths, source identity, and verification.
+- Repository SSOTs own meaning. The agent owns narrative judgment, and
+  `scripts/validate_explainer.py` checks mechanics rather than domain truth.
 
-## 1. Load and validate the local binding
+## 1. Validate the binding
 
-Read `references/repo-bindings.md` completely. Then run:
+Read `references/repo-bindings.md` completely, then run:
 
 ```bash
 python .codex/skills/explain-layman/scripts/validate_explainer.py \
@@ -43,87 +40,83 @@ python .codex/skills/explain-layman/scripts/validate_explainer.py \
   --binding-only
 ```
 
-Stop if the binding is missing, outdated, or contains placeholders. Follow
-`references/binding-contract.md` when reconciling it; never invent local policy.
+Stop if the binding is missing, outdated, or contains placeholders. Reconcile it
+through `references/binding-contract.md`; never invent local policy.
 
 ## 2. Ground the teaching job
 
 Read, in order:
 
-1. the agent-instruction SSOT named by the binding;
-2. the repository navigator and topic SSOTs named by the binding;
+1. the instruction SSOT named by the binding;
+2. the navigator and topic authorities named by the binding;
 3. the local glossary and avoid-list;
-4. `references/style-guide.md`;
-5. `references/artifact-shapes.md`;
-6. one nearby maintained explainer, if available.
+4. `references/style-guide.md` and `references/artifact-shapes.md`;
+5. one nearby maintained explainer, if available.
 
-Restate the artifact's single **teaching job**: the practical question readers
-should be able to answer afterward. A teaching job may require several related
-boundaries; do not force a landscape explanation into one narrow definition.
+State the single practical question readers should answer afterward, then list
+the relevant authority, safety, provenance, and release boundaries.
 
-Before writing, list the relevant authority, safety, provenance, and release
-boundaries from the binding. Preserve all of them in the artifact.
+If the topic materially depends on a cross-cutting core-model relationship, name
+it. Otherwise teach from the owning SSOTs without inventing model ceremony.
 
-## 3. Choose the artifact shape
+## 3. Choose the artifact
 
-Use the decision table in `references/artifact-shapes.md`:
+Use `references/artifact-shapes.md`:
 
 - **Page** for lookup, one object, one role split, or one stable process.
-- **Slides** for a cumulative argument whose meaning depends on sequence.
-- **Series** for several independently useful teaching jobs with explicit
-  handoffs.
-- **Interactive map** for one relationship that is materially clearer through
-  exploration.
+- **Slides** for a cumulative argument that depends on sequence.
+- **Series** for independently useful teaching jobs with explicit handoffs.
+- **Interactive map** when exploration materially clarifies one relationship.
 
-For a large structural change with genuine alternatives, build two or three
-throwaway variants and let the user choose before polishing. Delete previews
-after the choice is incorporated.
+For a large structural change with genuine alternatives, create two or three
+throwaway variants and let the user choose before polishing. Remove previews
+after the choice lands.
 
 ## 4. Write and visualize
 
-- Lead with the answer, then earn the detail. Use operational language rather
-  than marketing or implementation narration.
-- Show the whole relevant landscape before highlighting the project's chosen
-  scope. Label omissions and uncovered areas explicitly.
-- When replacing a baseline, state what it accomplished, where its authority
-  sat, why it was initially sufficient, and what fails at scale. Do not create a
-  strawman.
-- Use one visual spine once. Other sections should add a different lens, not
-  repeat the same sequence.
-- For implementation explainers, distinguish parallel capability lanes from
-  vertical integration and distinguish coverage growth from capability growth.
-- For a series, include both a numbered reading-order strip and a narrative
-  handoff: what this artifact settled, what remains unanswered, and why the next
-  artifact follows.
-- Use the dependency-free assets as starting points when they match the chosen
-  shape. Adapt them; do not preserve unused placeholder sections.
+- Lead with the answer, then earn the detail.
+- Teach governing concepts and relationships before stack, files, or milestones.
+  Use canonical names, explicit actors, short sentences, and clear conditions.
+- Show the relevant landscape before highlighting the project's chosen scope;
+  label omissions.
+- When replacing a baseline, explain what it accomplished, why it was initially
+  sufficient, and what now fails without making it a strawman.
+- Use one visual spine once. Later sections must add a different lens.
+- Distinguish parallel capability lanes from vertical integration and coverage
+  growth from capability growth.
+- For a series, state what each artifact settles, what remains, and why the next
+  one follows.
+- Adapt matching assets and remove unused placeholder sections.
 
-## 5. Run the terminology and tooltip pass
+Every artifact must link to the authorities it explains; it is not a second
+contract or glossary.
 
-Use reader-language first. Keep canonical names visible where traceability
-matters. For the first meaningful use of every clinical, scientific,
-regulatory, coding, or repository-canonical term:
+## 5. Terminology and tooltips
 
-- use the glossary's canonical wording;
+Use reader language first and keep canonical names visible where traceability
+matters. On the first meaningful use of a specialized or repository-canonical
+term:
+
+- use the glossary wording;
 - add a keyboard-focusable tooltip;
-- explain both what the term means and why it appears in that context;
+- explain what it means and why it appears here;
 - keep essential meaning visible outside the tooltip.
 
-Never use tooltip text to introduce policy absent from an authority source.
+Never introduce policy through tooltip text.
 
-## 6. Preserve provenance and navigation
+## 6. Provenance and navigation
 
 - Stamp substantive artifacts with
   `explain-layman@<version> · profile=<profile>@<profile_version> · agent=<id> · effort=<level> · <date>`.
-- Use the binding's output directory, index file, canonical source URL, footer
-  wording, and artifact language.
+- Use the binding's output directory, index, source URL, footer, and language.
 - Align filename, `<title>`, H1, and footer title.
-- Update the repository navigator for a maintained artifact. Update the glossary
-  in the same change when introducing durable vocabulary.
+- Update the navigator only when its area or concept routing contract requires
+  it; do not enumerate every artifact. Add accepted durable vocabulary to the
+  glossary in the same change.
 
 ## 7. Verify
 
-Run the deterministic validator on every changed HTML artifact:
+Run the validator on every changed HTML artifact:
 
 ```bash
 python .codex/skills/explain-layman/scripts/validate_explainer.py \
@@ -131,10 +124,9 @@ python .codex/skills/explain-layman/scripts/validate_explainer.py \
   path/to/explainer.html
 ```
 
-Then visually inspect desktop and narrow layouts. For slides, also verify direct
-hash navigation, keyboard controls, no-JS reading, print output, and reduced
-motion. Finally run the repository verification command from the binding; the
-local repository policy, not this portable skill, decides the required gate.
+Inspect desktop and narrow layouts. For slides, also verify direct hash
+navigation, keyboard controls, no-JS reading, print, and reduced motion. Finally
+run the repository verification command from the binding.
 
-Do not claim visual inspection when the environment only allowed structural
-checks. Record the limitation and leave the corresponding work open.
+Do not claim visual inspection when only structural checks were possible. Record
+the limitation and leave that work open.

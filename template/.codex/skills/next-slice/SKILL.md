@@ -1,72 +1,72 @@
 ---
 name: next-slice
-description: Verify live repository state against plans and recommend one valuable, independently testable implementation slice. Use when asked what to build next, when backlog status may be stale, or after a burst of work has outrun its plan.
+version: "1.3.0"
+description: >-
+  Verify live repository state against plans and recommend one valuable,
+  independently testable implementation slice. Use when asked what to build
+  next, when planning state may be stale, or after work outruns its plan.
+scope: repository next-slice recommendation
+status: stable
+last_update: 2026-08-17
+document_class: artifact
 ---
 
 # Next slice
 
-Choose one repo-grounded next move. Treat planning artifacts as claims to verify,
-not as substitutes for the live tree.
+Choose one repo-grounded next move. Planning artifacts are claims to verify, not
+substitutes for the live tree.
 
 ## Survey
 
 1. Read the repository instruction SSOT and navigator.
-2. Inspect status, recent commits, open work items, active specs, and the tests or
-   implementation paths relevant to plausible candidates.
-3. Read full work-item histories and implementation ledgers when present. A
-   status field alone is not evidence.
-4. Check completed, canceled, rejected, and blocked work before proposing a
-   "new" slice.
+2. Inspect status, recent commits, active Campaigns, open work items, active
+   specs, and relevant implementation or tests.
+3. Read full work-item histories and ledgers for serious candidates; a status
+   field alone is not evidence.
+4. Check completed, canceled, rejected, and blocked work before proposing
+   something new.
 
-Resolve facts from the repository. Do not ask the user to recite information the
-tree owns.
+Resolve facts from the repository. Do not ask the user to recite what the tree
+owns.
 
 ## Reconcile planning state
-
-Classify each serious candidate:
 
 | State | Meaning |
 | --- | --- |
 | `ready_now` | Scoped, valuable, and unblocked after live verification |
-| `stale_done` | Tracker says open, but the work has landed |
+| `stale_done` | Tracker says open, but the work landed |
 | `stale_shape` | The recorded item no longer matches current direction |
 | `blocked_decision` | A named product, authority, or architecture choice is open |
 | `needs_human_gate` | A named reviewer or owner must decide or assure |
 | `defer` | Valid, but lower value than another current slice |
-| `close_or_split` | Close it, or preserve landed work and name the residual slice |
+| `close_or_split` | Close it, or preserve landed work and name the residual |
 
-Correct obvious planning drift only when the user asked for cleanup and the
-evidence is complete. Otherwise include the correction in the recommendation.
+Correct planning drift only when the user requested cleanup and evidence is
+complete. Otherwise include the correction in the recommendation.
 
 ## Rank
 
-Prefer a slice with:
+Prefer direct value on the current trajectory, one explicit authority boundary,
+the smallest independent proof, a named verification command, and explicit
+work-item or documentation updates.
 
-- direct value on the repository's current trajectory;
-- one explicit authority boundary;
-- the smallest independently verifiable behavior or artifact;
-- a named verification command or manual proof;
-- explicit work-item, spec, glossary, or ledger updates when applicable.
+When an active Campaign applies, prefer its current frontier or explain why a
+different slice has higher value. A Campaign supplies coordination context; it
+does not override work-item or product authority.
+
+For a materially cross-cutting candidate, state which core-model relationship it
+preserves or changes. Do not add model ceremony to a local slice.
 
 Down-rank work that broadens scope without a decision, invents work before a
-human gate, repeats already-pending inventory, or hides release/deployment
-authority behind code completion.
-
-Name the completion rung using the repository's own vocabulary. If none exists,
-state the concrete proof without introducing a new maturity taxonomy.
+human gate, repeats pending inventory, or hides release authority behind code
+completion. Use the repository's completion vocabulary; if none exists, state
+the concrete proof.
 
 ## Decide
 
-Present the evidence and ranked recommendation first. If real choices remain,
-invoke the local `grilling` primitive for only the unblocked decision frontier:
-
-- which outcome is most valuable now;
-- which authority or scope boundary applies;
-- what smallest proof counts as done;
-- whether evidenced stale planning state should be corrected in the same slice.
-
-Keep dependent questions for a later round. Stay in decision mode until the
-user confirms the lock; recommendation is not implementation authority.
+Present evidence and one ranked recommendation. If choices remain, invoke
+`grilling` only for the unblocked value, scope, proof, or planning-correction
+decisions. Recommendation is not implementation authority.
 
 ## Output
 
@@ -85,6 +85,8 @@ user confirms the lock; recommendation is not implementation authority.
 - Smallest proof:
 - Verification:
 - Planning/doc updates:
+- Campaign relationship: <active Campaign and frontier link, or none>
+- Cross-cutting model impact: <only when material>
 - Blocked by: <named decisions, gates, or none>
 
 **Why not the alternatives**
@@ -92,14 +94,13 @@ user confirms the lock; recommendation is not implementation authority.
 
 **Decisions to lock**
 <grilling questions or none>
-
-**Implementation handoff**
-<only after the user confirms: authoritative paths, steps, stop condition,
-verification, and suggested skills>
 ```
+
+Stop after one recommendation. If confirmed work moves to another session, use
+`handoff` for transport; implementation still requires explicit user authority.
 
 ## Completion
 
-The recommendation is complete when its value, owner boundary, proof, and
-planning updates are explicit and no fact question has been delegated to the
-user. Leave unresolved choices open rather than pretending the slice is ready.
+Value, owner boundary, proof, and planning updates are explicit, and no factual
+question has been delegated to the user. Leave unresolved choices open rather
+than pretending the slice is ready.

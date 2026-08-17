@@ -1,4 +1,4 @@
 interface:
   display_name: "Show Gap"
-  short_description: "Map vague feature intent to repo reality"
-  default_prompt: "Use $show-gap to survey this feature intent and produce a repo-grounded spec, plan, or canceled memo before any implementation."
+  short_description: "Fit fuzzy feature intent to repository evidence"
+  default_prompt: "Use $show-gap to fit this feature intent to repository evidence and stop before implementation."

@@ -2,7 +2,7 @@
 description: Adopt glossary-drill in a governance-kit consumer repo.
 scope: skill adopt note
 status: experimental
-last_update: 2026-07-10
+last_update: 2026-08-17
 ---
 
 # Adopting `glossary-drill`
@@ -16,9 +16,9 @@ last_update: 2026-07-10
 
 ## Install
 
-Seeded by the governance kit under `.codex/skills/glossary-drill/` (skip-if-exists
-on update). If missing, copy the skill directory from the kit template or from
-another consumer.
+The governance kit manages `.codex/skills/glossary-drill/` through Copier
+updates. If it is missing or locally divergent, reconcile it with
+`governance-sync`; never copy another consumer's core.
 
 ```bash
 uv run --project .codex/skills/glossary-drill glossary-drill quiz --count 5

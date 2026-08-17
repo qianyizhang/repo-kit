@@ -1,4 +1,4 @@
-"""Local drill state under artifacts/glossary-drill/ (gitignored via artifacts/).
+"""Local drill state under artifacts/glossary-drill/; keep it ignored locally.
 
 One JSON file per learner profile. This is the single authoritative store:
 scheduling (spaced repetition), lapses, and confusion history all live here.

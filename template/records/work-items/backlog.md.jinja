@@ -2,8 +2,8 @@
 description: Backlog-item lifecycle, schema, and discovery for {{ project_name }}.
 scope: backlog
 status: stable
-last_update: 2026-07-10
-document_class: work_record
+last_update: 2026-08-17
+document_class: coordination
 ---
 
 # Backlog
@@ -33,6 +33,8 @@ promotion and archive lifecycle.
 `partial` never becomes `done`. Close the residual scope through new items linked
 with `residual_of` / `residual_items`; the original outcome remains historical.
 
+Canonical `work_kind` values are `decision`, `build`, and `research`.
+
 ## Required Shape
 
 ```markdown
@@ -44,6 +46,7 @@ last_update: YYYY-MM-DD
 document_class: work_record
 work_id: AB-AREA-001
 work_status: deferred
+work_kind: build
 added: YYYY-MM-DD
 tags: tag-a, tag-b
 depends_on: none

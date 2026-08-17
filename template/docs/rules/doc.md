@@ -1,98 +1,92 @@
 ---
-description: Rules for documentation, glossaries, and durable backlog-item records.
+description: Rules for documentation, glossaries, and durable work-item records.
 scope: documentation rules
 status: stable
-last_update: 2026-08-11
+last_update: 2026-08-17
 document_class: coordination
 ---
 
-## general
-all governed Markdown (including this file) starts with `description` (very
-concise), `scope`, `status` (experimental/stable/deprecated), `last_update`, and
-one declared `document_class`.
+# Documentation rules
+
+## Frontmatter and classes
+
+All governed Markdown starts with concise `description`, `scope`, `status`,
+`last_update`, and `document_class` fields. Status is `experimental`, `stable`,
+or `deprecated`.
 
 Portable classes are `coordination`, `work_record`, `report`, `source`,
-`artifact`, `generated`, and `tombstone`. Repositories configure each class's
-required fields and allowed locations under
-`[tool.doc_governance.document_classes]`. Unknown classes, missing profile
-fields, and class/location mismatches fail closed. A class does not transfer
-authority: the owning SSOT, source bytes, Work Record, or machine artifact stays
-authoritative for its concern.
+`artifact`, `generated`, and `tombstone`. Repositories configure their required
+fields and allowed locations under `[tool.doc_governance.document_classes]`.
+Unknown classes, missing fields, and location mismatches fail closed. A class
+describes lifecycle; it does not transfer authority from the owning contract,
+source bytes, work record, or machine artifact.
 
-## coordination spine
+## Locations and projections
 
-- `docs/` is the compact Coordination Spine, not the complete readable corpus.
-  Keep current product/domain authority, ADRs, glossary, rules, guides,
-  reference syntheses, and active forward design there.
-- Work Records live under `records/work-items/`; reports under
-  `records/reports/`; faithful payloads under `sources/`; generated outputs in
-  their configured artifact area.
-- `docs/index.md` routes areas and concepts. It does not enumerate every file.
-  Complete discovery belongs to deterministic, disposable Human View.
-- Task Context includes only explicit paths or declared sections, each with a
-  reason and digest. Human View and Task Context are projections, never edit
-  targets or independent authorities.
-- A report is warranted for a **durable finding, decision, or measurement worth
-  citing later** — not a routine run. Transient run notes live in the work-item
-  ledger or the run's own digest, not a fresh dated report.
-- Reports declare exactly one outcome: `promoted`, `inconclusive`, or
-  `archive_eligible`. An inconclusive report names its reason and review
-  trigger. An archive-eligible report names its Archive ID and promoted
-  destinations; terminal status or age alone is insufficient.
-- transcript/control trailer tokens such as `</content>` and `</invoke>` must never appear as standalone committed doc lines
-- `docs/design/` holds **active, forward-looking** design only — specs for work
-  not yet landed, plus living architecture docs still maintained as SSOT for
-  their area
-- standalone ledgers / operating records live in `records/reports/`, never
-  `docs/design/`; the implementation ledger for a backlog item lives directly
-  in that item's durable record under `records/work-items/items/`
-- deprecated docs live under `docs/deprecated/`; keep their frontmatter
-  `status: deprecated`, add an explicit supersession note, and link to the
-  active SSOT before moving them there
-- deprecated docs are **skim-only historical context**: open them only to recover
-  *why* a decision was made. They are never an SSOT and never implementation
-  authority; active docs may cite them only as reference-only history
-- specs follow a lifecycle: a spec in `docs/design/` is forward-looking only —
-  once its slice lands, promote durable contracts to their SSOT (module README /
-  index / glossary / prd / backlog) and move the spec to `docs/deprecated/`.
-  A spec is **never** the long-term SSOT for landed code
+- `docs/` is the compact coordination spine for current authorities, rules,
+  glossary, guides, reference syntheses, and forward design.
+- Optional Campaign records live under `records/campaigns/`; work-item records
+  under `records/work-items/`; durable reports under `records/reports/`;
+  faithful payloads under `sources/`; generated outputs in their configured
+  artifact area.
+- Session handoffs and claim ledgers are coordination records and may also live
+  under `records/reports/`; they do not claim a report outcome.
+- `docs/index.md` routes areas and concepts. Generated discovery views are
+  disposable projections, not edit targets or independent authorities.
+- Standalone ledgers belong in `records/reports/`. A work item's implementation
+  ledger stays in its own record.
+- Transcript/control trailer tokens such as `</content>` and `</invoke>` must
+  never appear as standalone committed lines.
 
-## backlog items
+## Lifecycle
 
-- `records/work-items/backlog.md` is the lifecycle/schema navigator; it does not
-  duplicate item status. Each active or not-yet-archived work item is one durable
-  file under `records/work-items/items/`, named `<WORK-ID>-<slug>.md`.
-- Backlog files use normal document frontmatter plus `work_id`, `work_status`,
-  `work_kind`, `added`, `tags`, `depends_on`, `residual_of`, and `residual_items`.
-  Canonical work kinds are `decision`, `build`, and `research`. Canonical work
-  statuses are `deferred`, `ready`, `wip`, `blocked`, `done`, `partial`, and
-  `canceled`.
-- `partial` is terminal, not another spelling of `wip`: record what landed and
-  why the original acceptance criteria did not, then create and link one or more
-  residual items. Do not later relabel the original item `done`.
-- Every item has a terse append-only **Status History** and a substantive
-  append-only **Implementation Ledger**. Status History records each transition;
-  the ledger records only material `finding`, `decision`, `assumption`,
-  `deviation`, `verification`, and `handoff` events.
-- Ledger events state context/evidence, consequence, follow-up, and review state:
-  `not-required`, `pending`, `ratified`, `rejected`, `superseded`, or
-  `audit-requested`. Promote a settled durable contract to its owning SSOT or ADR
-  and link it; the backlog item is not a shadow architecture authority.
-- A work-item is warranted only when work **crosses a session boundary** — it
-  spans sessions, is left `partial`/`blocked`, or carries decisions/deviations/residual
-  worth transferring. A self-contained one-off finished in-session leaves no item.
-- When one is warranted it names one primary backlog-item path. Before changing
-  implementation surfaces, transition it to `wip`; at each material checkpoint
-  and stop condition, update the same item. Temporary worker/run ledgers are
-  allowed for parallel execution, but the integrator distills their durable
-  findings and decisions into the primary item.
+A report is warranted only for a durable finding, decision, or measurement
+worth citing. It declares one outcome: `promoted`, `inconclusive`, or
+`archive_eligible`. An inconclusive report names its reason and review trigger;
+an archive-eligible report names its Archive ID and promoted destinations.
 
-## glossary
+`docs/design/` holds active forward design. When a slice lands, promote durable
+contracts to their owning code, contract, README, ADR, glossary, or backlog, then
+move the superseded design to `docs/deprecated/`. Deprecated docs use
+`status: deprecated`, name the active authority, and remain reference-only
+history rather than implementation authority.
 
-- Glossaries are written for readers who are not already familiar with the
-  repository and remain the SSOT for canonical domain vocabulary.
-- The consumer repository owns its audience language, required columns,
-  semantic grouping, and bounded-context organization.
-- Portable doctrine must not hard-code a consumer locale or domain table shape.
-- Authoring checks consume glossary entries as a projection and never create a
-  second vocabulary authority; see `docs/rules/authoring.md`.
+## Work-item records
+
+`records/work-items/backlog.md` is the repository-owned lifecycle and schema.
+Each active or not-yet-archived item has one file under
+`records/work-items/items/`; status and ledger history live only in that file.
+
+Create a work record when coordination must cross a session boundary or carry a
+durable decision, deviation, residual, verification, or handoff. A completed
+self-contained task needs verification, not a ceremonial record. Promote
+settled contracts and decisions to their owning authority and link back; a work
+record must not become a shadow architecture source.
+
+## Campaign records
+
+A Campaign uses the existing `coordination` class and one advisory page at
+`records/campaigns/<slug>.md`. Create it only at the threshold defined in
+`docs/rules/governance.md`. Keep these headings:
+
+1. Destination
+2. Model relationship
+3. Current understanding
+4. Unknowns
+5. Frontier
+6. Work
+7. Learning ledger
+8. Closeout
+
+Link work items and owning authorities instead of copying their state or
+meaning. Keep the frontier current as uncertainty clears. At closeout, name the
+durable outcomes promoted to core models, ADRs, SSOTs, contracts, or other
+owners; do not preserve a Campaign as an immortal backlog.
+
+## Glossary
+
+Glossaries are written for readers who do not already know the repository and
+remain the authority for canonical domain vocabulary. The repository owns its
+audience language, fields, grouping, and bounded contexts. Authoring checks
+consume glossary entries as a projection and never create another vocabulary
+authority; see `docs/rules/authoring.md`.

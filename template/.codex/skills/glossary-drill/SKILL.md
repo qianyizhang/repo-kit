@@ -1,6 +1,6 @@
 ---
 name: glossary-drill
-version: "0.4.0"
+version: "0.4.1"
 description: >-
   Onboard and quiz ubiquitous-language glossary terms (MCQ + a Mastery Ladder
   game with free-recall at high boxes) with spaced repetition and
@@ -10,7 +10,7 @@ description: >-
 scope: glossary onboard quiz lint skill
 status: experimental
 document_class: artifact
-last_update: 2026-07-16
+last_update: 2026-08-17
 ---
 
 # Glossary Drill
@@ -82,8 +82,8 @@ stable card order never means a repetitive drill.
 
 ### State (per learner)
 
-Default dir **`artifacts/glossary-drill/`** (gitignored via `artifacts/`), one
-file per profile: **`state-<profile>.json`**. Profile defaults to `$USER`
+Default dir **`artifacts/glossary-drill/`**; keep it ignored locally. It holds
+one file per profile: **`state-<profile>.json`**. Profile defaults to `$USER`
 (override with `--profile` or `$GLOSSARY_DRILL_PROFILE`) so teammates on one
 checkout don't clobber each other. Stores Leitner box, pass/fail counts,
 `last_seen`, and capped confusion history (`hard_decoys`). **Reset:**
@@ -119,16 +119,16 @@ For **lint**: run on PR descriptions, design dumps, or agent plans before implem
 
 ## Non-goals
 
-- Scenario packs / applied "which term fits this stem" items (agent-authored
-  enrichment is future work — see `docs/design/glossary-drill-agent-driven.md`).
+- Scenario packs / applied "which term fits this stem" items; agent-authored
+  enrichment is future work.
 - Web workbench coupling or dual committed card banks.
 - Auto-writing glossary `_Avoid_` (`promote` later via `domain-modeling`).
 - User-global leaderboards / networked sync.
 
 ## Adopt
 
-See [`references/adopt.md`](references/adopt.md). Kit seeds this skill once
-(`_skip_if_exists`); consumers own local binding and glossary content.
+See [`references/adopt.md`](references/adopt.md). The kit updates the managed
+skill core; the repository owns its optional binding and glossary content.
 
 ## Pitfalls
 

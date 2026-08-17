@@ -2,15 +2,18 @@
 description: Portable doctrine for profile-scoped technical authoring checks without automatic rewriting.
 scope: authoring rules
 status: experimental
-last_update: 2026-08-11
+last_update: 2026-08-17
 document_class: coordination
 ---
 
 # Authoring rules
 
-Technical prose is an interface. Repositories may constrain avoidable wording
+Technical prose is an interface and a common-language projection between the
+domain, humans, and agents. Repositories may constrain avoidable wording
 variation when that improves comprehension, review, translation, search, or
-machine validation. This doctrine is not an ASD-STE100 compliance profile.
+machine validation. This doctrine adopts the useful spirit of controlled
+technical language; it is not an ASD-STE100 compliance profile and does not
+impose an external dictionary on repository vocabulary.
 
 ## doctrine vs profile
 
@@ -24,10 +27,11 @@ machine validation. This doctrine is not an ASD-STE100 compliance profile.
 ## rule families
 
 Profiles can check canonical terminology, controlled modality, explicit actors,
-one action or assertion per sentence, and conditions placed before dependent
-actions. Only canonical-term replacement can be deterministic in the general
-case; the structural prose rules are review signals unless a consumer proves a
-stricter local contract.
+one main action or assertion per sentence, and conditions placed before
+dependent actions. Prefer short noun phrases, active verbs, and vertical lists
+when a sentence carries several relationships. Only canonical-term replacement
+can be deterministic in the general case; the structural prose rules are review
+signals unless a consumer proves a stricter local contract.
 
 ## safety contract
 
@@ -47,3 +51,7 @@ stricter local contract.
 `scripts/check_authoring.py` owns profile-scoped prose findings. Keeping these
 commands separate preserves trust in the structural gate while an authoring
 profile is calibrated.
+
+The pragmatic phrasing practices are adapted from
+[AminBlg/SimpleEnglish@59bf670](https://github.com/AminBlg/SimpleEnglish/tree/59bf6702197a5aadc96d197ea17f290d8d50dcd3).
+Repo-kit does not copy its dictionary profile or claim ASD-STE100 compliance.

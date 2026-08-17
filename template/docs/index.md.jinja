@@ -1,35 +1,57 @@
 ---
-description: Navigator over every doc, rule, glossary, and skill in {{ project_name }} — routes to the SSOT, never the authority itself.
+description: Compact navigator over authority areas, rules, glossary, and agent flows in {{ project_name }}.
 scope: documentation navigator index
 status: stable
-last_update: 2026-07-07
+last_update: 2026-08-17
 document_class: coordination
 ---
 
 # Docs index
 
-This is a **navigator, not an authority**: it maps every doc with status and
-audience. When the index and a target disagree, the target wins — fix the index.
-Doctrine: `docs/rules/governance.md` "SSOT and the navigator index".
+This is a **navigator, not an authority**: it routes authority areas, structural
+docs, and main human-facing flows. Complete file discovery belongs to generated
+Human View. When the index and a target disagree, identify the concern, fix the
+stale route, and preserve the owning authority. Doctrine:
+`docs/rules/governance.md` "Scoped authority and core models".
 
-## Authority & precedence
+## Authority by concern
 
-When two docs overlap, precedence is:
+Do not use one global precedence list for unrelated concerns:
 
-1. `CLAUDE.md` — the repo binding (invariant, architecture, commands).
-2. `docs/rules/*` — portable doctrine (governance, authoring, doc, python, skill, testing).
-3. Module/app `README.md` — the owning context's public surface.
-4. `docs/glossary/*` — ubiquitous language.
-5. Everything else routes to one of the above.
+| Concern | Authority |
+|:--|:--|
+| Project identity, invariant, core-model entry point, commands | `CLAUDE.md` |
+| Executable local behavior | Owning code, tests, schema, or configuration |
+| Cross-shard current contract | Owning contract, README, schema, or API definition |
+| Durable reason for a significant trade-off | ADR |
+| Canonical domain term | `docs/glossary/*` |
+| Portable governance process | `docs/rules/*` |
+
+If docs/models.md exists, it owns the project's cross-decision conceptual
+relationships. It must link the lower authorities it governs rather than copy
+their implementation details.
+
+## Area routes
+
+| Area | Contents |
+|:--|:--|
+| `docs/` | Current coordination and structural authorities |
+| `docs/rules/` | Portable governance doctrine |
+| `docs/glossary/` | Canonical domain vocabulary |
+| `records/work-items/` | Work-item lifecycle and durable item records |
+
+When an optional area such as docs/adr/, docs/models.md, records/campaigns/,
+records/reports/, sources/, or archive/ needs a durable route, add one here and
+keep `[tool.doc_governance].index_route_areas` synchronized.
 
 ## Rules (portable doctrine, kit-owned)
 
 | Doc | Scope |
 |:--|:--|
-| [`docs/rules/governance.md`](rules/governance.md) | Repo governance, symlink layout, kit propagation |
+| [`docs/rules/governance.md`](rules/governance.md) | Scoped authority, core models, toolchain layout, kit propagation |
 | [`docs/rules/authoring.md`](rules/authoring.md) | Profile-scoped technical-authoring doctrine |
 | [`docs/rules/agentic-glossary.md`](rules/agentic-glossary.md) | Portable human-agent collaboration vocabulary |
-| [`docs/rules/doc.md`](rules/doc.md) | Doc lifecycle, frontmatter, deprecation contract |
+| [`docs/rules/doc.md`](rules/doc.md) | Documentation, work-item, and deprecation lifecycle |
 | [`docs/rules/python.md`](rules/python.md) | Python style doctrine |
 | [`docs/rules/skill.md`](rules/skill.md) | Skill authoring & lifecycle |
 | [`docs/rules/skill-glossary.md`](rules/skill-glossary.md) | Portable skill-authoring vocabulary |
@@ -41,22 +63,17 @@ When two docs overlap, precedence is:
 |:--|:--|
 | [`docs/glossary/ddd.md`](glossary/ddd.md) | Ubiquitous-language SSOT |
 
-## Playbooks (skills)
+## Main flows
 
-Skills live under `.codex/skills/`. Add a row per skill as it lands.
+Humans can ask in ordinary language. Skills under `.codex/skills/` implement
+these flows; they are not a menu the user must memorize.
 
-| Skill | Use when |
-|:--|:--|
-| `doc-hygiene-audit` | Capture/reconcile/restructure the doc corpus |
-| `governance-sync` | Adopt or update the shared governance kit (copier + reconcile) |
-| `domain-modeling` | Keep the glossary & ADRs current; verify naming; capture settled decisions |
-| `grilling` | Shared model-invoked decision-interview primitive (frontier-batch default; serial on request) |
-| `handoff` | Session handoff packet or multi-agent claim ledger / integrator merge |
-| `grill-with-docs` | Explicit-user decision interview, with settled glossary/ADR capture |
-| `show-me` | Compact visual explanation using the smallest evidence-grounded diagram shape |
-| `show-gap` | Bounded agent-invokable fit audit; discussion/spec writing require user intent |
-| `explain-layman` | Explicit-user governed stakeholder explainer artifacts |
-| `next-slice` | Verify planning state and recommend one valuable, independently testable slice |
+| Flow | Human intent | Supporting skills |
+|:--|:--|:--|
+| **Understand** | See the relevant model or change clearly. | `show-me`; explicit rich artifact: `explain-layman` |
+| **Align** | Resolve fit, vocabulary, and durable decisions. | `show-gap`, `grilling`, `grill-with-docs`, `domain-modeling` |
+| **Change** | Advance a bounded destination through verifiable work; use a Campaign at the threshold in `docs/rules/governance.md`. | `next-slice`, work items, `handoff` |
+| **Maintain** | Preserve documentation and kit/consumer ownership. | `doc-hygiene-audit`, `governance-sync` |
 
 <!-- Keep this a compact task/concept router. Configure area routes in
      pyproject.toml; generated Human View owns complete discovery. -->

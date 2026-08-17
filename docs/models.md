@@ -1,0 +1,65 @@
+---
+description: Core concepts and relationships governing repo-kit's evolution and distribution.
+scope: repo-kit core model
+status: stable
+last_update: 2026-08-17
+document_class: coordination
+---
+
+# Repo-kit core model
+
+Repo-kit evolves one portable governance product without taking authority from
+its consumers.
+
+## Product boundary
+
+| Concept | Role | Authority |
+| --- | --- | --- |
+| **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
+| **Portable product** | Files intentionally exported from `template/`. | Repo-kit. |
+| **Consumer binding** | Repository-specific language, paths, policy, and verification. | That consumer. |
+
+```text
+Candidate ------ explicit promotion ------> Portable product -- Copier --> consumer
+Consumer binding -- local meaning and policy ----------------------------> consumer
+```
+
+Promotion recreates the smallest justified change in the portable product.
+Copying, surveying, or observing a delta never transfers authority.
+
+## Deliberate evolution
+
+A project is understood through core models, evolved deliberately through
+Campaigns, locked through ADRs and SSOTs, and realized through work items.
+
+A **Campaign** is a bounded coordination map for a destination whose route is
+not yet clear. It records:
+
+- destination, relevant model relationship, and current understanding;
+- fog: known-to-matter unknowns;
+- frontier: decisions or work that are unblocked now;
+- links to work, evidence, and decisions;
+- learning that changes the map; and
+- closeout and promoted outcomes.
+
+A Campaign is not an authority, duplicate store, or backlog. Work items own
+precise work and implementation state. Core models, ADRs, SSOTs, code, and tests
+own durable meaning and behavior. Closeout promotes settled outcomes to those
+owners, or records why no change was justified.
+
+Use a Campaign only when uncertainty and coordination span sessions. Use a work
+item for a bounded change. Use a bounded series for recurring destinations;
+never keep an immortal Campaign.
+
+## Delivery baseline
+
+Copier delivers the portable product. A consumer's `.copier-answers.yml`
+`_commit` identifies the source revision against which its next reconciliation
+starts. Tags name preferred stable checkpoints and release events; they do not
+replace the recorded source revision.
+
+## Decisions
+
+- [ADR-0001: Keep authority scoped and promotion explicit](adr/0001-scoped-authority-and-explicit-promotion.md)
+- [ADR-0002: Use Campaigns for bounded uncertainty](adr/0002-campaigns-for-bounded-uncertainty.md)
+- [ADR-0003: Manage shared cores and seed consumer bindings](adr/0003-managed-cores-and-seeded-bindings.md)

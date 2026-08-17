@@ -1,77 +1,67 @@
-# Core-Models Layer & Model Notation
+# Core models and optional notation
 
-Portable doctrine for the optional `docs/models.md` orientation layer and the
-small notation its parts are written in. Adopt when a repo has enough ADRs that
-readers reverse-engineer the underlying models from them; skip it otherwise.
-This file is the portable pattern — the specific symbol set below is a
-recommended default a repo may replace with its own reference or DSL.
+A core model names the few concepts and relationships that make several
+contracts, ADRs, or implementation boundaries predictable. It is not a package
+inventory, technology list, roadmap, or claim of objective completeness.
 
-## The core-models layer
+## Authority and placement
 
-A repo's ADRs are rarely independent: they are point commitments serving a small
-number of underlying models. `docs/models.md` names those models directly so a
-newcomer (human or agent) can read a few models and *predict* the ADRs, instead
-of reverse-engineering the models from twenty-plus decisions.
+- The core model owns cross-decision concepts and relationships.
+- Contracts and ADRs own cross-shard behavior and durable trade-offs.
+- Code and tests own executable local behavior.
+- Work records coordinate change; they do not become another authority layer.
 
-- **Authority.** Orientation, not decision authority. It sits below `CLAUDE.md`
-  and above the ADRs in reading order. When it appears to conflict with an ADR on
-  a specific decision, the ADR wins and `models.md` is fixed to match.
-- **Scope.** Name the few system-level models and their parts. Attributes stamped
-  onto artifacts by those models (citation, provenance, versioning, usage scope,
-  maturity) are not themselves separate models — do not inflate the count.
-- **Earned, not speculative.** Stand it up only when the ADR count makes the
-  models hard to see. A three-ADR repo does not need it.
+Keep a genuinely small model in `CLAUDE.md`. Use `docs/models.md` when several
+models, diagrams, examples, or stable references would make `CLAUDE.md` noisy;
+leave a concise governing summary and link behind. Keep implementation detail in
+its lower authority.
 
-## Coordinates
+Name a model relationship only when it materially governs the work. A local
+implementation or presentation change does not need a synthetic model binding.
 
-Each model part carries a **frozen coordinate** — a short stable identifier
-(e.g. `m1.junction`, `m2.stamps`). Coordinates are an interface, not prose:
+## Deliberate evolution
 
-- Every feature or contract proposal names the coordinates it instantiates or
-  alters (e.g. "touches `m1.junction` — must stay side-effect-free"). A proposal
-  claiming to be model-neutral defends that claim rather than omitting the link.
-- Adding, renaming, or retiring a coordinate is an **ADR-level change** — the same
-  bar as changing a decision.
-- ADRs cite the coordinate they serve via the `Serves:` note in
-  `ADR-FORMAT.md`. Adopt a cutover point (e.g. "from ADR-00NN onward") rather than
-  retro-editing historical ADRs.
+Core models are working mental models. Change one when evidence improves the
+project's cross-cutting understanding, never as a quiet side effect of feature
+work.
 
-## Notation (recommended default — swappable per repo)
+1. Show the current and proposed concepts or relationships.
+2. State the evidence and misunderstanding being corrected.
+3. List affected ADRs, contracts, glossary entries, code, and tests.
+4. Obtain an explicit decision lock.
+5. Update the model and directly affected lower authorities coherently.
 
-Model parts are written in a small symbolic notation: discrete items with typed
-relationships — more than a mind map, less than prose. A repo picks **one** such
-notation and freezes it; the set below is a sound default, but a repo may adopt
-its own reference or a purpose-built DSL. Whatever the choice, the symbol set is
-frozen within the repo: admitting a new symbol requires ≥2 model parts that need
-it and an ADR — the same bar as adding a coordinate.
+If an ADR and the model disagree, determine which understanding changed. Update
+the model explicitly or supersede the ADR; do not silently edit whichever file
+is easier.
+
+## Optional stable handles
+
+Use short handles such as `authority.promotion` only when repeated ADRs or
+proposals must cite individual relationships.
+
+- Keep a handle stable while its meaning is stable.
+- Rename, split, or retire it with the model change.
+- Require an ADR only when the semantic change also meets the ADR criteria.
+
+## Optional notation
+
+Prefer concise sentences and the smallest useful graph. If repeated work
+benefits from symbols, document a small set in `docs/models.md`. This default is
+available without being mandatory:
 
 | Form | Meaning |
 | --- | --- |
-| `id : kind [tags]` | one model part; `kind` is e.g. `chain` / `fn` / `law`; tags are invariants |
-| `A -> B` | data flow — a plain handoff |
-| `A => B` | authority transfer — the hop changes who may produce and what the artifact is licensed for |
-| `A \|> G` | fail-closed validation against pinned gate `G` |
-| `A ~> B` | representation-only rendering — `B` carries no authority |
-| `X!` | frozen / immutable artifact |
-| `X~` | ephemeral, recomputed on demand |
-| `X*` | collection / many |
-| `+` / `-` / `±` | diff marks — a proposed model change rendered on the current parts |
-| `?` | open question pinned to an item or edge |
+| `A -> B` | data or ordinary work flow |
+| `A => B` | explicit authority transfer |
+| `A \|> G` | validation against gate `G` |
+| `A ~> B` | representation-only projection |
+| `X!` | deliberately frozen artifact |
+| `X~` | ephemeral, recomputed view |
+| `+` / `-` / `±` | proposed addition, removal, or alteration |
+| `?` | named uncertainty linked to its work record |
 
-A proposal that alters a model expresses the change as a notation diff
-(`+` / `-` / `±` on the touched parts) before any prose. The notation is a
-reading/writing convention, not a parsed format, unless a repo deliberately
-tools it.
-
-### Rendering heuristic
-
-When rendering a part into a diagram, pick the container by dominant edge type:
-`->` chains → hierarchical DAG; `=>` transfers → sequence diagram; packaging /
-fan-out → fan-in; full-corpus browsing → card lattice.
-
-## Repo binding
-
-This file is portable doctrine (the pattern and the default grammar). A repo's
-own `docs/models.md` is the binding: its model corpus, its coordinates, and — if
-it diverges from the default — its chosen notation or DSL. Keep the binding in
-`docs/models.md`; keep portable refinements here and promote them upstream.
+Do not freeze notation before repeated use proves it helpful. Add a symbol only
+when concise words or an existing edge cannot express a recurring relationship.
+Use `show-me` when a model needs a compact visual; the visual remains a
+projection of the owning text.

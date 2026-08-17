@@ -1,152 +1,141 @@
 ---
-description: Repo-governance doctrine — the doctrine/binding split, SSOT & navigator-index pattern, glossary discipline, agent-toolchain symlink layout, and the mechanical-enforcement inventory.
+description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-08-11
+last_update: 2026-08-17
 document_class: coordination
 ---
 
 # Governance rules
 
-The meta-rules that keep a multi-doc, multi-toolchain repo honest. Everything
-here is **portable doctrine** — nothing in this file names a domain concept.
-Project-specific content (the governing invariant, module graph, glossary
-entries, command list) is a **binding** and lives in `CLAUDE.md`.
+This file contains portable governance doctrine. Project identity, invariants,
+commands, architecture, vocabulary, and core-model instances remain repository
+bindings.
 
-## doctrine vs binding
+## Doctrine and bindings
 
-The split that makes governance reusable across repos:
+- **Doctrine** is a practice that transfers across repositories of this shape.
+  It lives once under `docs/rules/`.
+- **Binding** is what is true of one repository. Its entry point is `CLAUDE.md`,
+  which links to lower owning contracts, schemas, ADRs, glossaries, and code.
+- Project-agnostic refinements are promoted to the kit. Repository facts stay in
+  their owning binding. Copying either into the other creates drift.
 
-- **Doctrine** — a practice that would hold in any repo of this shape — lives
-  in `docs/rules/*.md`, one body per topic (`doc.md`, `skill.md`, `testing.md`,
-  `python.md`, this file).
-- **Binding** — what is true of *this* repo (its invariant, architecture,
-  commands, exemplar files, authority list) — lives in `CLAUDE.md`, which keeps
-  only bindings plus one-line pointers into doctrine.
-- A refinement discovered while working goes to its doctrine file when it is
-  project-agnostic, to `CLAUDE.md` when it is a binding. Restating doctrine
-  inside `CLAUDE.md` (beyond a pointer and the few must-internalize lines) is
-  drift.
+## Scoped authority and core models
 
-## SSOT and the navigator index
+One meaning lives once, at the lowest level that fully owns it:
 
-- **One meaning lives once.** Every topic has exactly one authoritative doc
-  (its SSOT); everything else points at it. Duplicated prose is a future
-  contradiction.
-- `docs/index.md` is a **thin navigator, not an authority**: it routes areas and
-  the **structural authority docs** (product spine, ADRs, rules, glossary, design,
-  module contracts) with an explicit **Authority & precedence** order for overlap.
-  It does **not** enumerate every file — operating records (reports, work-items,
-  generated outputs) are reached by directory route + disposable Human View, not
-  per-file rows. When the index and a target disagree, the target wins — fix the index.
-- Docs live on an abstraction ladder (charter → product → plan → architecture →
-  design → code) plus cross-cutting layers (reference/glossary, operating
-  record/reports, playbooks/skills, archive/deprecated). A new **structural
-  authority doc** (rule/design/glossary and the like) states its rung and gets an
-  index row in the same change; a report, work-item, or generated output does not
-  — its directory route already covers it.
-- Lifecycle (frontmatter, deprecation contract, spec promotion, backlog
-  hygiene) is owned by `docs/rules/doc.md`.
+- executable behavior belongs in code, tests, schemas, or configuration;
+- a cross-shard contract belongs in its owning contract, schema, or API;
+- an ADR owns the durable reason for a significant trade-off;
+- the glossary owns canonical domain terms;
+- a core model owns the few relationships that govern several contracts or
+  decisions.
 
-## glossary / ubiquitous language
+Authority is scoped by concern, not by one global file ranking. When sources
+appear to conflict, identify the concern and abstraction level, then repair the
+stale source.
 
-- `docs/glossary/` is the ubiquitous-language SSOT. Names in code (classes,
-  tables, fields, API paths) must match it.
-- A change introducing a new domain term updates the glossary **in the same
-  change** — a term that exists only in code or only in chat is not yet part of
-  the language.
-- Glossary format and audience rules live in `docs/rules/doc.md`.
+A repository states its core model in `CLAUDE.md` or `docs/models.md`. Use
+[`MODEL-NOTATION.md`](../../.codex/skills/domain-modeling/references/MODEL-NOTATION.md)
+for durable model shapes and update mechanics. A core-model change requires an
+explicit before/after model, evidence, affected authorities, and a decision lock;
+it must not arrive as an unnoticed feature side effect.
 
-## agent toolchains & symlink layout
+`docs/index.md` is a thin navigator and the human-facing flow map. It routes
+authority areas without copying their contents or enumerating operating records.
+Documentation classes and lifecycle belong to `docs/rules/doc.md`.
 
-A repo worked by multiple agent toolchains — Claude Code (`CLAUDE.md`), Codex,
-and other AGENTS.md-convention agents — keeps one source of truth by sharing
-instructions and skills **by symlink, not copy**:
+Diagrams, generated views, explainers, and interactive artifacts are
+projections. Convenience does not make them authoritative. The glossary owns
+domain language; `docs/rules/authoring.md` owns portable prose guidance.
+
+## Campaigns
+
+A Campaign is an optional, bounded coordination record for a durable,
+multi-session destination whose uncertainty or learning cannot be represented
+honestly as one precise work item. During the pilot it is advisory: use one
+page under `records/campaigns/`, not a new tracker or authority layer.
+
+- The Campaign holds the destination, known uncertainty, current frontier, and
+  links to work, evidence, learning, and decisions.
+- Work items own precise decision, research, and build work plus implementation
+  state.
+- Core models, ADRs, SSOTs, and executable contracts own durable outcomes.
+
+Do not create a Campaign for a self-contained task, use it as a duplicate store
+or immortal backlog, or leave settled meaning inside it. Close it by promoting
+durable outcomes to their owners. `docs/rules/doc.md` defines the minimal record
+shape.
+
+## Agent toolchains and symlinks
+
+Toolchains share agent assets by symlink, not copy:
 
 ```text
-CLAUDE.md                 # SSOT for all agents (real file)
-AGENTS.md                 # thin pointer → "follow CLAUDE.md"
-.codex/                   # canonical home for shared agent assets (real dir)
-  ├── agents/             #   subagent definitions
-  └── skills/             #   shared skills
-.agents   ->  .codex      # symlink: AGENTS.md-convention discovery path
+CLAUDE.md                 # repository binding and agent entry point
+AGENTS.md                 # thin pointer to CLAUDE.md
+.codex/                   # canonical shared agent assets
+  ├── agents/
+  └── skills/
+.agents   ->  .codex
 .claude/
-  ├── settings.json       # Claude Code config (real file)
-  └── skills  ->  ../.codex/skills   # symlink: Claude Code skill discovery
+  ├── settings.json
+  └── skills  ->  ../.codex/skills
 ```
 
-- INVARIANT: `.codex/` holds the real assets; `.agents` and `.claude/skills`
-  are **relative symlinks into it**. Edit a skill once under `.codex/skills/`
-  and every toolchain sees the change; never duplicate a skill per toolchain.
-- Never delete or `rm -rf` through a symlinked path expecting to remove only
-  the link — resolve the target first. A symlink-unaware delete destroys the
-  canonical assets.
-- The expected link map is declared in `pyproject.toml [tool.doc_governance.symlinks]`
-  and verified mechanically (see below), so a broken or copied-instead-of-linked
-  layout fails lint instead of silently drifting. `scripts/bootstrap_agents.py`
-  creates or repairs the declared layout; it fails closed on real directories,
-  so consolidating duplicated copies stays a judgment step.
+- `.codex/` holds the real assets. `.agents` and `.claude/skills` are relative
+  symlinks into it; never maintain per-toolchain copies.
+- Resolve a symlink before deletion or bulk file operations near it.
+- `[tool.doc_governance.symlinks]` declares the expected map.
+  `scripts/bootstrap_agents.py` creates or repairs links and fails closed when a
+  real directory occupies a link path.
 
-## mechanical enforcement
+## Mechanical enforcement
 
-Prose rules rot; every rule that *can* be checked mechanically is, via
-`make lint` + pre-commit. The inventory:
+Portable scripts read repository-owned bindings from `pyproject.toml`:
 
-- `scripts/check_docs.py` — doc governance. Reads its repo bindings from
-  `pyproject.toml [tool.doc_governance]` (the script itself stays portable):
-  frontmatter contract, status↔folder coupling, forbidden generated-trailer
-  tokens, local-link and backticked-repo-path validity in authority docs,
-  navigator-index coverage of rule/design/glossary docs, skill-manifest semver,
-  durable backlog-item identity/lifecycle/lineage/ledger structure, and the
-  symlink layout above.
-- `scripts/check_authoring.py` — profile-scoped terminology and prose findings.
-  It is advisory by default, never edits source text, and reads consumer-owned
-  targets, sections, languages, and blocking rule IDs from
-  `[tool.authoring_check]`.
-- `import-linter` — architecture rules as import contracts
-  (`[tool.importlinter]`); a broken contract is a design signal, not a hurdle.
-- `ruff` — style baseline; doctrine defaults in `ruff_base.toml`, repo
-  exceptions in `pyproject.toml`.
+- `scripts/check_docs.py` checks frontmatter classes and locations, deprecated
+  status, links and repository paths, index routes, skill invocation metadata,
+  work-item identity and lifecycle, and the symlink map.
+- `scripts/check_authoring.py` reports profile-scoped terminology and prose
+  findings. It never edits text or becomes another vocabulary authority.
+- Import contracts enforce architecture; Ruff enforces the shared style
+  baseline plus repository exceptions.
 
-A new rule first asks whether it is structural or authoring-related. Stable
-structural invariants belong to `check_docs.py`; profile-specific terminology
-and prose signals belong to `check_authoring.py`. The semantic layer that cannot
-be mechanized (contradictions, stale terms, capture of emergent knowledge)
-belongs to a periodic hygiene skill (`doc-hygiene-audit`).
+Stable structural invariants belong in deterministic checks. Repository-specific
+language and enforcement policy stay in configuration. Semantic contradictions
+and stale meaning require evidence-based review rather than another heuristic
+gate.
 
-## context hygiene
+## Context hygiene
 
-Portable coordination of agent **context windows** (not product releases):
+- Keep decision, fit, and slice packaging in one continuous context until a
+  durable handoff exists.
+- Prefer a fresh context per implementation item, starting from its work record
+  rather than chat memory.
+- Before a tool switch, long-thread cutoff, or degraded context, write a session
+  handoff.
+- Parallel writers use one claim ledger and one owner per surface; a single
+  writer needs only the handoff record.
 
-- Keep DECIDE / fit / slice packaging in **one continuous window** until a
-  durable handoff packet exists (work item + plan paths, stop condition, mode).
-- Prefer a **fresh window per IMPLEMENT work item**, starting from the item and
-  its Implementation Ledger — not chat memory.
-- Near degraded context (long thread, compaction pressure, tool switch): write a
-  **session handoff** before continuing; do not push on a foggy window.
-- Parallel writers use a **claim ledger**; single-writer cuts use session handoff
-  only (see the `handoff` skill when present).
+## Kit propagation
 
-## housekeeping loop
+`template/` is the portable product. External ideas and downstream corrections
+enter as candidates; only explicit promotion changes that product. A consumer's
+recorded Copier `_commit` is its reconciliation baseline. Tags are preferred
+stable checkpoints and release events, not the sole transfer authority.
 
-After a task:
+Copier ownership is path-based:
 
-- Revisit the agent-instruction SSOT (`CLAUDE.md`) — doctrine refinements go to
-  `docs/rules/`, bindings to `CLAUDE.md`; when unsure which doc is the SSOT, ask.
-- Unfinished/deferred work goes to the backlog, not into silence.
-- Every new doc carries frontmatter; a new **structural authority doc** also gets
-  an index row (operating records are directory-routed, not indexed per file).
-- After grinding with a project skill, propose improvements to it
-  (`docs/rules/skill.md` field-notes loop).
-- **Kit propagation.** This doctrine corpus is consumed from a shared
-  governance kit (a copier template; the consumer's `.copier-answers.yml`
-  names the source). A project-agnostic refinement is promoted upstream —
-  patch the kit, tag it, `copier update` the consumers (`governance-sync`
-  skill) — never left to drift in one repo. Binding changes stay local.
-  Kit-owned files (`docs/rules/*`, `scripts/check_docs.py`,
-  `scripts/bootstrap_agents.py`, `ruff_base.toml`, `AGENTS.md`, and managed
-  skill cores) are overwritten on update. Seeded files (`CLAUDE.md`, glossary,
-  backlog, seeded skills, and explicit repository-binding files) are repo-owned
-  after first copy. A managed skill may therefore keep portable workflow in its
-  kit-owned core while routing local authority to one skipped binding file; the
-  Copier `_skip_if_exists` list is the ownership boundary.
+- paths absent from `_skip_if_exists` are kit-managed and may be replaced on
+  update, including shared skill cores;
+- paths listed in `_skip_if_exists` are seeded once and then repository-owned,
+  including local bindings;
+- the exact `_skip_if_exists` list is the ownership declaration.
+
+Recreate a portable downstream correction minimally in the template. Never copy
+one consumer's vocabulary, paths, source identity, verification commands, or
+dirty working tree into another consumer. After selecting a new kit revision,
+reconcile seeded bindings deliberately and validate the managed result in each
+consumer.

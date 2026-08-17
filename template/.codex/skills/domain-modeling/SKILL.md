@@ -1,164 +1,103 @@
 ---
 name: domain-modeling
-version: "1.3.0"
+version: "1.4.1"
 description: >-
-  Build and sharpen the project's domain model: keep glossary files updated with
-  ubiquitous language, record architectural decisions as sequential ADR files,
-  verify naming consistency, or run a grill-with-docs decision interview. Run
-  when introducing new concepts, naming policy, or significant architectural
-  decisions.
+  Build and deliberately evolve the project's core models, ubiquitous language,
+  and ADRs. Use when work changes cross-cutting concepts or relationships,
+  introduces domain vocabulary, records a durable trade-off, or needs a
+  model-grounded decision interview.
 scope: domain modeling skill
 status: stable
-last_update: 2026-07-21
+last_update: 2026-08-17
 document_class: artifact
 ---
 
 # Domain Modeling & Architecture Decisions
 
-> Seeded from the governance kit. Sharpen the glossary layout, ADR examples, and
-> classification axes for your repo on the first run; those edits are repo-owned.
+Use this skill for durable meaning: cross-cutting models, shared vocabulary, and
+hard-to-reverse decisions. Keep exploratory conversation in the current work
+record until it earns promotion.
 
-This playbook governs how we define, evolve, and document the project's
-ubiquitous language (glossaries) and durable design choices (Architecture
-Decision Records, or ADRs).
+A Campaign may coordinate a destination and its uncertainty, but accepted
+models, terms, and decisions still promote through this skill to their owning
+authorities.
 
-Record stable vocabulary and durable decisions. Do not turn exploratory
-conversation into a sequence of premature records.
+When paired with `grill-with-docs`, the interview sharpens decisions and this
+skill records only what settles.
 
-When paired with `grill-with-docs`, this skill is the documentation hand: the
-interview asks one decision at a time, while this skill updates glossary entries
-and ADRs as terms and trade-offs settle.
+## Files
 
-## File Layout
+- Core models: concise bindings in `CLAUDE.md` or a dedicated `docs/models.md`.
+- Glossaries: `docs/glossary/*.md`, split by concern.
+- ADRs: `docs/adr/NNNN-slug.md`, created only when the first ADR is earned.
+- Formats and model guidance:
+  `references/{ADR-FORMAT.md,GLOSSARY-FORMAT.md,MODEL-NOTATION.md}`.
 
-Two main forms of domain documentation:
+## Core models
 
-1. **Glossaries** (`docs/glossary/*.md`): Define cross-cutting terminology.
-   Follows the Ubiquitous Language invariant (`CLAUDE.md` §Architecture rules).
-   Split by concern — a `ddd.md` grouped by Bounded Context, plus any
-   domain-specific glossaries the repo needs (e.g. a technical-framework file, or
-   a subject-matter file).
-2. **Architecture Decision Records (ADRs)** (`docs/adr/NNNN-slug.md`): Record
-   significant, hard-to-reverse design decisions.
-3. **Core-models layer** (`docs/models.md`, optional): An orientation page
-   naming the few system-level models the ADRs serve, written in a small frozen
-   notation. Adopt it once a repo has enough ADRs that readers reverse-engineer
-   the underlying models from them. See `references/MODEL-NOTATION.md`.
+Use a core model only when a concept or relationship governs multiple contracts,
+ADRs, or implementation boundaries. Local code structure, a single workflow,
+and routine handoffs do not need model ceremony.
 
-```
-/
-├── docs/
-│   ├── glossary/
-│   │   └── ddd.md                   ← + repo-specific glossaries as needed
-│   ├── models.md                    ← optional core-models layer (see MODEL-NOTATION.md)
-│   └── adr/                          ← Lazily created when the first ADR is written
-│       └── 0001-<slug>.md
-└── .codex/skills/domain-modeling/
-    ├── SKILL.md
-    └── references/{ADR-FORMAT.md, GLOSSARY-FORMAT.md, MODEL-NOTATION.md}
-```
+Read `references/MODEL-NOTATION.md` completely before introducing or changing a
+core model. That reference owns the placement, authority, change-lock, handle,
+and notation mechanics; do not restate them in task-specific skills.
 
-Create files lazily: if `docs/adr/` does not exist, initialize it only when the
-first ADR is written.
+## Glossary management
 
-## 1. Glossary Management (Ubiquitous Language)
+A new domain term introduced in code or documentation must enter the glossary in
+the same change after its meaning is accepted.
 
-A new domain term introduced in code (class names, table columns, fields, API
-paths) or in documentation MUST be added to the glossary in the same change.
+1. Classify it as a bounded-context, subject-domain, or shared technical term.
+2. Open the matching file under `docs/glossary/`.
+3. Follow `references/GLOSSARY-FORMAT.md`.
+4. Use the code-facing English name plus the reader-audience translation and
+   explanation.
+5. Record confusing synonyms in the `_Avoid_` column.
 
-### Process
-1. Classify the term: is it a DDD concept (bound to a specific Bounded Context),
-   a subject-domain concept, or a shared technical-framework concept? Route it to
-   the matching glossary file.
-2. Open the corresponding file under `docs/glossary/`.
-3. Add the term following the structured table layout in
-   `references/GLOSSARY-FORMAT.md`.
-4. Write the term in English (matching code), with the reader-audience language
-   translation and explanation.
-5. Identify synonyms or confusing terms and document them under the `_Avoid_`
-   column.
+During a decision interview:
 
-### During decision interviews
-1. Challenge overloaded terms immediately: name the existing glossary meaning,
-   the user's apparent meaning, and ask which should win.
-2. Propose one canonical term when the user uses vague language. Include the
-   `_Avoid_` aliases that would otherwise reintroduce ambiguity.
-3. Use concrete repo scenarios to test the term boundary before writing it.
-4. Once the user accepts the term, update the glossary in the same turn. Do not
-   leave accepted vocabulary only in chat.
+1. Name collisions between the existing meaning and the proposed meaning.
+2. Propose one canonical term and the aliases to avoid.
+3. Test the boundary with concrete repository scenarios.
+4. Write the accepted term in the same turn; do not leave it only in chat.
 
-## 2. Architecture Decision Records (ADRs)
+## Architecture Decision Records
 
-An ADR captures the "why" of a choice, including considered options and
-trade-offs.
+Create an ADR only when all three are true:
 
-### When to offer an ADR
-All three criteria MUST be met:
-1. **Hard to reverse** — Changing your mind later would incur meaningful
-   refactoring or operational cost.
-2. **Surprising without context** — A future engineer (or agent) would ask "why
-   this way instead of the obvious/generic way?"
-3. **The result of a real trade-off** — There were viable alternatives, and one
-   was selected for specific reasons.
+1. Reversing the choice would have meaningful cost.
+2. The choice would be surprising without its rationale.
+3. Viable alternatives existed and a real trade-off selected one.
 
 ### Process
-1. Scan `docs/adr/` for the highest existing number and increment it. If none
-   exist, start with `0001`.
-2. Create `docs/adr/NNNN-slug.md` using lowercase, hyphen-separated slugs.
-3. Write the ADR using `references/ADR-FORMAT.md`. Use short bullets and tables;
-   include only facts that change the decision or explain a non-obvious cost. In
-   a repo that maintains a `docs/models.md` core-models layer, add the one-line
-   `Serves:` note naming the coordinate the decision serves (see
-   `references/MODEL-NOTATION.md`); omit it otherwise.
-4. Update the `docs/index.md` navigator to register the new ADR.
-5. Replace duplicated decision prose in docs and code comments with a short local
-   binding plus an ADR reference. Keep operational details in the owning SSOT;
-   don't restate the ADR's context/options/consequences in every file.
-6. Update `CLAUDE.md` only when the decision is an agent-critical repo binding;
-   otherwise point the owning SSOT or README to the ADR.
 
-### During decision interviews
-Ask at most one ADR question at a time. Phrase it as a concrete decision with the
-recommended answer, the plausible alternative, and the cost of changing later.
+1. Increment the highest number under `docs/adr/`, starting at `0001`.
+2. Create `docs/adr/NNNN-slug.md` with a lowercase hyphenated slug.
+3. Follow `references/ADR-FORMAT.md`. Include only facts that determine the
+   choice or explain a non-obvious cost. Add `Serves:` only when a core-model
+   relationship materially applies.
+4. When the first ADR makes `docs/adr/` a real area, route that area from
+   `docs/index.md` and synchronize `index_route_areas`; do not list every ADR.
+5. Replace repeated rationale with a short local binding and ADR link.
+6. Update `CLAUDE.md` only for an agent-critical repository binding.
 
-Before creating or accepting an ADR:
+During interviews, keep one evolving ADR proposal per decision cluster. Restate
+the proposed lock, test its scope and consequences, list remaining uncertainty,
+and let the user review the compact wording.
 
-1. Restate the proposed lock in precise language.
-2. Test scope, boundaries, exceptions, and consequences.
-3. Resolve or list remaining uncertainty.
-4. Let the user review the final compact wording.
-
-The first answer starts this pass; it does not finish it. Keep one `proposed` ADR
-per decision cluster and revise it while the discussion evolves. Default to one
-new ADR per session. A second requires explicit user intent plus a genuinely
-independent, stable decision. Never supersede or deprecate an ADR created in the
-same session; that signals the first decision was recorded too early.
-
-## 3. Core-models layer (optional)
-
-Once a repo accumulates enough ADRs that readers reverse-engineer the underlying
-models from them, add a `docs/models.md` orientation page that names the few
-system-level models the ADRs serve, written in a small frozen notation. It sits
-below `CLAUDE.md` and above the ADRs in reading order; on any specific decision
-the owning ADR wins and `models.md` is fixed to match. Each model part carries a
-frozen coordinate that proposals and ADRs cite via the `Serves:` note. Full
-doctrine — pattern, coordinates, notation grammar, and the per-repo choice of
-symbol set or DSL — lives in `references/MODEL-NOTATION.md`. Do not stand this up
-speculatively; it earns its place only when the ADR count makes the models hard
-to see.
+Default to one new ADR per session. A second needs explicit user intent and a
+genuinely independent stable decision. Never supersede an ADR created in the
+same session; revise the proposal instead.
 
 ## Pitfalls
 
-- **ADR Bloat**: Documenting simple, easily-reversible, or standard decisions. If
-  it's not a real trade-off or hard to reverse, skip the ADR.
-- **ADR Echo**: Copying the same rationale into `CLAUDE.md`, module READMEs, and
-  comments. ADRs carry the durable "why"; local docs carry only the local
-  contract and link to the ADR.
-- **Glossary Skew**: Letting variable names in code diverge from glossary
-  definitions. Use the glossary terms exactly as defined.
-- **Changelogging in ADRs**: Editing old, accepted ADRs to reflect changes. Once
-  accepted, ADRs are immutable. If a decision changes, create
-  `NNNN-new-decision.md` (status `accepted`) and set the old ADR's status to
-  `superseded by ADR-NNNN`.
-- **Essay ADRs**: Long narrative hides the actual lock. Use the smallest set of
-  structured facts, options, and consequences that preserves the decision.
+- **ADR bloat:** Skip reversible, standard, or non-trade-off choices.
+- **ADR echo:** Keep the durable why in one ADR; local docs carry only their
+  contract and the link.
+- **Glossary skew:** Use accepted glossary terms in code and documentation.
+- **Changelog ADRs:** Accepted ADRs are immutable except for status links to a
+  later superseding ADR.
+- **Model drift:** Never hide a cross-cutting model change inside a feature.
+- **Model inventory:** A package tree, stack list, or roadmap is not a core
+  model.

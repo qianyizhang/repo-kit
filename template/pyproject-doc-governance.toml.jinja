@@ -1,7 +1,7 @@
 # Merge this into your pyproject.toml, then delete this file.
 # `scripts/check_docs.py` and `scripts/bootstrap_agents.py` read these bindings;
 # the scripts stay portable, the repo-specific values live here.
-# Doctrine: docs/rules/governance.md "mechanical enforcement".
+# Doctrine: docs/rules/governance.md "Mechanical enforcement".
 
 [tool.doc_governance]
 exclude_dirs = [
@@ -24,17 +24,22 @@ index_file = "docs/index.md"
 # Area routes required in the compact navigator. Complete file discovery belongs
 # to generated Human View, not docs/index.md.
 index_route_areas = [
-    "docs/", "docs/adr/", "docs/glossary/", "docs/rules/",
-    "records/work-items/", "records/reports/", "sources/", "archive/",
+    "docs/", "docs/glossary/", "docs/rules/", "records/work-items/",
 ]
 
 [tool.doc_governance.document_classes.coordination]
 required_fields = []
-allowed_prefixes = ["docs/"]
-allowed_paths = ["AGENTS.md", "CLAUDE.md", "README.md", "readme.md"]
+allowed_prefixes = ["docs/", "records/campaigns/", "records/reports/"]
+allowed_paths = [
+    "AGENTS.md", "CLAUDE.md", "README.md", "readme.md",
+    "records/work-items/backlog.md",
+]
 
 [tool.doc_governance.document_classes.work_record]
-required_fields = ["work_id", "work_status", "added", "tags", "depends_on", "residual_of", "residual_items"]
+required_fields = [
+    "work_id", "work_status", "work_kind", "added", "tags",
+    "depends_on", "residual_of", "residual_items",
+]
 allowed_prefixes = ["records/work-items/"]
 
 [tool.doc_governance.document_classes.report]
@@ -58,7 +63,7 @@ required_fields = ["superseded_by"]
 allowed_prefixes = ["docs/deprecated/"]
 
 # INVARIANT: .codex/ holds the real agent assets; discovery paths are relative
-# symlinks into it (docs/rules/governance.md "agent toolchains & symlink layout").
+# symlinks into it (docs/rules/governance.md "Agent toolchains and symlinks").
 [tool.doc_governance.symlinks]
 ".agents" = ".codex"
 ".claude/skills" = "../.codex/skills"
