@@ -2,7 +2,7 @@
 description: System rules, invariants, and guidelines for developer agents.
 scope: system guidelines
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: coordination
 ---
 
@@ -83,7 +83,8 @@ Invocation policy:
 - **Shared grill loop:** model-invoked `grilling` (composed by
   `grill-with-docs`, `show-gap`, and any local planner that needs the loop).
 - **Bounded automatic audit:** `show-gap` may be selected for an ambiguous
-  readiness/fit question because its first phase is read-only repo grounding.
+  feature-fit question because its first phase is read-only repo grounding.
+  Use `next-slice` for readiness and prioritization.
   Extending it into a decision interview or writing a specification requires
   clear user intent.
 

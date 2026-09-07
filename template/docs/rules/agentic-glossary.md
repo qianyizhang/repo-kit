@@ -2,7 +2,7 @@
 description: Portable agent-collaboration vocabulary — the register for directing an agent through work (control loop, coordination, epistemic honesty, craft).
 scope: agent-collaboration glossary
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: coordination
 ---
 
@@ -27,7 +27,7 @@ How a single task is driven from ask to committed change.
 
 | Term | Meaning (why it exists) | How to invoke | _Avoid_ |
 | --- | --- | --- | --- |
-| **Lock** / **numbered lock** | A decision the user has **frozen**, referenced by number so later work can cite it. Turns direction into commitment. | Restate the current decision, take a numbered reply, then freeze it. A first answer is *direction*, not a lock. | Treating an initial "sounds good" as a lock without restating. |
+| **Lock** / **numbered lock** | A decision the user has **frozen**, optionally numbered for later reference. Turns direction into commitment. | Follow the acceptance and clarification rule in [grilling](../../.codex/skills/grilling/SKILL.md#frontier-batch-loop-default). | Confusing a decision lock with authorization for a separate action. |
 | **Grill** | A decision-interview: stress-test a plan with pointed questions *before* implementing. The `grilling` primitive. | User says "grill me", or a plan has ≥1 unresolved decision. Ground every question in the tree first. | Grilling from priors instead of from the actual repo state. |
 | **Slice** | One **verifiable unit** of work carved from a larger goal, sized to land and check independently. The `next-slice` skill picks one. | "What's the next slice?" → rank value, propose one testable slice. | Shipping a whole epic as one unreviewable change. |
 | **Checkpoint** | A mid-task **save of state** when you can't finish — the honest alternative to faking completion. Pairs with *full means full*. | Can't finish → write what's done, what's left, where you stopped. | Relabeling a partial run as done instead of checkpointing. |

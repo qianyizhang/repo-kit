@@ -1,6 +1,6 @@
 ---
 name: grill-with-docs
-version: "1.7.1"
+version: "1.7.2"
 description: >-
   Run a focused frontier-batch decision interview that stress-tests a plan and
   captures only settled model changes, glossary terms, and ADR-worthy
@@ -8,7 +8,7 @@ description: >-
 disable-model-invocation: true
 scope: decision interview skill
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
@@ -65,6 +65,6 @@ or assurance gate remains human-owned.
 
 - Implementing mid-interview.
 - Restating `grilling` or `domain-modeling` mechanics here.
-- Treating a first answer as a final lock.
+- Applying a different lock rule from the shared `grilling` primitive.
 - Deferring settled vocabulary or ADR capture until the end.
 - Starting unrelated hygiene work.

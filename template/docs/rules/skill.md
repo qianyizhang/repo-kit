@@ -2,7 +2,7 @@
 description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
 scope: skill authoring rules
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: coordination
 ---
 
@@ -13,9 +13,10 @@ authoring rules. `.codex/skills/` is the single home, and `docs/index.md`
 §Main flows is the human-facing router. Bold terms are defined in
 [`skill-glossary.md`](skill-glossary.md).
 
-The root virtue is **predictability**: the agent takes the same *process* every
-run, not the same output. Every rule below is a lever on it. (Vocabulary adapted
-from mattpocock/skills `writing-great-skills`.)
+Write clear, simple, concise skills. Keep only instructions that change behavior
+or protect a necessary boundary. Predictability means a consistent process,
+with output sized to the task. (Vocabulary adapted from mattpocock/skills
+`writing-great-skills`.)
 
 ## lifecycle
 

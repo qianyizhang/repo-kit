@@ -1,20 +1,21 @@
 ---
 name: next-slice
-version: "1.3.0"
+version: "1.3.1"
 description: >-
   Verify live repository state against plans and recommend one valuable,
   independently testable implementation slice. Use when asked what to build
-  next, when planning state may be stale, or after work outruns its plan.
+  next or to reassess readiness and priority against current planning evidence.
 scope: repository next-slice recommendation
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
 # Next slice
 
 Choose one repo-grounded next move. Planning artifacts are claims to verify, not
-substitutes for the live tree.
+substitutes for the live tree. Use `show-gap` to assess a particular feature
+request and `show-me` to explain existing behavior; this skill selects work.
 
 ## Survey
 
@@ -70,31 +71,13 @@ decisions. Recommendation is not implementation authority.
 
 ## Output
 
-```markdown
-**Current trajectory**
-<what recent evidence is converging toward>
+Lead with one recommended outcome and why it matters now. Include the evidence,
+authority boundary, smallest proof, verification command, and needed planning
+updates. Compare alternatives only when they affect the choice.
 
-**Planning state**
-| Candidate | Evidence | Classification | Action |
-| --- | --- | --- | --- |
-
-**Recommended next slice**
-- Outcome:
-- Value now:
-- Authority boundary:
-- Smallest proof:
-- Verification:
-- Planning/doc updates:
-- Campaign relationship: <active Campaign and frontier link, or none>
-- Cross-cutting model impact: <only when material>
-- Blocked by: <named decisions, gates, or none>
-
-**Why not the alternatives**
-<short comparison>
-
-**Decisions to lock**
-<grilling questions or none>
-```
+Use a planning-state table when several candidates need reconciliation. Include
+Campaign/model relationships and unresolved decisions only when material; omit
+empty fields. The output is a recommendation, not a new plan or tracker.
 
 Stop after one recommendation. If confirmed work moves to another session, use
 `handoff` for transport; implementation still requires explicit user authority.

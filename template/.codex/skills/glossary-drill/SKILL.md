@@ -1,6 +1,6 @@
 ---
 name: glossary-drill
-version: "0.4.1"
+version: "0.4.2"
 description: >-
   Onboard and quiz ubiquitous-language glossary terms (MCQ + a Mastery Ladder
   game with free-recall at high boxes) with spaced repetition and
@@ -10,7 +10,7 @@ description: >-
 scope: glossary onboard quiz lint skill
 status: experimental
 document_class: artifact
-last_update: 2026-08-17
+last_update: 2026-09-07
 ---
 
 # Glossary Drill
@@ -86,8 +86,15 @@ Default dir **`artifacts/glossary-drill/`**; keep it ignored locally. It holds
 one file per profile: **`state-<profile>.json`**. Profile defaults to `$USER`
 (override with `--profile` or `$GLOSSARY_DRILL_PROFILE`) so teammates on one
 checkout don't clobber each other. Stores Leitner box, pass/fail counts,
-`last_seen`, and capped confusion history (`hard_decoys`). **Reset:**
-`rm -rf artifacts/glossary-drill`. Never auto-writes `docs/glossary/*.md`.
+`last_seen`, and capped confusion history (`hard_decoys`).
+
+**Reset one learner:** confirm the profile reported by `status` and resolve the
+state directory from `--state-dir`, the optional binding, or the default above.
+Delete only that profile's `state-<profile>.json`. For example, resetting profile
+`alice` in the default directory is `rm -- artifacts/glossary-drill/state-alice.json`.
+Resetting every profile requires an explicit request for all learners. Browser
+progress is separate; deleting a CLI state file does not reset localStorage.
+Never auto-writes `docs/glossary/*.md`.
 
 ### Optional binding
 

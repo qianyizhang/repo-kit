@@ -1,14 +1,13 @@
 ---
 name: domain-modeling
-version: "1.4.1"
+version: "1.4.2"
 description: >-
-  Build and deliberately evolve the project's core models, ubiquitous language,
-  and ADRs. Use when work changes cross-cutting concepts or relationships,
-  introduces domain vocabulary, records a durable trade-off, or needs a
-  model-grounded decision interview.
+  Define and record cross-cutting models, canonical domain terms, and
+  consequential architectural decisions in their owning authorities. Use when
+  accepted meaning needs capture or a proposed change needs model analysis.
 scope: domain modeling skill
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
@@ -23,7 +22,9 @@ models, terms, and decisions still promote through this skill to their owning
 authorities.
 
 When paired with `grill-with-docs`, the interview sharpens decisions and this
-skill records only what settles.
+skill records only what settles. Use `show-me` to explain an existing model
+without changing it; use `grilling` for unresolved owner choices. This skill
+judges model and terminology consistency and records accepted meaning.
 
 ## Files
 
@@ -86,9 +87,10 @@ During interviews, keep one evolving ADR proposal per decision cluster. Restate
 the proposed lock, test its scope and consequences, list remaining uncertainty,
 and let the user review the compact wording.
 
-Default to one new ADR per session. A second needs explicit user intent and a
-genuinely independent stable decision. Never supersede an ADR created in the
-same session; revise the proposal instead.
+Keep one ADR per independent consequential decision, regardless of session
+boundaries. Revise a proposed ADR as the decision evolves. When an accepted
+decision changes, record the newly accepted choice in a superseding ADR and
+link the old record; preserve its original rationale.
 
 ## Pitfalls
 

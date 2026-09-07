@@ -1,21 +1,23 @@
 ---
 name: show-me
-version: "1.1.0"
+version: "1.2.0"
 description: >-
   Explain the current topic in conversation with the smallest useful
   evidence-grounded visual and concise structured text. Use for relationships,
-  flows, ownership, or diffs; route maintained stakeholder artifacts to
-  explain-layman.
+  flows, ownership, diffs, or data transformations; route maintained stakeholder
+  artifacts to explain-layman.
 scope: compact visual explanation
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
 # Show me
 
 Make the key relationship visible. Skip the preamble, keep prose brief, and
-prefer one clear view over a gallery.
+prefer one clear view over a gallery. Explain the current topic or a labeled
+proposal; use `show-gap` to assess feature fit and `next-slice` to prioritize
+work.
 
 Ground labels in current evidence: real paths, functions, components, states,
 and data where available. Mark hypothetical shapes and omit detail that does not
@@ -38,6 +40,13 @@ evidence.
 
 Show the whole block only when most of it is new, omitted context would hide
 ownership or order, or the user needs a copyable target.
+
+## Data transformations
+
+For parsing, ETL, curation, or projection explanations, read
+[show the states](references/data-transformations.md) before composing the view.
+Trace one representative record through intermediate states to its final
+consumer-visible and stored outcome.
 
 ## Artifact boundary
 

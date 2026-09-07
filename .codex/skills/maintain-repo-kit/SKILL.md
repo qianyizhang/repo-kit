@@ -1,10 +1,10 @@
 ---
 name: maintain-repo-kit
-version: "1.4.0"
+version: "1.4.1"
 description: Survey and reconcile repo-kit's local topology, downstream candidates, external upstream ideas, and Copier baselines. Use for maintenance, promotion, consumer reconciliation, or release preparation.
 scope: repo-kit maintenance
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
@@ -88,7 +88,8 @@ Resolve facts from repositories. For remaining policy choices, use `grilling`:
 2. Ask only the unblocked decision frontier, with a recommended answer and the
    cost of the main alternative.
 3. Defer dependent questions.
-4. Restate and confirm the lock before implementing it.
+4. Follow `grilling` for decision locks; preserve separately required action
+   approvals.
 
 Conflicting intent, authority changes, and workflow defaults are decisions.
 

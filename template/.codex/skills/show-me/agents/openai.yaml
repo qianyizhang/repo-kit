@@ -1,4 +1,4 @@
 interface:
   display_name: "Show Me"
-  short_description: "Explain one relationship with a compact visual"
+  short_description: "Explain relationships and data transformations visually"
   default_prompt: "Use $show-me to explain the current topic with the smallest useful evidence-grounded visual."

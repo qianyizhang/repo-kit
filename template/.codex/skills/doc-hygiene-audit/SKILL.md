@@ -1,13 +1,13 @@
 ---
 name: doc-hygiene-audit
-version: "1.3.0"
+version: "1.3.1"
 description: >-
   Keep the doc corpus honest: capture knowledge, reconcile drift, review
   implementation intelligence with the user, and restructure when layout causes
   confusion. Use after pivots/refactors or for documentation hygiene.
 scope: documentation hygiene skill
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-07
 document_class: artifact
 ---
 
@@ -32,8 +32,14 @@ this managed skill core.
 - Before release, or when documentation debt accumulates
 - On request: "check the docs", "doc hygiene", or "find conflicts"
 
-Run the repository's configured documentation check first. Fix clear mechanical
-failures, then perform these four semantic passes.
+For inspection or review requests, keep the audit read-only and report proposed
+repairs. Apply repairs when the user requests fixes or has already authorized
+them; do not ask again for the same scope. Owner decisions remain subject to
+the apply/propose boundary below.
+
+Run the repository's configured documentation check first, checking its write
+footprint for a read-only audit. Report mechanical failures, or fix them within
+the authorized scope, then perform these four semantic passes.
 
 ## 1. Capture
 
@@ -104,8 +110,8 @@ itself require entries in all three.
 
 ## Apply versus propose
 
-- **Apply:** mechanical repairs, clear term alignment, capture into an existing
-  owner, broken routes, and low-risk structural cleanup with explicit authority.
+- **Apply within authorized repair scope:** mechanical repairs, clear term alignment,
+  capture into an existing owner, broken routes, and low-risk structural cleanup with explicit authority.
 - **Propose:** semantic changes, disputed dispositions, a new or moved SSOT,
   authority-boundary changes, rewinds, or any promotion requiring owner choice.
 - Preserve repository-specific meaning in local bindings. Promote a portable
@@ -113,7 +119,9 @@ itself require entries in all three.
 
 ## Output
 
-Write a concise report to the repository's report area. Use a valid status
+For a read-only audit, return the report in conversation. Write a report file
+when requested or within an authorized repair workflow. For report files,
+use a valid status
 (`experimental`, `stable`, or `deprecated`) and exactly one report outcome:
 `promoted`, `inconclusive`, or `archive_eligible`. The latter two require the
 conditional fields defined by `docs/rules/doc.md` and enforced by
