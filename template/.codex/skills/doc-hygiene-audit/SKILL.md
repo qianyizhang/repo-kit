@@ -1,6 +1,6 @@
 ---
 name: doc-hygiene-audit
-version: "1.5.1"
+version: "1.5.2"
 description: >-
   Preserve engineering knowledge, reconcile drift, and remove spent documentation
   and comments. Use after pivots/refactors or for documentation hygiene.
@@ -116,6 +116,11 @@ IDs, catalogs, and evidence consumers before editing. Preserve protected revisio
 and active operator state. Delete spent material within authorized cleanup scope;
 archive only when the historical document has continuing value. Keep a compact
 record when discovery or lineage still needs it.
+
+Before reducing a completed specification, account for each accepted contract,
+invariant, acceptance criterion, and residual in a retained owner. A route table
+alone is not proof of preservation. Promote uncovered meaning before cutting;
+also repair prose that refers to removed sections or delivery stages.
 
 When layout repeatedly causes drift, reduce the structure:
 
