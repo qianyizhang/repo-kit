@@ -1,13 +1,13 @@
 ---
 name: handoff
-version: "0.8.0"
+version: "0.9.0"
 description: >-
   Carry authoritative context across sessions, or coordinate parallel writers
   with explicit claims, durable worker output, and one integrator. Use for a
   context cut, tool switch, multi-agent build, or claim protocol.
 scope: session and multi-agent coordination skill
 status: experimental
-last_update: 2026-08-17
+last_update: 2026-09-11
 document_class: artifact
 ---
 
@@ -68,6 +68,10 @@ produced_by: handoff@<version> · agent=<model> · effort=<level> · <date>
 
 Reference existing artifacts by path instead of copying their bodies. Redact
 secrets and PII, and tailor the packet to the next session's stated focus.
+Reuse an existing packet for continuing state. Once consumed, superseded, or
+completed, preserve unique decisions and outstanding obligations in their owners,
+then apply `docs/rules/doc.md` closeout. A packet that still authorizes active
+operations or supports retained evidence is not spent.
 
 Session mode does not authorize parallel writes. If a second writer appears,
 switch to `parallel` and claim surfaces before further edits.
@@ -156,7 +160,9 @@ After workers finish:
 4. Append material findings, decisions, deviations, and verification to the
    primary work item.
 5. Run repository-wide generators and checks only after the barrier.
-6. Close the ledger and update the owning machine-readable artifacts.
+6. Close the ledger and update the owning machine-readable artifacts. Apply
+   `docs/rules/doc.md` closeout to released claim ledgers and worker notes;
+   retain them only while a coordination or evidence dependency remains.
 
 ## Anti-patterns
 

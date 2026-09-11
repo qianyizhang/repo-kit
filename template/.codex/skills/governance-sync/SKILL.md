@@ -1,12 +1,12 @@
 ---
 name: governance-sync
-version: "2.0.0"
+version: "2.1.0"
 description: >-
   Adopt or update the shared governance kit: run Copier, reconcile repository
   bindings, consolidate the agent symlink layout, and restore local gates.
 scope: governance kit adoption and sync skill
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-11
 document_class: artifact
 ---
 
@@ -66,6 +66,12 @@ core.
    commands.
 5. Reconcile the pyproject fragment if Copier recreates it, then delete it.
 6. Run documentation, symlink, and repository gates.
+
+When doctrine changes a lifecycle or closeout default, reconcile the seeded
+backlog, navigator, and local evidence/retention bindings explicitly. Managed-file
+parity is not enough: check that local instructions and machine readers still
+support the resulting lifecycle. Propagating retention rules does not itself
+authorize deleting consumer records; apply them within the user's cleanup scope.
 
 An `_skip_if_exists` change is a migration, not a routine update. Before
 accepting a newly managed path, compare it with the old seed, extract local

@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-11
 document_class: coordination
 ---
 
@@ -35,6 +35,12 @@ One meaning lives once, at the lowest level that fully owns it:
 Authority is scoped by concern, not by one global file ranking. When sources
 appear to conflict, identify the concern and abstraction level, then repair the
 stale source.
+
+Code establishes implemented behavior; an accepted contract or invariant
+establishes required behavior. A disagreement can be an implementation defect:
+do not silently amend the requirement to match the code. Identified source
+artifacts and frozen manifests own recorded observations within their provenance
+and conditions; summaries and generated reports do not replace that evidence.
 
 A repository states its core model in `CLAUDE.md` or `docs/models.md`. Use
 [`MODEL-NOTATION.md`](../../.codex/skills/domain-modeling/references/MODEL-NOTATION.md)

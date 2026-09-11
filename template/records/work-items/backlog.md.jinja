@@ -2,7 +2,7 @@
 description: Backlog-item lifecycle, schema, and discovery for {{ project_name }}.
 scope: backlog
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-11
 document_class: coordination
 ---
 
@@ -10,8 +10,8 @@ document_class: coordination
 
 This page owns the backlog lifecycle and schema. It does not duplicate item
 status. Every active or not-yet-archived item is one durable file under
-`records/work-items/items/`; terminal items pass through the repository's
-promotion and archive lifecycle.
+`records/work-items/items/`; terminal items follow the retention and closeout
+rules in `docs/rules/doc.md`.
 
 ## Triage Tags
 
@@ -78,6 +78,14 @@ substantive and use one of `finding`, `decision`, `assumption`, `deviation`,
 `verification`, or `handoff`; each records evidence, consequence, follow-up, and
 review state (`not-required`, `pending`, `ratified`, `rejected`, `superseded`, or
 `audit-requested`).
+
+At closeout, retain the outcome, acceptance evidence, residual links, required
+headings, and status history while an item remains addressable. Trim duplicated
+specification and spent execution prose after preserving durable meaning in its
+owner. Preserve decisions, failures, corrections, and any explicitly append-only
+evidence history. Do not delete or relocate an item still needed by ID references,
+catalog discovery, or provenance. Routine progress needs no new ledger entry when
+an execution artifact already records it.
 
 ## Discovery
 

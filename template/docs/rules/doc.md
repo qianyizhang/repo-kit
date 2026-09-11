@@ -2,11 +2,23 @@
 description: Rules for documentation, glossaries, and durable work-item records.
 scope: documentation rules
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-11
 document_class: coordination
 ---
 
 # Documentation rules
+
+## Keep what matters
+
+Keep material needed to use the system, explain an accepted decision or invariant,
+coordinate unfinished work, or substantiate a claim. Prefer the nearest sufficient
+owner: code, schema, configuration, test, local comment, contract, or evidence.
+Do not copy knowledge into prose merely because it currently lives in code.
+
+Root and module READMEs orient readers, provide essential usage, and route to
+owners. Keep explanations that prevent misuse; omit mirrored field inventories,
+defaults, operating status, and result tables already owned elsewhere. Durable
+runbooks explain repeatable operations; session notes describe one execution.
 
 ## Frontmatter and classes
 
@@ -45,11 +57,26 @@ worth citing. It declares one outcome: `promoted`, `inconclusive`, or
 `archive_eligible`. An inconclusive report names its reason and review trigger;
 an archive-eligible report names its Archive ID and promoted destinations.
 
-`docs/design/` holds active forward design. When a slice lands, promote durable
-contracts to their owning code, contract, README, ADR, glossary, or backlog, then
-move the superseded design to `docs/deprecated/`. Deprecated docs use
-`status: deprecated`, name the active authority, and remain reference-only
-history rather than implementation authority.
+`docs/design/` holds active forward design. When a slice lands, preserve accepted
+contracts, rationale, constraints, and residual work in their owners, then remove
+the spent plan. Archive it under `docs/deprecated/` only when the historical
+document itself remains useful. Deprecated docs use `status: deprecated`, name
+the active authority, and remain reference-only history.
+
+At closeout, trim duplicate explanations and delete consumed handoffs, completed
+claim ledgers, and promotion receipts with no remaining purpose. Before removal:
+
+- check for active users, unique decisions, unresolved work, and evidence needs;
+- preserve required content in its existing owner and repair incoming links,
+  work-ID references, catalog registrations, and other machine readers;
+- respect source/evidence retention and explicit append-only obligations. Being
+  old or complete does not release those obligations.
+
+Keep a compact record where identity, lineage, acceptance evidence, or discovery
+still depends on it. Do not move or delete a record beyond its readers' supported
+scope as cosmetic cleanup. Git can recover committed prose, not ignored evidence
+or uncommitted state. Do not create an archive, tombstone, or audit report merely
+to account for every deletion; use one only for a demonstrated remaining need.
 
 ## Work-item records
 
@@ -62,6 +89,11 @@ durable decision, deviation, residual, verification, or handoff. A completed
 self-contained task needs verification, not a ceremonial record. Promote
 settled contracts and decisions to their owning authority and link back; a work
 record must not become a shadow architecture source.
+
+Record material findings, decisions, deviations, and verification once. Routine
+progress belongs in the execution's existing state or ledger. Retained terminal
+items should carry outcome, acceptance evidence, residuals, and links to promoted
+owners; trim spent execution prose subject to the preservation rules above.
 
 ## Campaign records
 

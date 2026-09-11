@@ -1,8 +1,8 @@
 ---
-description: Python style doctrine — semantic typehints, closed value sets (Literal vs StrEnum), and the tagged-comment taxonomy.
+description: Python style doctrine — semantic types, closed value sets, and useful comments.
 scope: python style rules
 status: stable
-last_update: 2026-07-07
+last_update: 2026-09-11
 document_class: coordination
 ---
 
@@ -40,14 +40,18 @@ carries behaviour or order that would otherwise be stranded in a side table:
 - behaviour dispatch (an operator type owning `.apply`),
 - member iteration.
 
-Never promote a discriminator tag (`kind: Literal["criteria"]`). Every
-promotion carries a `# WHY:` stating which of the four justifications applies.
+Never promote a discriminator tag (`kind: Literal["criteria"]`). Explain a
+non-obvious promotion beside the type, using the applicable justification.
 
 ## comments
 
-Code should be explicit and self-explanatory; no narrating comments, no
-extensive doc prose. The tagged comments that *are* required, each with a clear
-and concise explanation:
+Use names and structure for obvious behavior. Keep comments that explain
+non-obvious rationale, invariants, constraints, or test intent beside the code
+they protect. API docstrings describe usage, obligations, and failure semantics
+that signatures cannot express. Update or remove comments with their code;
+delete narration and spent TODOs after resolving their tracked work.
+
+These tags are optional aids, not a required annotation scheme:
 
 - `# WHY:` — non-obvious rationale for a design choice.
 - `# INVARIANT:` — a property the surrounding code relies on staying true.
@@ -55,4 +59,4 @@ and concise explanation:
 - `# COMPAT:` — a compatibility constraint (and when it can be dropped).
 - `# TODO:` / `# HACK:` — tracked deferral or known shortcut.
 - `# SAMPLE:` — for non-obvious data/rule shapes, a sample demonstrating the
-  shape. Regex patterns always get one.
+  shape. Add regex examples when the accepted or rejected shape is non-obvious.

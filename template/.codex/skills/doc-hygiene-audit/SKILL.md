@@ -1,13 +1,12 @@
 ---
 name: doc-hygiene-audit
-version: "1.3.1"
+version: "1.5.0"
 description: >-
-  Keep the doc corpus honest: capture knowledge, reconcile drift, review
-  implementation intelligence with the user, and restructure when layout causes
-  confusion. Use after pivots/refactors or for documentation hygiene.
+  Preserve engineering knowledge, reconcile drift, and remove spent documentation
+  and comments. Use after pivots/refactors or for documentation hygiene.
 scope: documentation hygiene skill
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-11
 document_class: artifact
 ---
 
@@ -37,14 +36,26 @@ repairs. Apply repairs when the user requests fixes or has already authorized
 them; do not ask again for the same scope. Owner decisions remain subject to
 the apply/propose boundary below.
 
+## Scope and checks
+
+Default to the affected area, its owning authorities, and linked dependants.
+Use a corpus-wide sweep when requested or when evidence shows cross-area drift;
+state any expansion and why. Follow the configured corpus exclusions for generated
+or historical material; inspect such evidence when needed without treating it as
+an editable current authority.
+
 Run the repository's configured documentation check first, checking its write
 footprint for a read-only audit. Report mechanical failures, or fix them within
-the authorized scope, then perform these four semantic passes.
+the authorized scope. The checker gates mechanical compliance; the agent judges
+meaning against owning authorities and evidence. Use capture and reconciliation
+within scope; review unresolved decisions and restructure only when warranted.
 
 ## 1. Capture
 
-Route knowledge that otherwise exists only in conversation, implementation,
-reports, or comments:
+First ask whether the nearest existing code, schema, test, comment, or evidence
+already preserves the knowledge adequately. Keep useful local explanations there;
+do not manufacture a prose copy. Route knowledge only when its present home is
+insufficient or is about to be removed:
 
 | Finding | Destination |
 |:--|:--|
@@ -59,40 +70,49 @@ shadow architecture source.
 
 ## 2. Reconcile
 
-Sweep governed Markdown and other maintained documentation surfaces for:
+Inspect maintained documentation surfaces within scope for:
 
 - deprecated vocabulary and supersession links;
 - contradictions with the authority for the specific concern;
 - status or lifecycle claims that disagree with actual use;
 - code-to-doc or contract-to-doc drift;
 - skill prose that duplicates portable doctrine or embeds local bindings;
-- active documents that merely redirect readers to a newer authority.
+- active documents that merely redirect readers to a newer authority;
+- READMEs and guides mirroring code inventories, results, or session state;
+- comments that narrate obvious code, contradict it, or retain spent deferrals.
 
-Read linked owners before changing a claim. When a new authority clearly
-supersedes a broad active document, promote any remaining durable content and
-move history out of active paths according to `docs/rules/doc.md`.
+Read linked owners before changing a claim. An accepted invariant can expose a
+code defect; never erase it merely to agree with the implementation. Preserve
+local rationale, API obligations, constraints, and test intent when trimming
+comments. Apply `docs/rules/doc.md` to superseded material after checking its
+remaining purpose and dependencies.
 
 ## 3. Review implementation intelligence
 
-Inspect durable work records for decisions, deviations, disputed assumptions,
-repeated verification failures, residual work, and review requests not yet
-reflected in their owning authority.
+When scoped records contain unresolved decisions, deviations, disputed
+assumptions, repeated verification failures, or residual work, check whether
+these are already reflected in their owning authority or an existing work item.
+Do not reopen settled decisions merely because their history remains recorded.
 
-For each material event, recommend one disposition:
+For unresolved events, present evidence, consequence, recommended action, and
+any owner decision needed. Recommend promotion, further audit, correction,
+bounded reversal, or deferral in plain language as appropriate. Never auto-ratify
+an unresolved choice, change an authority boundary, or perform a reversal as
+hygiene; route these through owner decisions.
 
-| Disposition | Meaning |
-|:--|:--|
-| `ratify` | Evidence supports formal owner approval and promotion |
-| `audit-again` | Evidence is insufficient; open a bounded audit |
-| `correct-forward` | Repair forward and preserve the rejected history |
-| `rewind` | Propose a bounded reversal because continuation compounds harm |
-| `defer` | Keep a visible trigger and linked residual item |
+When promoting measured findings, preserve conditions, denominators,
+completeness, uncertainty, and observation versus interpretation. Follow the
+repository's evidence or experiment authority; documentation cleanup does not
+establish a stronger result or authorize rerunning an experiment.
 
-Present unresolved events as a Decision Review Queue with evidence,
-consequence, recommendation, and owner decision. Never auto-ratify your own
-choice, change an authority boundary, or perform a rewind as hygiene.
+## 4. Reduce and close out
 
-## 4. Restructure
+Apply the retention and removal rules in `docs/rules/doc.md` to completed records,
+consumed handoffs, claim ledgers, and promotion receipts. Inspect incoming links,
+IDs, catalogs, and evidence consumers before editing. Preserve protected revisions
+and active operator state. Delete spent material within authorized cleanup scope;
+archive only when the historical document has continuing value. Keep a compact
+record when discovery or lineage still needs it.
 
 When layout repeatedly causes drift, reduce the structure:
 
@@ -100,8 +120,8 @@ When layout repeatedly causes drift, reduce the structure:
 - give a scattered concept one explicit owner and repoint dependants;
 - split an oversized document along real authority seams;
 - retire landed forward designs after promoting durable outcomes;
-- keep active paths current and move superseded detail to the configured
-  historical location.
+- keep active paths current without turning the archive into a second corpus
+  of routinely retained execution notes.
 
 Update `docs/index.md` only when a durable area or concept needs a route. Update
 `CLAUDE.md` only when a project binding changes. Update checker configuration
@@ -110,58 +130,32 @@ itself require entries in all three.
 
 ## Apply versus propose
 
-- **Apply within authorized repair scope:** mechanical repairs, clear term alignment,
-  capture into an existing owner, broken routes, and low-risk structural cleanup with explicit authority.
-- **Propose:** semantic changes, disputed dispositions, a new or moved SSOT,
-  authority-boundary changes, rewinds, or any promotion requiring owner choice.
+- **Apply within authorized repair scope:** mechanical repairs, factual and term
+  corrections against established authority, capture of settled decisions into an
+  existing owner, broken routes, and removal of spent material after the retention
+  and dependency checks. An authorized cleanup includes these deletions unless
+  the user or repository explicitly excludes them.
+- **Propose unless already explicitly authorized:** choosing or changing a
+  contract, unresolved trade-off or disposition, a new or moved SSOT,
+  authority-boundary changes, or a bounded reversal. Correcting prose to match an
+  established decision does not require choosing that decision again.
 - Preserve repository-specific meaning in local bindings. Promote a portable
   doctrine improvement through the kit rather than patching one consumer copy.
 
-## Output
+## Completion and output
 
-For a read-only audit, return the report in conversation. Write a report file
-when requested or within an authorized repair workflow. For report files,
-use a valid status
-(`experimental`, `stable`, or `deprecated`) and exactly one report outcome:
-`promoted`, `inconclusive`, or `archive_eligible`. The latter two require the
-conditional fields defined by `docs/rules/doc.md` and enforced by
-`scripts/check_docs.py`.
+- Re-run the documentation check after edits and verify changed routes and claims
+  against their owners. Report remaining check failures separately from semantic
+  findings; a green checker alone does not establish semantic completeness.
+- Resolve scoped findings or explicitly defer them with evidence and a concrete
+  next action or review trigger. Cross-check existing work items before adding one.
+- Report the scope inspected, omissions, changes or proposals, unresolved owner
+  decisions, and verification. For removals, identify where unique meaning was
+  preserved or why none remained. Label sampled or bounded coverage as such;
+  fewer lines and a green checker alone do not establish a successful cleanup.
 
-This example is checker-valid for a round awaiting owner decisions:
-
-```markdown
----
-description: Results of the documentation hygiene audit.
-scope: documentation hygiene report
-status: stable
-last_update: YYYY-MM-DD
-document_class: report
-report_outcome: inconclusive
-inconclusive_reason: Semantic authority decisions await owner review.
-review_trigger: Owner resolves the Decision Review Queue.
-produced_by: doc-hygiene-audit@<version> · agent=<model-id> · effort=<level> · YYYY-MM-DD
----
-
-# Documentation hygiene report
-
-| # | Category | Location | Finding | Action |
-|:--|:--|:--|:--|:--|
-| 1 | captured | `<path>` | `<knowledge at risk>` | `<routed or proposed>` |
-
-## Decision Review Queue
-
-| Event | Evidence | Consequence | Recommendation | Owner decision |
-|:--|:--|:--|:--|:--|
-| `<event>` | `<proof>` | `<impact>` | `audit-again` | pending |
-```
-
-Cross-check existing work items before creating new ones. Close the report with
-what changed, what remains for the owner, and the verification performed.
-
-## Pitfalls
-
-- Treating an index or report as authority instead of following its route.
-- Trusting frontmatter without reading whether a design still has forward work.
-- Applying semantic or authority decisions without explicit owner approval.
-- Keeping superseded explanations active beside the authority that replaced
-  them.
+Return a concise result in conversation. Save a report only when requested or
+when an authorized repair produces a durable finding, decision, or measurement
+worth citing under `docs/rules/doc.md`; routine fixes and no-op audits need no
+report file. When a report file is warranted, read
+[references/report.md](references/report.md) for metadata and a minimal example.
