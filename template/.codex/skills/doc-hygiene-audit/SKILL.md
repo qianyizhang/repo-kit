@@ -1,6 +1,6 @@
 ---
 name: doc-hygiene-audit
-version: "1.5.0"
+version: "1.5.1"
 description: >-
   Preserve engineering knowledge, reconcile drift, and remove spent documentation
   and comments. Use after pivots/refactors or for documentation hygiene.
@@ -104,6 +104,9 @@ When promoting measured findings, preserve conditions, denominators,
 completeness, uncertainty, and observation versus interpretation. Follow the
 repository's evidence or experiment authority; documentation cleanup does not
 establish a stronger result or authorize rerunning an experiment.
+When condensing verification, retain which checks ran against which inputs or
+environments and their limits. Do not combine differently scoped checks into a
+broader validation claim.
 
 ## 4. Reduce and close out
 
