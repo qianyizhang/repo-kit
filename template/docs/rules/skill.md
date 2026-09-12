@@ -93,7 +93,11 @@ caller exists; do not create a wrapper/primitive pair speculatively.
   checkpoint when continuity is needed; hiding later steps or forcing a fresh
   context is not a substitute for a clear completion criterion.
 - **Verification.** Use deterministic checks for the contracts they actually
-  enforce and agent judgment for meaning. Choose checks by changed surface and
+  enforce and agent judgment for meaning. For this kit’s extended skill frontmatter,
+  use `scripts/check_docs.py` through the repository’s supported Python command;
+  a generic skill validator may reject valid repository metadata or require
+  dependencies absent from that environment. Do not remove valid fields to fit
+  a different schema. Choose checks by changed surface and
   required gates under `docs/rules/testing.md`; avoid routine repeat checks or
   tests that merely mirror the wording of instructions.
 - **Authorization.** Reuse authorization already given. Ask only for material

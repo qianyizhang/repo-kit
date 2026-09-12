@@ -41,7 +41,7 @@ Rules:
 ### 2. Seed workers
 
 Give each worker only the claim, authoritative spec, inputs or hashes, output
-contract, validator, forbidden actions, and stop condition. Prefer a fresh
+contract, affected shared consumers, validator, forbidden actions, and stop condition. Prefer a fresh
 context; on Codex use `fork_turns: "none"` when the packet is sufficient.
 
 The brief is: read authorities -> work only the claim -> verify -> write durable
@@ -55,11 +55,15 @@ Each worker records:
 - completed paths;
 - deviations and open questions;
 - verification command and result;
-- final claim status.
+- for code changes, a retained commit or patch/base location covering owned
+  untracked files; otherwise the requested durable artifact;
+- final claim status and concrete remaining gap, if incomplete.
 
 Write durable output before the chat summary. Worker notes are execution
 material, not a parallel backlog; the integrator promotes material facts into
-the primary work item.
+the primary work item. For an incomplete return, assess concrete progress and the
+remaining gap before continuing, narrowing, reassigning, or taking over; a repeated
+status request does not change a blocked dependency.
 
 ### 4. Pickup packet
 

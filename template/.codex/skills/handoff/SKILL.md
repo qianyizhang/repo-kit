@@ -1,6 +1,6 @@
 ---
 name: handoff
-version: "0.10.0"
+version: "0.10.1"
 description: >-
   Transfer work across sessions or coordinate explicitly authorized parallel
   writers. Use when another owner needs durable state or concurrent edits need claims.
@@ -32,7 +32,9 @@ Product decisions remain in their owning authorities.
 
 Write the durable packet or worker output before summarizing it in chat. Link
 authorities and evidence instead of copying them. Include authorization, completed
-and remaining work, verification scope, and the next action. Redact secrets and
+and remaining work, verification scope, and the next action. For code changes,
+include a verified commit or recoverable patch covering owned untracked files;
+notes and an intended commit do not preserve the implementation. Redact secrets and
 personal data. Reuse an existing packet for continuing state.
 
 The agent judges whether context is sufficient; repository checks and observed

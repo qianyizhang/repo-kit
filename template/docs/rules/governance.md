@@ -123,6 +123,10 @@ gate.
   when resuming and recheck facts that may have changed.
 - Parallel writers use one claim ledger and one owner per surface. A single
   writer needs a handoff only when continuity requires it.
+- Size reads for the question: select fields, file ranges, or aggregate results
+  before returning large records. Budget the combined response when batching
+  tools. If output is truncated, retrieve the missing relevant section rather
+  than repeating the same broad dump; retain its source location for follow-up.
 
 ## Kit propagation
 

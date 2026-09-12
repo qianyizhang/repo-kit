@@ -1,8 +1,9 @@
 # Session handoff
 
 Write the packet before summarizing it in chat. Default path:
-`records/reports/session-handoff-<topic>-<YYYYMMDD>.md`. Use the OS temporary
-directory only when the user does not want a tracked report.
+`records/reports/session-handoff-<topic>-<YYYYMMDD>.md`. If the user does not
+want a tracked report, use an untracked persistent workspace location. Temporary
+locations are suitable only for disposable material, not the sole recovery copy.
 
 ```markdown
 ---
@@ -27,6 +28,8 @@ produced_by: handoff@<version> · agent=<model> · effort=<level> · <date>
 - Other SSOTs:
 
 ## State
+- Checkout / branch / verified revision (when applicable):
+- Owned uncommitted files / durable patch location, including untracked files (when applicable):
 - Done:
 - Left:
 - Open questions:
@@ -38,6 +41,12 @@ produced_by: handoff@<version> · agent=<model> · effort=<level> · <date>
 ## Forbidden actions
 - …
 ```
+
+Before transferring code work, verify the commit is reachable in a retained
+repository/ref, or save an owned patch with its base revision and untracked files
+outside any disposable checkout. A commit held only in a disposable clone is not
+a durable checkpoint. Preserve unrelated edits; commit only within existing authorization.
+Check that the receiver can locate the saved implementation and its verification.
 
 Reference existing artifacts by path instead of copying their bodies. Redact
 secrets and PII, and tailor the packet to the next session's stated focus.
