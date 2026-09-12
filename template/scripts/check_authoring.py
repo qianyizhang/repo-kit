@@ -146,7 +146,7 @@ def _is_table_separator(line: str) -> bool:
 
 
 def _glossary_terms(repo_root: Path, config: Config) -> tuple[dict[str, set[tuple[str, str]]], set[str]]:
-    avoid: dict[str, set[tuple[str, str]]] = {}
+    replacements: dict[str, set[tuple[str, str]]] = {}
     canonical: set[str] = set()
     for pattern in config.glossary_globs:
         for path in sorted(repo_root.glob(pattern)):
@@ -169,7 +169,7 @@ def _glossary_terms(repo_root: Path, config: Config) -> tuple[dict[str, set[tupl
                     (i for i, value in enumerate(headers) if value in {"term", "terms"}),
                     None,
                 )
-                avoid_col = next((i for i, value in enumerate(headers) if "avoid" in value), None)
+                replaced_col = next((i for i, value in enumerate(headers) if value == "replaced terms"), None)
                 if term_col is None:
                     continue
                 start = 2 if _is_table_separator(rows[1]) else 1
@@ -181,14 +181,14 @@ def _glossary_terms(repo_root: Path, config: Config) -> tuple[dict[str, set[tupl
                     if not term:
                         continue
                     canonical.add(term.casefold())
-                    raw_values = []
-                    if avoid_col is not None and avoid_col < len(cells):
-                        raw_values.extend(_split_terms(cells[avoid_col]))
+                    raw_values = (
+                        () if replaced_col is None or replaced_col >= len(cells) else _split_terms(cells[replaced_col])
+                    )
                     authority = path.relative_to(repo_root).as_posix()
                     for raw in raw_values:
                         if raw.casefold() != term.casefold():
-                            avoid.setdefault(raw.casefold(), set()).add((term, authority))
-    return avoid, canonical
+                            replacements.setdefault(raw.casefold(), set()).add((term, authority))
+    return replacements, canonical
 
 
 def _selected_lines(path: Path, sections: tuple[str, ...]) -> list[tuple[int, str]]:
@@ -258,11 +258,11 @@ def _findings_for_line(
     profile: str,
     line_number: int,
     text: str,
-    avoid: dict[str, set[tuple[str, str]]],
+    replacements: dict[str, set[tuple[str, str]]],
     canonical: set[str],
 ) -> list[Finding]:
     findings: list[Finding] = []
-    for token, destinations in sorted(avoid.items(), key=lambda item: len(item[0]), reverse=True):
+    for token, destinations in sorted(replacements.items(), key=lambda item: len(item[0]), reverse=True):
         if token in canonical or not _contains_phrase(text, token):
             continue
         terms = sorted({term for term, _ in destinations})
@@ -350,7 +350,7 @@ def _findings_for_line(
 
 
 def check_repository(repo_root: Path, config: Config) -> list[Finding]:
-    avoid, canonical = _glossary_terms(repo_root, config)
+    replacements, canonical = _glossary_terms(repo_root, config)
     findings: list[Finding] = []
     seen: set[tuple[str, str, tuple[str, ...]]] = set()
     for target in config.targets:
@@ -370,7 +370,7 @@ def check_repository(repo_root: Path, config: Config) -> list[Finding]:
                         profile=target.profile,
                         line_number=line_number,
                         text=text,
-                        avoid=avoid,
+                        replacements=replacements,
                         canonical=canonical,
                     )
                 )

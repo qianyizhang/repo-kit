@@ -16,7 +16,7 @@ Checks:
 6. Skill manifests (SKILL.md under a skills dir) carry a semver `version:`.
 7. Document classes are declared, configured, complete, and location-valid.
 8. Navigator routability: every configured area exists and is routed from the
-   compact `index_file` (complete discovery belongs to generated Human View).
+   compact `index_file`.
 9. Agent-toolchain symlink layout matches `[tool.doc_governance.symlinks]`.
 10. Backlog-item records have valid identity, lifecycle, lineage, and ledger
    structure.

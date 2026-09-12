@@ -8,19 +8,21 @@ Context (for DDD) or semantic category.
 
 Each glossary file should contain tables with the following headers:
 
-| Term | Full Form | 中文 | 中文解释 | _Avoid_ |
-| :--- | :--- | :--- | :--- | :--- |
-| `ExampleTerm` | Example Term | 示例术语 | 面向目标读者的一句话解释。 | AliasToAvoid |
+| Term | Full Form | 中文 | 中文解释 | _Avoid_ | Replaced terms |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `ExampleTerm` | Example Term | 示例术语 | 面向目标读者的一句话解释。 | A neighboring concept | OldExampleTerm |
 
 Swap the `中文 / 中文解释` columns for the repo's reader-audience language when
 needed. Keep the `Term` column in English so it matches code.
+`Replaced terms` is optional; its machine-readable replacement contract lives in
+`docs/rules/authoring.md`. `_Avoid_` remains human guidance about misconceptions.
 
 ## Rules
 
 1. **Ubiquitous Language**: Term names MUST match class/field/API naming in code
    exactly (or follow standard naming conversions).
-2. **Be Opinionated**: When multiple words exist for the same concept, pick the
-   best one and list the others under `_Avoid_` to enforce consistent vocabulary.
+2. **Be Opinionated**: Pick a canonical term. Put deliberately superseded forms
+   in `Replaced terms`; keep accepted alternate labels separate from replacements.
 3. **No General Code Terms**: Terms must be specific to the consumer repo's
    domain. Do not define generic concepts such as "JSON", "API Router", or
    "Middleware" merely because the project uses them.

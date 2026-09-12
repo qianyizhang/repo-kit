@@ -1,13 +1,13 @@
 ---
 name: domain-modeling
-version: "1.4.2"
+version: "1.4.3"
 description: >-
   Define and record cross-cutting models, canonical domain terms, and
   consequential architectural decisions in their owning authorities. Use when
   accepted meaning needs capture or a proposed change needs model analysis.
 scope: domain modeling skill
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: artifact
 ---
 
@@ -54,7 +54,8 @@ the same change after its meaning is accepted.
 3. Follow `references/GLOSSARY-FORMAT.md`.
 4. Use the code-facing English name plus the reader-audience translation and
    explanation.
-5. Record confusing synonyms in the `_Avoid_` column.
+5. Record misconceptions in `_Avoid_`; put deliberately superseded forms in the
+   optional `Replaced terms` column.
 
 During a decision interview:
 

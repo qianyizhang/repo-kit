@@ -2,7 +2,7 @@
 description: Portable doctrine for profile-scoped technical authoring checks without automatic rewriting.
 scope: authoring rules
 status: experimental
-last_update: 2026-08-17
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -36,7 +36,7 @@ signals unless a consumer proves a stricter local contract.
 ## safety contract
 
 - The checker reports findings and never edits source text.
-- A replacement is suggested only when one avoided form maps to exactly one
+- A replacement is suggested only when one explicitly replaced form maps to exactly one
   canonical glossary term.
 - Ambiguous terminology has no replacement.
 - LLMs are not part of the blocking check.
@@ -44,6 +44,19 @@ signals unless a consumer proves a stricter local contract.
   are excluded unless a consumer explicitly opts them in.
 - Advisory findings return success. A repository can promote individual stable
   rule IDs through `blocking_rule_ids`; promotion is evidence-based, not global.
+
+## glossary replacement contract
+
+`TERM001` reads an optional `Replaced terms` column alongside `Term`. List only
+forms deliberately replaced by the row's canonical term. Separate forms with
+commas, semicolons, slashes or `or`; use an empty cell or `—` for none. Matching
+ignores case. A form shared by multiple canonical terms receives a finding
+without a replacement; a form that is itself canonical is not flagged.
+
+`_Avoid_` describes human misconceptions, and `Aliases` may identify accepted
+alternate labels. Neither supplies machine replacements. For example, an
+`_Avoid_` cell saying “the referee” under `Pydantic` does not make those terms
+interchangeable. A glossary without `Replaced terms` supplies no replacement rules.
 
 ## checker boundary
 

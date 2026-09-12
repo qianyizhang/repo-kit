@@ -25,10 +25,11 @@ class AuthoringCheckTest(unittest.TestCase):
         (self.root / "records" / "work-items" / "items").mkdir(parents=True)
         (self.root / "records" / "reports").mkdir(parents=True)
         (self.root / "docs" / "glossary" / "ddd.md").write_text(
-            """| Term | Meaning | _Avoid_ | ≠ (do not confuse) |
-| --- | --- | --- | --- |
-| `CanonicalTerm` | One meaning. | legacy term, shared alias | NeighborTerm |
-| `OtherTerm` | Another meaning. | shared alias | CanonicalTerm |
+            """| Term | Meaning | Replaced terms | _Avoid_ | ≠ (do not confuse) |
+| --- | --- | --- | --- | --- |
+| `CanonicalTerm` | One meaning. | legacy term, shared alias | A misleading interpretation | NeighborTerm |
+| `OtherTerm` | Another meaning. | shared alias | A different misconception | CanonicalTerm |
+| `Pydantic` | Validates structured inputs. | — | The referee | Referee |
 """,
             encoding="utf-8",
         )
@@ -108,6 +109,24 @@ sections = ["Intent", "Acceptance Criteria"]
         )
         findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
         self.assertFalse(any(finding.rule_id == "TERM001" for finding in findings))
+
+    def test_human_avoid_prose_does_not_create_replacement_rules(self) -> None:
+        self.item.write_text("## Intent\n\nThe referee owns legal moves. Use the legacy term.\n", encoding="utf-8")
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        replacements = [finding for finding in findings if finding.rule_id == "TERM001"]
+        self.assertEqual(len(replacements), 1)
+        self.assertEqual(replacements[0].suggested_replacement, "CanonicalTerm")
+
+    def test_replaced_terms_column_is_optional_and_has_no_header_aliases(self) -> None:
+        glossary = self.root / "docs" / "glossary" / "ddd.md"
+        for header in ("_Avoid_", "Aliases", "Terms to avoid", "Replacement terms"):
+            with self.subTest(header=header):
+                glossary.write_text(
+                    f"| Term | {header} |\n| --- | --- |\n| `CanonicalTerm` | legacy term |\n",
+                    encoding="utf-8",
+                )
+                findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+                self.assertFalse(any(finding.rule_id == "TERM001" for finding in findings))
 
     def test_advisory_and_per_rule_enforcement(self) -> None:
         buf = io.StringIO()
