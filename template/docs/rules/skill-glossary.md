@@ -2,7 +2,7 @@
 description: Portable skill-authoring vocabulary — levers on predictability.
 scope: skill authoring glossary
 status: stable
-last_update: 2026-07-16
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -10,8 +10,8 @@ document_class: coordination
 
 Disclosed reference for [`skill.md`](skill.md). Vocabulary adapted from
 [mattpocock/skills](https://github.com/mattpocock/skills) `writing-great-skills`.
-A skill wrangles determinism from a stochastic system; the root virtue is
-**predictability** (same *process* every run, not the same output).
+A skill improves **predictability** through stable obligations and credible
+evidence while allowing the approach to fit the task.
 
 Sibling: [`agentic-glossary.md`](agentic-glossary.md) — the broader
 agent-collaboration register (lock, slice, handoff, packet, seam…). This sheet is
@@ -34,7 +34,7 @@ pointed to from there, not redefined.
 
 | Term | Meaning |
 | --- | --- |
-| **Steps** | Ordered actions in `SKILL.md`; each ends on a **completion criterion**. |
+| **Steps** | Actions needed to reach the outcome. Fix their order only when correctness or authority depends on it. |
 | **Reference** | On-demand material (rules, taxonomies, templates). |
 | **Progressive disclosure** | Push branch-only reference behind a **context pointer**; inline what every path needs. Pointer *wording* decides reliability. |
 | **Co-location** | Keep a concept's definition, rules, and caveats under one heading. |
@@ -46,10 +46,9 @@ pointed to from there, not redefined.
 | --- | --- |
 | **Branch** | Distinct invocation case / path through the skill. |
 | **Leading word** | Compact pretrained concept (or clearly defined coinage) repeated as a token to anchor behaviour and invocation (*full*, *FAITHFUL*, *done ladder*, *frontier*). Collapse restated policy into one word when priors exist. |
-| **Completion criterion** | Checkable (and preferably exhaustive) done bar for a step or flat reference set. |
+| **Completion criterion** | Observable deliverable and evidence needed to establish completion of the requested scope. |
 | **Legwork** | Within-step digging the agent does without offloading to the user. |
-| **Post-completion steps** | Later steps visible in context that tug the agent forward. |
-| **Premature completion** | Ending a step early. Fix order: sharpen the criterion first; only if still fuzzy *and* rush is observed, hide later steps via a real context boundary (fresh session / subagent), not an inline skill call. |
+| **Premature completion** | Stopping before the requested outcome and applicable verification are complete. Clarify the remaining work; checkpoint when continuity is needed. |
 | **Negation** | Steering by "don't…" backfires; state the positive target. Keep hard rails only with a paired positive route. |
 
 ## Pruning
@@ -68,4 +67,4 @@ pointed to from there, not redefined.
 | --- | --- |
 | **Frontier** | Decisions (or tickets) whose prerequisites are settled and can be asked/worked now. |
 | **Frontier batch** | Numbered grill round over the whole independent frontier; recompute after answers. |
-| **Context hygiene** | Keep DECIDE/fit/slice packaging in one window until a durable handoff exists; prefer a fresh window per IMPLEMENT work item; write a session handoff near degraded context. |
+| **Context hygiene** | Retain useful context while it supports the task. Write a durable handoff when transferring work or when continuity is at risk. |

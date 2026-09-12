@@ -34,7 +34,8 @@ trigger that would justify revisiting it. Store a durable canceled item under
 
 ## After acceptance
 
-Implementation begins only after explicit user authorization. Use `next-slice`
+Continue into implementation when the user has authorized it, including earlier
+in the same task. A specification request alone does not authorize implementation. Use `next-slice`
 when the first independently verifiable slice is not already settled, and
 `handoff` only when another session needs a durable packet. Verification comes
 from repository authority, not this portable skill.

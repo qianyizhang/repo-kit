@@ -120,11 +120,11 @@ clarifies a state change; honor `prefers-reduced-motion`.
 
 ## Structural variants
 
-When structure is genuinely undecided, build two or three labeled variants in
-one temporary preview. Reuse the real visual shell, include all cross-cutting
-constraints in every variant, and ask the user to choose the information shape.
-Delete the preview after integrating the choice. Perform the word-choice pass
-after the structure is locked.
+Compare labeled variants when the user requests a choice or an unresolved
+information-design decision materially affects the teaching job. Reuse the real
+visual shell and relevant constraints. A settled format choice needs no further
+selection round; proceed through polishing and verification. Remove temporary
+previews when they no longer serve review or implementation.
 
 ## Safety and authority checklist
 

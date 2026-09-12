@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-09-11
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -116,14 +116,13 @@ gate.
 
 ## Context hygiene
 
-- Keep decision, fit, and slice packaging in one continuous context until a
-  durable handoff exists.
-- Prefer a fresh context per implementation item, starting from its work record
-  rather than chat memory.
-- Before a tool switch, long-thread cutoff, or degraded context, write a session
-  handoff.
-- Parallel writers use one claim ledger and one owner per surface; a single
-  writer needs only the handoff record.
+- Continue in the current context while it remains useful. A work-item boundary
+  or ordinary tool call does not require a fresh session.
+- Write a durable handoff when work transfers to another session or agent, or
+  when a cutoff or degraded context threatens continuity. Read owning records
+  when resuming and recheck facts that may have changed.
+- Parallel writers use one claim ledger and one owner per surface. A single
+  writer needs a handoff only when continuity requires it.
 
 ## Kit propagation
 

@@ -1,102 +1,91 @@
 ---
 name: show-gap
-version: "0.11.1"
+version: "0.13.0"
 description: >-
-  Fit fuzzy feature intent to built, planned, rejected, and deferred repository
-  evidence. The bounded read-only audit may be agent-invoked; discussion and
-  durable specification require clear user intent.
+  Assess a proposed feature against built, planned, rejected, and deferred
+  repository evidence. Use for feature-fit questions or a fit check needed by
+  an authorized change.
 scope: repo feature gap analysis skill
 status: experimental
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: artifact
 ---
 
 # Show Gap
 
-Turn “I vaguely want X” into a repo-grounded fit and, when discussion converges,
-a Campaign seed, implementation spec, or canceled memo. Code is not an output.
+Explain where a proposed feature fits and what remains. Use `next-slice` to
+prioritize work and `show-me` to explain known behavior.
 
-Use `next-slice` for “what next?”, stale planning, or readiness questions. This
-skill owns fuzzy feature intent. For an explanation of known behavior, use
-`show-me`; a request to understand a pipeline alone does not need a fit audit.
+## Clarify intent and terms
 
-An agent may invoke the initial evidence audit to prevent speculative work. Stop
-after the fit report unless the user asks to explore options, answer the grill,
-or produce a durable deliverable.
+- State who benefits and what should become possible in plain language. Infer
+  whether the user needs an explanation, prototype, durable behavior, or staged
+  combination; ask only when that distinction changes the work.
+- Map the user's wording to glossary terms and aliases, briefly explaining any
+  relevant forgotten or confusable distinction. State the interpretation and
+  continue unless ambiguity changes scope, ownership, or implementation.
+  Preserve accepted meanings while leaving room for genuinely new intent.
 
-## Boundaries
+## Ground the fit
 
-Ground the fit in live evidence and repository authorities. Check new nouns
-against the glossary; route accepted cross-cutting changes to `domain-modeling`.
-Implementation requires explicit user authority.
+1. Follow the repository SSOT and navigator to relevant glossary terms, plans,
+   work-item histories/ledgers, code, and tests. Check rejected, superseded, and
+   deliberately deferred work before proposing a new shape.
+2. Separate verified behavior from plans and prototypes. Name the owner, whether
+   the proposed output owns behavior or only explains/renders it, what remains
+   unverified, and any dependency, decision, review, or release gate.
 
-## 1. Capture intent
+Use aliases to search; `records/work-items/backlog.md` routes the records, and
+`records/work-items/items/` holds their histories and ledgers. For example:
 
-Restate the desired outcome in one concrete sentence and list likely aliases
-without sharpening uncertainty prematurely.
+```bash
+rg -n -i 'term|alias' docs records src tests
+```
 
-## 2. Survey
+The agent judges fit; code, observed behavior, and repository checks support
+implementation claims. A tracker status or design alone does not prove delivery.
 
-Search the navigator, glossary, active plans, work histories, live code, and tests
-using those aliases. Include rejected and superseded work before proposing a
-new shape.
+## Classify
 
-Read relevant work-item histories and ledgers, not just status fields. Follow
-the navigator to owning authorities; use deprecated documents for rationale and
-live code or observed behavior for implementation evidence.
-
-## 3. Classify the evidence
-
-Verdicts may stack:
+Apply the relevant states to each part of the request; states may coexist.
 
 | State | Meaning |
 | --- | --- |
 | `already_built` | Verified current behavior satisfies the requested outcome |
-| `on_map` | Open work or design directly covers it |
-| `overlap` | Partial or adjacent coverage; name the remaining behavior and fit |
+| `on_map` | An active plan or work item directly covers it |
+| `overlap` | Partial or adjacent coverage; name the remaining behavior |
 | `rejected_or_deprecated` | A durable record rejected or superseded it |
-| `new_gap` | No direct coverage exists after the survey |
-| `blocked` | A named dependency or authority decision blocks it |
-| `deferred_by_design` | Intentionally outside the current cut |
+| `new_gap` | No direct coverage found within the surveyed scope |
+| `blocked` | A named dependency, decision, or human gate remains open |
+| `deferred_by_design` | Intentionally outside the current scope |
 
-A design, scaffold, or prototype is evidence of shape, not proof of completed
-behavior. State what was verified and what remains unverified.
+## Brief output
 
-State the intended outcome, its owner, and the authority the proposed output
-would carry. Name any dependency, review, or release gate. Use repository-defined
-completion criteria or concrete proof; leave human-owned gates for their owners.
+Lead with the verdict and practical implication in one sentence. Include linked
+evidence and the remaining gap. For several distinct parts, use one short row
+per part:
 
-## 4. Envision before locking
+| Part | State | Evidence | Remaining gap / next action |
+| --- | --- | --- | --- |
 
-Show a concrete scenario or data flow: owning authority → proposed surface →
-user action → outcome. State what it reuses, what is a prototype, and what
-behavior remains to build. Label the shape as a proposal.
+When intent is unclear, show one proposed scenario or flow: user action →
+existing capability → desired outcome. Distinguish reused behavior, prototype,
+and work still needed. Compare options only for a real choice, with a preferred
+option and its trade-off. Omit empty fields and repeated summaries.
 
-If the user changes a first-class noun or boundary, revisit ownership and the
-glossary instead of stapling the answer onto the old shape.
+For a fit-only request, finish with the report. When this audit supports a larger
+authorized task, return the findings to that task and continue within its scope.
 
-## 5. Decide
+## Continue when requested
 
-Invoke `grilling` only for unresolved scope choices and follow its lock rule.
-After answers, restate **Locked Decisions** and **Still Open**; distinguish
-accepted scope from any remaining specification work.
+- Use `grilling` only for unresolved scope choices. Preserve accepted decisions;
+  ask again only when a material ambiguity or conflict remains.
+- Revisit ownership and canonical terms if the proposed boundary changes. Route
+  accepted cross-cutting model changes through `domain-modeling`.
+- Once scope is settled and a durable artifact is requested, read
+  [deliverables](references/deliverables.md) and choose the appropriate artifact.
+  Discussion alone does not require a new document.
 
-When the accepted direction may need Campaign coordination, apply the threshold
-in `docs/rules/governance.md`. Do not use a Campaign to make an unsettled
-feature authoritative.
-
-## Fit report
-
-Lead with the fit verdict, supporting repository evidence, and the remaining
-behavior or uncertainty. State ownership and a concrete shape when needed to
-make the outcome clear; use `show-me` for the visual explanation.
-
-Compare options only when there is a real choice. List decisions or deferrals
-only when they exist. A short fit answer needs no fixed table or empty sections.
-Stop here unless discussion or a durable deliverable is requested.
-
-## Durable deliverable
-
-After discussion converges, produce exactly one **Campaign seed**,
-**implementation spec**, or **canceled feature memo**. Open
-`references/deliverables.md` only at that point.
+This skill contributes fit analysis. An implementation request can already
+authorize the next step; do not require a new approval merely because the fit
+analysis ended. Preserve named human gates and explicit review-only requests.

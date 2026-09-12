@@ -1,19 +1,20 @@
 ---
 name: governance-sync
-version: "2.1.0"
+version: "2.2.0"
 description: >-
   Adopt or update the shared governance kit: run Copier, reconcile repository
   bindings, consolidate the agent symlink layout, and restore local gates.
 scope: governance kit adoption and sync skill
 status: stable
-last_update: 2026-09-11
+last_update: 2026-09-12
 document_class: artifact
 ---
 
 # Governance kit sync
 
-The kit owns portable files; Copier propagates them. The repository owns its
-bindings. Never let either side silently take the other's authority.
+Adopt or reconcile the portable kit while preserving repository-owned meaning.
+Kit files and consumer bindings retain their distinct authority. Reuse existing
+authorization for the named kit change and consumer; this skill does not grant it.
 
 ## Ownership
 
@@ -28,62 +29,17 @@ authorities or explicit binding files. A workflow change belongs in repo-kit; a
 truly local workflow is a separately named local skill, not an edit to a managed
 core.
 
-## First adoption
+## Select the operation
 
-1. Start from a clean target so the Copier diff is attributable.
-2. Run:
-
-   ```bash
-   UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
-     uvx --from copier==9.17.1 copier copy <kit-source> <target-repo>
-   ```
-
-3. Merge `pyproject-doc-governance.toml` into `pyproject.toml`, then delete the
-   fragment.
-4. Consolidate real agent assets under `.codex/skills/`; run
-   `python scripts/bootstrap_agents.py`. It must not overwrite real discovery
-   directories.
-5. Fill `CLAUDE.md`, `docs/index.md`, the glossary, and required binding files.
-   Validate the `explain-layman` binding before using that skill.
-6. Run `check_docs.py`, symlink checks, and the repository's full gate.
-
-## Update
-
-1. Require a clean consumer and confirm the source plus recorded `_commit` in
-   `.copier-answers.yml`.
-2. Run:
-
-   ```bash
-   UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
-     uvx --from copier==9.17.1 copier update
-   ```
-
-3. Review by ownership: managed files should match the kit; seeded files must
-   retain local meaning. Never fill a missing binding from another consumer.
-4. Compare every `_skip_if_exists` path with its seed at the recorded baseline,
-   even when Copier reports no conflict. Merge portable structure while
-   preserving local models, routes, schema extensions, vocabulary, paths, and
-   commands.
-5. Reconcile the pyproject fragment if Copier recreates it, then delete it.
-6. Run documentation, symlink, and repository gates.
-
-When doctrine changes a lifecycle or closeout default, reconcile the seeded
-backlog, navigator, and local evidence/retention bindings explicitly. Managed-file
-parity is not enough: check that local instructions and machine readers still
-support the resulting lifecycle. Propagating retention rules does not itself
-authorize deleting consumer records; apply them within the user's cleanup scope.
-
-An `_skip_if_exists` change is a migration, not a routine update. Before
-accepting a newly managed path, compare it with the old seed, extract local
-authority to its proper binding or local skill, and verify the managed result.
-
-For the explainer binding:
-
-```bash
-python .codex/skills/explain-layman/scripts/validate_explainer.py \
-  --binding .codex/skills/explain-layman/references/repo-bindings.md \
-  --binding-only
-```
+- First adoption: read [adoption](references/adoption.md).
+- Full update: read [update](references/update.md). Copier changes require a
+  clean consumer or an isolated checkout so the diff is attributable.
+- Authorized selective reconciliation: inspect the source revision, recorded
+  baseline, and exact affected paths. Promote committed portable consumer
+  refinements before replacing managed cores. Compare skipped bindings affected
+  by the change; preserve unrelated dirt and newer local behavior. Retain the
+  recorded full-kit baseline and identify the selectively applied source revision.
+  An ownership-path migration still requires the update reference.
 
 ## Portable candidates
 
@@ -98,11 +54,9 @@ Hand portable candidates to repo-kit's local maintenance workflow with the
 source commit and evidence. This consumer skill does not authorize kit commits,
 tags, releases, or propagation.
 
-## Pitfalls
+## Completion
 
-- **Dirty consumer:** unrelated changes make ownership review unreliable.
-- **Managed core edited locally:** promote the reusable change or create a
-  distinctly local skill before updating.
-- **Binding schema changed:** skipped files need an explicit semantic migration.
-- **Real discovery directories:** consolidate them before bootstrapping symlinks.
-- **Missing `.copier-answers.yml`:** there is no safe update baseline.
+The selected managed files match the reviewed kit revision, affected local bindings
+retain their meaning, and applicable documentation, symlink, and integration
+checks pass. Report the source revision, scope, omissions, and remaining conflicts.
+The agent judges semantic reconciliation; deterministic checks establish structure.

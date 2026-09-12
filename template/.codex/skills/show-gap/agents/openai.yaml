@@ -1,4 +1,4 @@
 interface:
   display_name: "Show Gap"
   short_description: "Fit fuzzy feature intent to repository evidence"
-  default_prompt: "Use $show-gap to fit this feature intent to repository evidence and stop before implementation."
+  default_prompt: "Use $show-gap to assess this feature against repository evidence and identify the remaining gap within the requested scope."

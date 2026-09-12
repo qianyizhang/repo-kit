@@ -2,7 +2,7 @@
 description: Portable agent-collaboration vocabulary — the register for directing an agent through work (control loop, coordination, epistemic honesty, craft).
 scope: agent-collaboration glossary
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -40,12 +40,12 @@ Carrying work across sessions and across agents.
 
 | Term | Meaning (why it exists) | How to invoke | _Avoid_ |
 | --- | --- | --- | --- |
-| **Handoff** | A durable transfer that lets another session/agent continue **without chat memory**. The `handoff` skill; modes: *session*, *parallel*. | Near degraded context, a tool switch, or before an IMPLEMENT hand to a fresh window. | Continuing past a degraded window instead of cutting a handoff. |
+| **Handoff** | A durable transfer that lets another session/agent continue **without chat memory**. The `handoff` skill; modes: *session*, *parallel*. | When transferring work to another session or agent, or when continuity is at risk. | Continuing past a degraded window instead of cutting a handoff. |
 | **Packet** | The self-contained **payload** of a handoff (session packet) or a claim (parallel). Minimal exported context — enough to resume, no more. | Assemble the packet at the stop point; keep it minimal and grounded. | Fat packets that re-export the whole conversation. |
 | **Ledger** | An **append-only** record on a work item (Implementation Ledger) or claims (claim ledger). Findings/decisions/deviations go here, not only chat. | Append at each material step; set terminal status at the stop condition. | Overwriting history, or leaving findings only in chat. |
 | **Integrator** | The **single session that merges** parallel writers' output. One owner merges; the rest only claim and write. | Multiple writers on shared paths → name one integrator up front. | Two sessions merging the same tree. |
 | **Single-writer** | The invariant: **one owner per claimed surface** at a time. What makes parallel work safe. | Parallel mode → one claim ledger, one owner per surface. | Two agents editing one file/surface concurrently. |
-| **Field-notes** | Short post-task notes proposing improvements to a **skill** you just used (the skill field-notes loop). | After grinding with a project skill, note what to sharpen. | Silent frustration with a skill; drift instead of upstream fix. |
+| **Field-notes** | Short post-task notes proposing improvements to a **skill** you just used (the skill field-notes loop). | Record a demonstrated reusable defect or material unresolved issue in its existing owner. | Silent frustration with a skill; drift instead of upstream fix. |
 
 ## Epistemic honesty
 

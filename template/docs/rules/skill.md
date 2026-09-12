@@ -2,7 +2,7 @@
 description: Rules for authoring, maintaining, and pruning agent skills under .codex/skills/.
 scope: skill authoring rules
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -13,10 +13,16 @@ authoring rules. `.codex/skills/` is the single home, and `docs/index.md`
 §Main flows is the human-facing router. Bold terms are defined in
 [`skill-glossary.md`](skill-glossary.md).
 
-Write clear, simple, concise skills. Keep only instructions that change behavior
-or protect a necessary boundary. Predictability means a consistent process,
-with output sized to the task. (Vocabulary adapted from mattpocock/skills
-`writing-great-skills`.)
+Write skills around outcomes, non-obvious knowledge, and necessary boundaries.
+Predictability means consistent obligations and credible evidence; the approach
+and output can vary with the task. Preserve exact sequences when their order
+protects correctness, permissions, or a fragile operation. Shared skills may serve
+different models: assess behavior on representative tasks before removing useful
+guidance solely because one model appears to need less support.
+
+Vocabulary adapted from mattpocock/skills `writing-great-skills`; task-sized
+guidance informed by OpenAI's
+[skills and prompts review](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra).
 
 ## lifecycle
 
@@ -31,23 +37,20 @@ with output sized to the task. (Vocabulary adapted from mattpocock/skills
   (`produced_by:`), data runs in run metadata (`--run-id`, `--model`,
   `--effort`). Prefer stamps built from the package `__version__` over
   hand-typed ones — hand-typed stamps drift.
-- **Field-notes loop.** After a run, a footgun/caveat you hit either gets fixed
-  in the skill body (+ version bump) or filed as a `# TODO:` / backlog item; a
-  recurring-but-unfixed caveat lands in `## Pitfalls`. A skill that bit you and
-  left no trace is an unfinished run.
+- **Field-notes loop.** Correct a demonstrated workflow defect within the
+  authorized scope, or record a material unresolved issue in its existing owner.
+  Promote reusable fixes through the kit. A transient inconvenience does not
+  require a permanent rule, new backlog item, or extra completion gate.
 - **Map re-sync.** A skill add, rename, or invocation-boundary change re-syncs
   `docs/index.md` §Main flows when routing changes. Internal behavior changes do
   not churn the navigator.
 
 ## description — the always-loaded trigger
 
-The frontmatter `description` sits in the agent's context every turn of every
-session in this repo; each word pays rent. Target ≤ ~45 words: what the skill
-is, one trigger clause per *genuinely distinct* branch, plus any reach clause a
-sibling skill depends on (e.g. extraction routes pack repair to
-`guideline-ingestion`). Synonym triggers restating one branch are duplication;
-the invocation boundary is part of the trigger and belongs here. Other
-operating policy ("do not implement unless…") belongs in the body.
+The frontmatter `description` is available during skill selection. State the
+capability and the request that needs it, in as few words as remain discriminating.
+Include exclusions only to prevent likely misrouting. Move tool choices, mode
+inventories, output formats, and internal caller mechanics into the body.
 
 Classify invocation deliberately:
 
@@ -77,24 +80,25 @@ caller exists; do not create a wrapper/primitive pair speculatively.
 
 ## body
 
-- **Hierarchy: steps → in-file reference → `references/*.md`.** Disclose by the
-  branching test: inline what every run needs; push behind a pointer what only
-  some branches reach (taxonomies, contracts, templates, style guides). A
-  pointer's *wording* decides whether it fires — sharpen the wording before
-  pulling material back inline.
-- **Completion criteria are checkable, preferably machine-checkable.** Prefer a
-  gate that exits non-zero (`validate`, `coverage --require-full`, `ledger
-  report FULL ✓`, fail-closed `resolve`/`mint`) over prose bounds. "Full" is a
-  gate verdict, not a feeling. Vague bounds invite **premature completion**.
-- **Premature completion defence (order):** sharpen the completion criterion
-  first; only if it is irreducibly fuzzy *and* the agent rushes, hide
-  **post-completion steps** behind a real context boundary (fresh session or
-  subagent) — an inline model-invoked call does not clear them.
-- **Leading words.** Collapse restated policy triads into one pretrained (or
-  clearly defined) token used in the body and, when model-invoked, the
-  description.
-- **Role split stated explicitly.** Every skill names what the agent judges vs
-  what deterministic code gates — the governing invariant applied to authoring.
+- **Progressive disclosure.** Keep purpose, shared constraints, completion, and
+  relevant routing in the entrypoint. Move substantial branch-only procedures,
+  templates, and references behind links that state when they apply. A short
+  single-purpose skill needs no additional router or files.
+- **Completion.** State the requested deliverable and the evidence that establishes
+  it. Continue authorized work through applicable verification and necessary
+  documentation. A helper skill returns to its caller when its contribution is
+  complete; it does not end a larger authorized task. Preserve review-only and
+  explicitly requested interview boundaries.
+- **Incomplete work.** Name remaining work and the blocker or next action. Use a
+  checkpoint when continuity is needed; hiding later steps or forcing a fresh
+  context is not a substitute for a clear completion criterion.
+- **Verification.** Use deterministic checks for the contracts they actually
+  enforce and agent judgment for meaning. Choose checks by changed surface and
+  required gates under `docs/rules/testing.md`; avoid routine repeat checks or
+  tests that merely mirror the wording of instructions.
+- **Authorization.** Reuse authorization already given. Ask only for material
+  unresolved choices or actions outside that scope. Decision acceptance follows
+  `grilling`; accepting a decision does not itself authorize a separate action.
 - **Subagent durability.** Any fan-out contract tells subagents to write their
   output file first, then report, so a session cut leaves recoverable output.
 - **Prohibitions are for hard rails only.** Safety/authority invariants stay as

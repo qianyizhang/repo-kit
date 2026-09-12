@@ -1,14 +1,12 @@
 ---
 name: show-me
-version: "1.2.0"
+version: "1.2.1"
 description: >-
-  Explain the current topic in conversation with the smallest useful
-  evidence-grounded visual and concise structured text. Use for relationships,
-  flows, ownership, diffs, or data transformations; route maintained stakeholder
-  artifacts to explain-layman.
+  Explain a mechanism, relationship, or change with a compact visual grounded
+  in available evidence.
 scope: compact visual explanation
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: artifact
 ---
 

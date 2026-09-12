@@ -75,3 +75,21 @@ as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
   - `adapt`: platform-specific opening to active-environment tools.
   - Keep source labels, mark hypothetical shapes, and require user intent before
     creating a durable artifact.
+
+
+## OpenAI — Rethinking skills and prompts for GPT-6 Astra
+
+- Source: https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra
+- Published: 2026-09-11; reviewed: 2026-09-12 (web article, no Git revision).
+- Local evidence: Qi `1629c95` supplied the committed concise `next-slice` and
+  `show-gap` candidates; kit `c60fb19` already contains decision-acceptance and
+  per-decision ADR corrections absent from Qi.
+- `adapt`: task-sized completion, conditional reading, scoped verification,
+  mode-specific handoff/practice/sync references, and discriminating descriptions.
+- `already-covered`: scoped authority, evidence retention, explicit-only interaction
+  modes, and the kit's acceptance/ADR corrections.
+- Retained: authority and permission boundaries, frozen experiment evidence,
+  deterministic checks for real contracts, and mandatory release gates. Shared
+  skills remain suitable for multiple models; no model-specific behavior switch.
+- Validation: structural and Copier checks plus scenario walkthroughs can assess
+  preservation and routing. They do not establish model performance improvements.

@@ -1,6 +1,6 @@
 ---
 name: explain-layman
-version: "1.9.1"
+version: "1.10.0"
 description: >-
   Create or revise governed stakeholder explainers as maintained pages,
   narrative slide decks, linked series, or focused interactive maps while
@@ -8,7 +8,7 @@ description: >-
 disable-model-invocation: true
 scope: stakeholder explainer skill
 status: stable
-last_update: 2026-08-17
+last_update: 2026-09-12
 document_class: artifact
 ---
 
@@ -45,32 +45,30 @@ through `references/binding-contract.md`; never invent local policy.
 
 ## 2. Ground the teaching job
 
-Read, in order:
+State the practical question readers should answer afterward. Follow the binding
+to the authorities that support the topic and the glossary entries used. Read
+other areas only when a claim or boundary depends on them.
 
-1. the instruction SSOT named by the binding;
-2. the navigator and topic authorities named by the binding;
-3. the local glossary and avoid-list;
-4. `references/style-guide.md` and `references/artifact-shapes.md`;
-5. one nearby maintained explainer, if available.
-
-State the single practical question readers should answer afterward, then list
-the relevant authority, safety, provenance, and release boundaries.
+Read `references/style-guide.md` for new or substantially revised narratives.
+Use `references/artifact-shapes.md` when choosing or changing the format; for a
+focused edit, use the existing artifact and only the relevant reference sections.
+Carry forward the applicable authority, provenance, and release boundaries.
 
 If the topic materially depends on a cross-cutting core-model relationship, name
 it. Otherwise teach from the owning SSOTs without inventing model ceremony.
 
 ## 3. Choose the artifact
 
-Use `references/artifact-shapes.md`:
+When choosing or changing the format, use `references/artifact-shapes.md`:
 
 - **Page** for lookup, one object, one role split, or one stable process.
 - **Slides** for a cumulative argument that depends on sequence.
 - **Series** for independently useful teaching jobs with explicit handoffs.
 - **Interactive map** when exploration materially clarifies one relationship.
 
-For a large structural change with genuine alternatives, create two or three
-throwaway variants and let the user choose before polishing. Remove previews
-after the choice lands.
+For a large structural change, compare variants when the user requests a choice
+or an unresolved information-design decision materially affects the teaching job.
+Reuse a settled format choice and proceed through polishing and verification.
 
 ## 4. Write and visualize
 
@@ -124,9 +122,12 @@ python .codex/skills/explain-layman/scripts/validate_explainer.py \
   path/to/explainer.html
 ```
 
-Inspect desktop and narrow layouts. For slides, also verify direct hash
-navigation, keyboard controls, no-JS reading, print, and reduced motion. Finally
-run the repository verification command from the binding.
+Inspect the affected desktop and narrow layouts. For changed slide behavior,
+verify direct hash navigation, keyboard controls, no-JS reading, print, and reduced
+motion as applicable. Run the binding's artifact completion command and any
+additional checks required by the changed surface. A standalone artifact edit
+does not by itself require unrelated application tests; existing required gates
+remain in force.
 
 Do not claim visual inspection when only structural checks were possible. Record
 the limitation and leave that work open.

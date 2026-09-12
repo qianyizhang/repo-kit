@@ -1,13 +1,13 @@
 ---
 name: grilling
-version: "1.1.1"
+version: "1.2.0"
 description: >-
   Resolve named, unresolved decisions with evidence-grounded frontier-batch
   questions and recommended answers. Use for requested decision questioning or
   residual choices in grill-with-docs, show-gap, and next-slice.
 scope: decision interview primitive
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: artifact
 ---
 
@@ -66,5 +66,8 @@ in English.
 
 ## Completion
 
-Restate settled decisions and leave residual uncertainty explicit. Implementation
-requires the user to leave the interview and authorize that work.
+Restate settled decisions and leave residual uncertainty explicit. For an
+explicit interview-only request, finish with the decisions. When a caller uses
+this loop to resolve a blocker in an already-authorized task, return the settled
+decisions to that caller and continue within its scope. A decision answer alone
+does not authorize an implementation that the user has not requested.

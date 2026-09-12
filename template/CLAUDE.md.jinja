@@ -2,7 +2,7 @@
 description: System rules, invariants, and guidelines for developer agents.
 scope: system guidelines
 status: stable
-last_update: 2026-09-07
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -27,7 +27,9 @@ identity, invariants, authority, and commands here. Portable doctrine lives in
 
 ## Authority map
 
-`docs/index.md` routes authority by concern and owns the human-facing flow map.
+Use `docs/index.md` to find the authorities relevant to the task; it owns the
+human-facing flow map. Read other areas when their contracts or evidence affect
+the work.
 Name repository-specific contracts, schemas, ADRs, and module authorities here
 or link them from that index. `README.md` owns human setup and usage.
 
@@ -36,8 +38,12 @@ or link them from that index. `README.md` owns human setup and usage.
 - **Concise is the key.**
 - **Full means full.** When asked to complete, extend, or verify coverage, do the
   actual work — never relabel a partial run as "full".
-- **Before claiming done, verify.** Run the repository checks below and
-  re-derive numeric claims from current evidence.
+- Complete the requested deliverable, applicable verification, and necessary
+  documentation within the authorized scope. Reuse authorization already given;
+  ask again only for material unresolved choices or actions outside that scope.
+- Choose verification by changed surface under `docs/rules/testing.md` and the
+  commands below. Preserve required gates and re-derive numeric claims from
+  current evidence.
 - **Symlinks are load-bearing** (see below). Before `rm` or bulk file ops near
   symlinks, verify their targets.
 

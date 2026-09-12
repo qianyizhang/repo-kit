@@ -2,7 +2,7 @@
 description: Portable testing doctrine — when a module earns tests, where tests live (colocated unit vs central e2e), and the hermetic conventions.
 scope: testing rules
 status: stable
-last_update: 2026-07-07
+last_update: 2026-09-12
 document_class: coordination
 ---
 
@@ -11,6 +11,23 @@ document_class: coordination
 Portable doctrine. Repo-specific exemplars — which modules are runnable today,
 the exact env vars that redirect side-effecting roots, the current consolidated
 contexts — live in the repo's `CLAUDE.md` binding, not here.
+
+## Choose verification by changed surface
+
+Use the repository binding for exact commands and side-effect boundaries:
+
+- Prose or routing changes: documentation and link checks relevant to the edit.
+- Standalone artifacts: their validator and appropriate visual or interaction checks.
+- Runnable behavior: affected contract and behavior tests; include consumers when
+  a shared interface changes.
+- Cross-cutting integration, build configuration, or release preparation: broader
+  integration checks and any required repository or release gates.
+
+Run a sufficient set, fix failures caused by the change, and rerun affected checks.
+Broaden or repeat only when new changes, failures, or unresolved concerns justify
+it. A prose edit does not by itself require runtime tests. Existing mandatory
+gates still apply. Report the checks run, their input/environment scope, and any
+remaining limitation without combining differently scoped evidence.
 
 ## When a module earns tests
 
