@@ -32,9 +32,12 @@ from pathlib import Path
 
 # Regex patterns
 FRONTMATTER_START = re.compile(r"^---\s*$")
-FRONTMATTER_KEY_VAL = re.compile(r"^([^:]+):\s*(.*)$")
+FRONTMATTER_KEY_VAL = re.compile(r"^([^\s:#][^:]*):[ \t]*(.*)$")
 FORBIDDEN_TOKENS = [re.compile(r"^</content>\s*$"), re.compile(r"^</invoke>\s*$")]
-MARKDOWN_LINK_PATTERN = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+MARKDOWN_LINK_PATTERN = re.compile(
+    r"\[([^\]]+)\]\(\s*(?:<([^>]+)>|((?:\\.|[^\s()]+|\([^()]*\))+))"
+    r"(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\s*\)"
+)
 # SAMPLE: version: "1.3.1" → semver major.minor.patch, no pre-release tags
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 WORK_ID_PATTERN = re.compile(r"^AB-[A-Z0-9]+-\d{3}$")
@@ -177,36 +180,68 @@ def markdown_section(content: str, heading: str) -> str:
 
 
 def metadata_work_ids(value: str) -> set[str]:
-    """Extract work IDs from a compact frontmatter value such as `AB-X-001, AB-X-002`."""
-    return set(re.findall(r"\bAB-[A-Z0-9]+-\d{3}\b", value))
+    """Accept the complete compact scalar: `none` or comma-separated work IDs."""
+    if value == "none":
+        return set()
+    values = [item.strip() for item in value.split(",")]
+    if not values or any(not WORK_ID_PATTERN.fullmatch(item) for item in values):
+        raise ValueError("expected 'none' or comma-separated work IDs (AB-AREA-001)")
+    return set(values)
+
+
+def yaml_scalar(value: str) -> str:
+    """Read the small scalar subset used by governance metadata, including comments."""
+    value = value.strip()
+    if value.startswith(('"', "'")):
+        quote = value[0]
+        index = 1
+        while index < len(value):
+            if quote == '"' and value[index] == "\\":
+                index += 2
+                continue
+            if value[index] == quote:
+                if quote == "'" and value[index : index + 2] == "''":
+                    index += 2
+                    continue
+                tail = value[index + 1 :].strip()
+                if tail and not tail.startswith("#"):
+                    return ""
+                return value[1:index].replace("''", "'") if quote == "'" else value[1:index]
+            index += 1
+        return ""
+    value = re.split(r"(?:^|\s)#", value, maxsplit=1)[0].strip()
+    if value.lower() in {"", "null", "~"} or value.startswith(("[", "{", "- ")):
+        return ""
+    return value
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, str], int, str]:
-    """Parse YAML-like frontmatter. Returns (parsed metadata, line offset after frontmatter, error message)."""
+    """Parse scalar YAML-like frontmatter, retaining folded/literal block values."""
     lines = content.splitlines()
     if not lines:
         return {}, 0, "File is empty"
-
     if not FRONTMATTER_START.match(lines[0]):
         return {}, 0, "Missing frontmatter start marker (---)"
-
-    metadata = {}
-    end_line_idx = -1
-    for idx, line in enumerate(lines[1:], start=1):
-        if FRONTMATTER_START.match(line):
-            end_line_idx = idx
-            break
-        match = FRONTMATTER_KEY_VAL.match(line)
-        if match:
-            key = match.group(1).strip()
-            val = match.group(2).strip()
-            if val.startswith(('"', "'")) and val.endswith(('"', "'")):
-                val = val[1:-1]
-            metadata[key] = val
-
+    end_line_idx = next((idx for idx in range(1, len(lines)) if FRONTMATTER_START.match(lines[idx])), -1)
     if end_line_idx == -1:
         return {}, 0, "Missing frontmatter end marker (---)"
 
+    metadata: dict[str, str] = {}
+    index = 1
+    while index < end_line_idx:
+        match = FRONTMATTER_KEY_VAL.match(lines[index])
+        index += 1
+        if match is None:
+            continue
+        key = match.group(1).strip()
+        value = yaml_scalar(match.group(2))
+        if not match.group(2).startswith(('"', "'")) and re.fullmatch(r"[|>](?:[+-]?[1-9]?|[1-9][+-]?)", value):
+            block = []
+            while index < end_line_idx and (not lines[index].strip() or lines[index][0].isspace()):
+                block.append(lines[index].strip())
+                index += 1
+            value = (" " if value.startswith(">") else "\n").join(block).strip()
+        metadata[key] = value
     return metadata, end_line_idx + 1, ""
 
 
@@ -221,7 +256,7 @@ def check_document_class(rel_path: str, metadata: dict[str, str], cfg: Governanc
     errors = [
         f"Frontmatter: Class '{class_name}' missing required key '{key}'"
         for key in profile.required_fields
-        if not metadata.get(key)
+        if not metadata.get(key, "").strip()
     ]
     if rel_path not in profile.allowed_paths and not any(
         rel_path.startswith(prefix) for prefix in profile.allowed_prefixes
@@ -234,11 +269,11 @@ def check_document_class(rel_path: str, metadata: dict[str, str], cfg: Governanc
             errors.append(f"Frontmatter: Report has invalid report_outcome '{outcome}'")
         if outcome == "inconclusive":
             for key in ("inconclusive_reason", "review_trigger"):
-                if not metadata.get(key):
+                if not metadata.get(key, "").strip():
                     errors.append(f"Frontmatter: Inconclusive report missing required key '{key}'")
         if outcome == "archive_eligible":
             for key in ("archive_id", "promoted_destinations"):
-                if not metadata.get(key):
+                if not metadata.get(key, "").strip():
                     errors.append(f"Frontmatter: Archive-eligible report missing required key '{key}'")
     return errors
 
@@ -266,13 +301,13 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
     else:
         required_keys = ["description", "scope", "status", "last_update"]
         for key in required_keys:
-            if key not in metadata:
-                errors.append(f"Frontmatter: Missing required key '{key}'")
+            if not metadata.get(key, "").strip():
+                errors.append(f"Frontmatter: Missing or empty required scalar '{key}'")
         errors.extend(check_document_class(rel_path, metadata, cfg))
 
         status = metadata.get("status")
         valid_statuses = {"experimental", "stable", "deprecated"}
-        if status and status not in valid_statuses:
+        if status not in valid_statuses:
             errors.append(f"Frontmatter: Invalid status '{status}' (must be one of {valid_statuses})")
 
         is_deprecated_folder = rel_path.startswith(f"{cfg.deprecated_dir}/")
@@ -300,8 +335,9 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
     check_backticks = is_authority_doc(rel_path, cfg)
     backtick_pattern = cfg.backtick_path_pattern
     for idx, line in enumerate(lines, start=1):
-        for _, url in MARKDOWN_LINK_PATTERN.findall(line):
-            clean_url = url.split("#")[0].split("?")[0]
+        for _, angle_url, bare_url in MARKDOWN_LINK_PATTERN.findall(line):
+            url = angle_url or bare_url
+            clean_url = re.sub(r"\\([\\`*{}\[\]()#+.!_<> -])", r"\1", url).split("#")[0].split("?")[0]
             if not clean_url:
                 continue
 
@@ -398,12 +434,31 @@ def check_skill_invocation_policies(repo_root: Path, cfg: GovernanceConfig, md_f
 
         openai_path = filepath.parent / "agents/openai.yaml"
         openai_text = openai_path.read_text(encoding="utf-8") if openai_path.exists() else ""
-        policy_match = re.search(
-            r"^\s*allow_implicit_invocation:\s*(true|false)\s*$",
-            openai_text,
-            re.MULTILINE,
-        )
-        codex_explicit_only = policy_match is not None and policy_match.group(1) == "false"
+        policy_values: list[str] = []
+        in_policy = False
+        policy_indent: int | None = None
+        for line in openai_text.splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            if not line[0].isspace():
+                in_policy = re.fullmatch(r"policy:[ \t]*(?:#.*)?", line) is not None
+                policy_indent = None
+                continue
+            if not in_policy:
+                continue
+            indent = len(line) - len(line.lstrip())
+            if policy_indent is None:
+                policy_indent = indent
+            match = re.fullmatch(r"\s+allow_implicit_invocation:[ \t]*(.*)", line)
+            if indent == policy_indent and match:
+                raw_value = match.group(1).strip()
+                policy_values.append(
+                    yaml_scalar(raw_value) if not raw_value.startswith(('"', "'")) else "quoted boolean"
+                )
+        if len(policy_values) > 1 or any(value not in {"true", "false"} for value in policy_values):
+            errors.append(f"Skill invocation: '{rel}' has invalid policy.allow_implicit_invocation")
+            continue
+        codex_explicit_only = policy_values == ["false"]
         if claude_explicit_only != codex_explicit_only:
             openai_rel = rel_posix(openai_path, repo_root) or openai_path.as_posix()
             errors.append(
@@ -438,7 +493,7 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
             "residual_of",
             "residual_items",
         ):
-            if not metadata.get(key):
+            if not metadata.get(key, "").strip():
                 errors.append(f"Backlog item: '{rel}' is missing frontmatter key '{key}'")
 
         work_id = metadata.get("work_id", "")
@@ -470,12 +525,22 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
                 errors.append(f"Backlog item: '{rel}' is missing required heading '{heading}'")
 
         status_history = markdown_section(content, "## Status History")
-        if work_status and not re.search(
-            rf"^\|[^|\n]*\|[^|\n]*\|[^|\n]*\|\s*{re.escape(work_status)}\s*\|",
-            status_history,
-            re.MULTILINE,
-        ):
-            errors.append(f"Backlog item: '{rel}' has no Status History transition to current status '{work_status}'")
+        transitions = []
+        for line in status_history.splitlines():
+            if not line.strip().startswith("|"):
+                continue
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            if len(cells) < 4 or cells[:4] == ["Date", "Actor", "From", "To"]:
+                continue
+            if all(re.fullmatch(r":?-+:?", cell) for cell in cells):
+                continue
+            transitions.append(cells[3])
+        if work_status and (not transitions or transitions[-1] != work_status):
+            final_status = transitions[-1] if transitions else "none"
+            errors.append(
+                f"Backlog item: '{rel}' final Status History To '{final_status}' "
+                f"does not match current status '{work_status}'"
+            )
 
         implementation_ledger = markdown_section(content, "## Implementation Ledger")
         if work_status in {"wip", "blocked", "done", "partial"} and (
@@ -487,14 +552,24 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         if work_status == "done" and re.search(r"^\s*[-*]\s+\[ \]", acceptance, re.MULTILINE):
             errors.append(f"Backlog item: '{rel}' is done but has unchecked acceptance criteria")
 
-        if work_status == "partial" and not metadata_work_ids(metadata.get("residual_items", "")):
-            errors.append(f"Backlog item: '{rel}' is partial but has no residual_items work ID")
+        for key in ("depends_on", "residual_of", "residual_items"):
+            try:
+                linked_ids = metadata_work_ids(metadata.get(key, ""))
+            except ValueError as exc:
+                errors.append(f"Backlog item: '{rel}' has invalid {key}: {exc}")
+            else:
+                if key == "residual_items" and work_status == "partial" and not linked_ids:
+                    errors.append(f"Backlog item: '{rel}' is partial but has no residual_items work ID")
 
     known_ids = set(records)
     for work_id, (filepath, metadata, _) in records.items():
         rel = rel_posix(filepath, repo_root)
         for key in ("depends_on", "residual_of", "residual_items"):
-            for linked_id in metadata_work_ids(metadata.get(key, "")):
+            try:
+                linked_ids = metadata_work_ids(metadata.get(key, ""))
+            except ValueError:
+                continue  # Syntax failures were reported while collecting records.
+            for linked_id in linked_ids:
                 if linked_id not in known_ids:
                     errors.append(f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'")
                 elif linked_id == work_id:

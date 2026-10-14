@@ -15,6 +15,23 @@ metadata. This is not adoption of Matt's tracker or ticket orchestration suite.
 Local authority preserves accepted decisions and resolves document destinations.
 See [suite maintenance](../../../../docs/skill-suite.md).
 
+## Bounded refresh — 2026-09-21
+
+Reviewed mapped behaviors in fresh temporary Git snapshots; earlier adaptation
+provenance below remains retained. This was not an audit of every upstream skill
+or a refresh of the web essays.
+
+| Source | Reviewed commit | Disposition |
+| --- | --- | --- |
+| `mattpocock/skills` | `c55ee46073ed923f86ce59a5eb3b6d895095d1b7` | `already-covered`: decision frontiers, task completion, and conditional references. Preserve local decision locks and authorized continuation. |
+| `AminBlg/SimpleEnglish` | `79b590fc8596523d92c26b1ea7e33236606ef069` | `adapt`: literal-protection and symlink-alias test scenarios for authoring/bootstrap defects. Implement local scanners and path checks; do not copy the upstream parser or global vocabulary policy. |
+| `humanlayer/skills` | `ca7c8088db69e315a8b2deea43820270457f8f3c` | `already-covered`: smallest-useful visual grammar. Preserve local evidence labels, artifact intent, and environment-supported rendering. |
+
+Local owners: `template/scripts/check_authoring.py`,
+`template/scripts/bootstrap_agents.py`, and their regression tests. The defects
+were independently reproduced locally; upstream scenarios inform coverage, not
+replacement implementations or new skill surfaces.
+
 ## mattpocock/skills
 
 - Source: `https://github.com/mattpocock/skills.git`

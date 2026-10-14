@@ -37,64 +37,92 @@ def load_symlinks(repo_root: Path) -> dict[str, str]:
     return dict(cfg.get("symlinks", {}))
 
 
-def target_exists(link_path: Path, target: str) -> bool:
-    # SAMPLE: link ".claude/skills", target "../.codex/skills" → ".codex/skills"
-    # normpath collapses ".." lexically, so this works before the link's parent
-    # dir (".claude") is created.
-    resolved = Path(os.path.normpath(link_path.parent / target))
-    return resolved.exists()
-
-
 def bootstrap(repo_root: Path, check_only: bool) -> int:
+    repo_root = repo_root.resolve()
     symlinks = load_symlinks(repo_root)
     if not symlinks:
         print("bootstrap_agents: no [tool.doc_governance.symlinks] declared; nothing to do.")
         return 0
 
     errors: list[str] = []
-    repairs: list[str] = []
+    repairs: list[tuple[str, Path, str, Path]] = []
+    destinations: list[Path] = []
+    declared_paths: list[Path] = []
 
+    # Validate the complete map before creating a directory or replacing a link.
     for link, target in symlinks.items():
+        if not isinstance(target, str) or not target or Path(target).is_absolute():
+            errors.append(f"'{link}': target must be a nonempty relative path")
+            continue
+        if not link or Path(link).is_absolute() or Path(link).name in {"", ".", ".."}:
+            errors.append(f"'{link}': link must name a relative path inside the repository")
+            continue
         link_path = repo_root / link
+        declared_paths.append(Path(os.path.normpath(link_path)))
+        try:
+            parent = link_path.parent.resolve()
+            destination = parent / link_path.name
+            resolved_target = (parent / target).resolve()
+            if not destination.is_relative_to(repo_root) or not resolved_target.is_relative_to(repo_root):
+                errors.append(f"'{link}' → '{target}': resolved parent or target escapes the repository")
+                continue
+            destinations.append(destination)
+            ancestor = parent
+            while not ancestor.exists() and not ancestor.is_symlink():
+                ancestor = ancestor.parent
+            if not ancestor.is_dir():
+                errors.append(f"'{link}': parent is not a directory: '{ancestor}'")
+                continue
+            if not resolved_target.exists():
+                errors.append(f"'{link}' → '{target}': target does not exist (create the canonical asset dir first)")
+                continue
+            if destination.is_symlink():
+                actual = os.readlink(destination)
+                if actual == target and destination.resolve() == resolved_target:
+                    continue
+                message = f"'{link}': symlink → '{actual}', expected '{target}'"
+            elif destination.exists():
+                errors.append(
+                    f"'{link}' is a real path, not a symlink. Consolidate its contents into the canonical "
+                    f"target ('{target}') by hand, remove '{link}', then re-run this script."
+                )
+                continue
+            else:
+                message = f"'{link}': missing, will link → '{target}'"
+            repairs.append((message, destination, target, resolved_target))
+        except (OSError, RuntimeError) as exc:
+            errors.append(f"'{link}' → '{target}': cannot resolve layout: {exc}")
 
-        if not target_exists(link_path, target):
-            errors.append(f"'{link}' → '{target}': target does not exist (create the canonical asset dir first)")
-            continue
+    # Overlapping destinations would make preflight depend on mutation order.
+    for paths in (declared_paths, destinations):
+        for index, destination in enumerate(paths):
+            for other in paths[index + 1 :]:
+                if destination.is_relative_to(other) or other.is_relative_to(destination):
+                    errors.append(f"Overlapping symlink destinations: '{destination}' and '{other}'")
 
-        if link_path.is_symlink():
-            actual = os.readlink(link_path)
-            if actual == target and link_path.resolve().exists():
-                continue  # already correct
-            repairs.append(f"'{link}': symlink → '{actual}', expected '{target}'")
-            if not check_only:
-                link_path.unlink()
-                link_path.parent.mkdir(parents=True, exist_ok=True)
-                link_path.symlink_to(target)
-            continue
-
-        if link_path.exists():
-            # A real file/dir sits where a symlink belongs — never clobber it.
-            errors.append(
-                f"'{link}' is a real path, not a symlink. Consolidate its contents into the canonical "
-                f"target ('{target}') by hand, remove '{link}', then re-run this script."
-            )
-            continue
-
-        # Missing entirely → create.
-        repairs.append(f"'{link}': missing, will link → '{target}'")
-        if not check_only:
-            link_path.parent.mkdir(parents=True, exist_ok=True)
-            link_path.symlink_to(target)
-
-    for r in repairs:
-        print(("[NEEDS REPAIR] " if check_only else "[REPAIRED] ") + r)
-    for e in errors:
-        print(f"[FAIL] {e}")
-
-    if errors:
-        return 1
-    if check_only and repairs:
-        return 1
+    if errors or check_only:
+        for message, _, _, _ in repairs:
+            print(f"[NEEDS REPAIR] {message}")
+        for error in errors:
+            print(f"[FAIL] {error}")
+        if errors or repairs:
+            return 1
+    else:
+        for message, destination, target, resolved_target in repairs:
+            try:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                # Recheck the preflight boundary before each write as well.
+                if destination.parent.resolve() != destination.parent:
+                    raise OSError("parent changed after preflight")
+                if destination.is_symlink():
+                    destination.unlink()
+                destination.symlink_to(target)
+                if not destination.exists() or destination.resolve() != resolved_target:
+                    raise OSError("created link does not resolve to its preflight target")
+            except (OSError, RuntimeError) as exc:
+                print(f"[FAIL] {message}: {exc}")
+                return 1
+            print(f"[REPAIRED] {message}")
     if not repairs:
         print("bootstrap_agents: symlink layout already correct.")
     return 0

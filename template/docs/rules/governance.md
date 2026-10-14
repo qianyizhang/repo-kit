@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-09-12
+last_update: 2026-09-21
 document_class: coordination
 ---
 
@@ -135,13 +135,15 @@ enter as candidates; only explicit promotion changes that product. A consumer's
 recorded Copier `_commit` is its reconciliation baseline. Tags are preferred
 stable checkpoints and release events, not the sole transfer authority.
 
-Copier ownership is path-based:
+Copier ownership is path-based, within the paths delivered by `template/`:
 
-- paths absent from `_skip_if_exists` are kit-managed and may be replaced on
-  update; shared skills are installed separately;
+- delivered paths absent from `_skip_if_exists` are kit-managed, including portable
+  rules; Copier merges template changes against the recorded baseline, so
+  local edits and conflicts need review;
 - paths listed in `_skip_if_exists` are seeded once and then repository-owned,
   including local bindings;
-- the exact `_skip_if_exists` list is the ownership declaration.
+- the exact `_skip_if_exists` list declares the consumer-owned exceptions;
+  unrelated consumer paths remain outside kit ownership.
 
 Recreate a portable downstream correction minimally in the template. Never copy
 one consumer's vocabulary, paths, source identity, verification commands, or

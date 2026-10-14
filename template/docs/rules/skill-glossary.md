@@ -2,7 +2,7 @@
 description: Portable skill-authoring vocabulary — levers on predictability.
 scope: skill authoring glossary
 status: stable
-last_update: 2026-09-12
+last_update: 2026-09-21
 document_class: coordination
 ---
 
@@ -58,7 +58,7 @@ pointed to from there, not redefined.
 | **Single source of truth** | One authoritative home per meaning. |
 | **Duplication** | Same meaning in two places (≠ intentional leading-word token repeat). |
 | **Sediment** | Stale layers that settled because removal felt risky. |
-| **No-op** | Line the model already obeys by default — delete, don't trim. |
+| **No-op** | Guidance whose removal preserves required behavior on representative tasks across supported models; see [skill pruning](skill.md#pruning--on-every-edit-round). |
 | **Relevance** | Does the line still bear on what the skill does? |
 
 ## Coordination (session, not skill body)

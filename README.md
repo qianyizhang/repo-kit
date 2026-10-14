@@ -23,11 +23,12 @@ Candidates, Campaigns, the portable product, and consumer bindings relate.
 
 ## Ownership contract
 
-Kit-managed files are replaced by `copier update`: portable doctrine, checks,
-and agent bootstrap. Shared skills have separate delivery.
+Among paths delivered by `template/`, those outside Copier's `_skip_if_exists`
+list are kit-managed: portable doctrine, checks and agent bootstrap.
+`copier update` merges template changes against the recorded baseline; review conflicts and local edits before accepting the managed result.
 
 True seeds and bindings stay consumer-owned: the consumer constitution, index,
-backlog, glossary, local configuration merge. Copier
+backlog, glossary and local configuration. Copier
 distributes shared behavior; it does not own local meaning.
 
 Each consumer records its source revision in `.copier-answers.yml`. Reconcile
@@ -36,19 +37,24 @@ only valid source revisions.
 
 ## Apply or update
 
-Inspect the consumer baseline and reconcile local bindings around the raw
-Copier operation.
+Inspect the consumer baseline and reconcile local bindings around the Copier
+operation. Replace `<approved-revision>` with the reviewed tag or
+commit for both adoption and update:
 
 ```bash
 # first adoption
 UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
-  uvx --from copier==9.17.1 copier copy ~/pkgs/repo-kit <target-repo>
+  uvx --from copier==9.17.1 copier copy --vcs-ref <approved-revision> ~/pkgs/repo-kit <target-repo>
 
 # update from the recorded source
 cd <target-repo>
 UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
-  uvx --from copier==9.17.1 copier update
+  uvx --from copier==9.17.1 copier update --vcs-ref <approved-revision>
 ```
+
+Without `--vcs-ref`, Copier normally selects the latest version tag, which can
+lag source `HEAD`. An explicit commit selects that reviewed state without
+creating a release checkpoint; tagging and propagation remain separate actions.
 
 Review preserved bindings and run the consumer's checks before accepting an
 update.

@@ -137,6 +137,124 @@ sections = ["Intent", "Acceptance Criteria"]
         with contextlib.redirect_stdout(buf):
             self.assertEqual(check_authoring.main(["--repo-root", str(self.root), "--json"]), 1)
 
+    def test_fenced_headings_do_not_hide_later_selected_prose(self) -> None:
+        self.item.write_text(
+            "## Intent\n"
+            "````markdown\n"
+            "## Context and Trade-offs\n"
+            "```\n"
+            "Use the legacy term inside code.\n"
+            "````\n"
+            "Use the legacy term here.\n"
+            "## Context and Trade-offs\n"
+            "~~~markdown\n"
+            "## Acceptance Criteria\n"
+            "Use the legacy term inside an unselected fence.\n"
+            "~~~\n"
+            "We need to keep this excluded.\n"
+            "## Acceptance Criteria\n"
+            "Use the legacy term finally.\n",
+            encoding="utf-8",
+        )
+        selected = check_authoring._selected_lines(self.item, ("Intent", "Acceptance Criteria"))
+        self.assertEqual(selected, [(7, "Use the legacy term here."), (15, "Use the legacy term finally.")])
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        self.assertEqual([finding.line for finding in findings if finding.rule_id == "TERM001"], [7, 15])
+
+    def test_mismatched_and_short_fences_do_not_close_code(self) -> None:
+        self.item.write_text(
+            "## Intent\n~~~~\n```\n~~~\nUse the legacy term.\n~~~~ trailing\n"
+            "Use the legacy term.\n~~~~\nUse the legacy term outside.\n",
+            encoding="utf-8",
+        )
+        self.assertEqual(
+            check_authoring._selected_lines(self.item, ("Intent",)),
+            [(9, "Use the legacy term outside.")],
+        )
+
+    def test_literal_spans_are_protected_but_visible_link_prose_is_checked(self) -> None:
+        self.item.write_text(
+            "## Intent\n"
+            "Use `legacy term` and ``legacy term with `ticks` ``.\n"
+            "See [reference](https://example.test/legacy-term) and https://example.test/legacy-term.\n"
+            "<!--\n"
+            "## Context and Trade-offs\n"
+            "Use the legacy term.\n"
+            "-->\n"
+            "    Use the legacy term in indented code.\n"
+            "> Use the legacy term in a quotation.\n"
+            "Use [legacy term](existing.md) here.\n",
+            encoding="utf-8",
+        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        replacements = [finding for finding in findings if finding.rule_id == "TERM001"]
+        self.assertEqual([finding.line for finding in replacements], [9, 10])
+
+    def test_nested_lists_and_blockquotes_remain_enforced_prose(self) -> None:
+        self._write_config(mode="enforcing", blocking=("TERM001",))
+        self.item.write_text(
+            "## Intent\n"
+            "- Requirements:\n"
+            "    - Use the legacy term.\n"
+            "      Keep the legacy term in a continuation.\n"
+            "\n"
+            "          Use the legacy term in nested indented code.\n"
+            "\n"
+            "> Use the legacy term in a quotation.\n"
+            "> - Use the legacy term in a quoted list.\n",
+            encoding="utf-8",
+        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        replacements = [finding for finding in findings if finding.rule_id == "TERM001"]
+        self.assertEqual([finding.line for finding in replacements], [3, 4, 8, 9])
+        self.assertTrue(all(finding.severity == "error" for finding in replacements))
+
+    def test_indented_code_does_not_include_indented_paragraph_continuation(self) -> None:
+        self.item.write_text(
+            "## Intent\n"
+            "An ordinary paragraph\n"
+            "    uses the legacy term.\n"
+            "\n"
+            "    Use the legacy term in actual code.\n"
+            "    - Use the legacy term inside that code.\n",
+            encoding="utf-8",
+        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        self.assertEqual([finding.line for finding in findings if finding.rule_id == "TERM001"], [3])
+
+    def test_inline_code_closes_only_on_equal_length_backtick_runs(self) -> None:
+        self.item.write_text(
+            "## Intent\n"
+            "Use `foo`` legacy term` as a literal.\n"
+            "Use ``foo` legacy term`` as a literal.\n"
+            "Use `foo``` legacy term` as another literal.\n"
+            "Use `unmatched before ``legacy term`` as a literal.\n"
+            "Use the legacy term in prose.\n",
+            encoding="utf-8",
+        )
+        findings = check_authoring.check_repository(self.root, check_authoring.load_config(self.root))
+        self.assertEqual([finding.line for finding in findings if finding.rule_id == "TERM001"], [6])
+
+    def test_comment_markers_in_inline_code_do_not_hide_prose(self) -> None:
+        self.item.write_text("## Intent\nUse `<!--` before the legacy term.\n", encoding="utf-8")
+        selected = check_authoring._selected_lines(self.item, ("Intent",))
+        self.assertEqual(len(selected), 1)
+        self.assertIn("legacy term", selected[0][1])
+
+    def test_latin_phrase_boundaries_and_chinese_matching(self) -> None:
+        for text, phrase, expected in (
+            ("legacy terminal", "legacy term", False),
+            ("prelegacy term", "legacy term", False),
+            ("Use LEGACY TERM.", "legacy term", True),
+            ("a pre-legacy-terminal", "legacy-term", False),
+            ("Use legacy-term.", "legacy-term", True),
+            ("api/clientside", "api/client", False),
+            ("Use api/client.", "api/client", True),
+            ("这个旧术语仍然匹配", "旧术语", True),
+        ):
+            with self.subTest(text=text, phrase=phrase):
+                self.assertEqual(check_authoring._contains_phrase(text, phrase), expected)
+
     def test_check_is_non_mutating(self) -> None:
         before = hashlib.sha256(self.item.read_bytes()).hexdigest()
         check_authoring.check_repository(self.root, check_authoring.load_config(self.root))

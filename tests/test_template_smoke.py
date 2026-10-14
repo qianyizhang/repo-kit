@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import os
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -12,6 +14,8 @@ ROOT = Path(__file__).parents[1]
 COPIER_VERSION = "9.17.1"
 FIXTURE_V1 = "fixture-v1"
 FIXTURE_V2 = "fixture-v2"
+HISTORICAL_BASELINE = "v0.10.3"
+FIXTURE_HISTORICAL = "fixture-historical"
 V2_MARKER = "<!-- repo-kit-smoke-v2 -->"
 SEED_V2_MARKER = "# repo-kit-smoke-seed-v2"
 
@@ -76,13 +80,23 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         cls.source = cls.temp_root / "source"
         cls.source.mkdir()
 
+        # Exercise a real seeded-to-managed transition, not only marker changes
+        # between two versions of the current ownership map.
+        archive = subprocess.check_output(["git", "archive", HISTORICAL_BASELINE, "copier.yml", "template"], cwd=ROOT)
+        with tarfile.open(fileobj=io.BytesIO(archive)) as historical:
+            historical.extractall(cls.source, filter="data")
+        run("git", "init", cwd=cls.source)
+        run("git", "config", "user.name", "repo-kit smoke", cwd=cls.source)
+        run("git", "config", "user.email", "smoke@repo-kit.invalid", cwd=cls.source)
+        run("git", "add", ".", cwd=cls.source)
+        run("git", "commit", "-m", f"historical product at {HISTORICAL_BASELINE}", cwd=cls.source)
+        run("git", "tag", FIXTURE_HISTORICAL, cwd=cls.source)
+        run("git", "rm", "-r", "--quiet", ".", cwd=cls.source)
+
         # Snapshot the Git index: staged release content, never arbitrary
         # unstaged or untracked files from the live worktree.
         prefix = f"--prefix={cls.source}{os.sep}"
         run("git", "checkout-index", "--all", prefix, cwd=ROOT)
-        run("git", "init", cwd=cls.source)
-        run("git", "config", "user.name", "repo-kit smoke", cwd=cls.source)
-        run("git", "config", "user.email", "smoke@repo-kit.invalid", cwd=cls.source)
         run("git", "add", ".", cwd=cls.source)
         run("git", "commit", "-m", "fixture v1", cwd=cls.source)
         run("git", "tag", FIXTURE_V1, cwd=cls.source)
@@ -186,6 +200,55 @@ document_class: coordination
         for source_path in self.managed_paths:
             relative = source_path.relative_to(self.source / "template")
             self.assertIn(V2_MARKER, (destination / relative).read_text(encoding="utf-8"))
+
+    def test_historical_update_requires_binding_reconciliation_and_then_passes_gate(self) -> None:
+        destination = self.temp_root / "historical-update"
+        self.copy(destination, FIXTURE_HISTORICAL)
+        config_path = destination / "pyproject.toml"
+        (destination / "pyproject-doc-governance.toml").replace(config_path)
+        local_setting = '\n[tool.consumer_fixture]\nretained = "consumer owned"\n'
+        config_path.write_text(config_path.read_text(encoding="utf-8") + local_setting, encoding="utf-8")
+        local_marker = "<!-- retained consumer policy -->"
+        constitution = destination / "CLAUDE.md"
+        constitution.write_text(constitution.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
+        glossary = destination / "docs/glossary/ddd.md"
+        glossary.write_text(glossary.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
+        run("git", "init", cwd=destination)
+        run("git", "config", "user.name", "repo-kit smoke", cwd=destination)
+        run("git", "config", "user.email", "smoke@repo-kit.invalid", cwd=destination)
+        run("git", "add", ".", cwd=destination)
+        run("git", "commit", "-m", "consumer historical baseline", cwd=destination)
+
+        copier("update", "--trust", "--defaults", "--vcs-ref", FIXTURE_V1, cwd=destination)
+        self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
+        self.assertIn(local_marker, glossary.read_text(encoding="utf-8"))
+        self.assertIn(local_setting, config_path.read_text(encoding="utf-8"))
+        self.assertFalse((destination / ".codex/skills/handoff/SKILL.md").exists())
+        run(sys.executable, "scripts/bootstrap_agents.py", cwd=destination)
+        before = subprocess.run(
+            [sys.executable, "scripts/check_docs.py"], cwd=destination, text=True, capture_output=True, check=False
+        )
+        self.assertNotEqual(before.returncode, 0, "preserved historical bindings need semantic reconciliation")
+        self.assertIn("[FAIL]", before.stdout)
+
+        # Model an explicit consumer reconciliation using the candidate's
+        # rendered seeds, preserving known local policy and configuration.
+        reference = self.temp_root / "historical-reconciliation-seeds"
+        self.copy(reference)
+        for relative in ("CLAUDE.md", "docs/index.md", "records/work-items/backlog.md"):
+            content = (reference / relative).read_text(encoding="utf-8")
+            if relative == "CLAUDE.md":
+                content += local_marker
+            (destination / relative).write_text(content, encoding="utf-8")
+        config_path.write_text(
+            (reference / "pyproject-doc-governance.toml").read_text(encoding="utf-8") + local_setting,
+            encoding="utf-8",
+        )
+        run(sys.executable, "scripts/check_docs.py", cwd=destination)
+        run(sys.executable, "scripts/bootstrap_agents.py", "--check", cwd=destination)
+        self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
+        self.assertIn(local_marker, glossary.read_text(encoding="utf-8"))
+        self.assertIn(local_setting, config_path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

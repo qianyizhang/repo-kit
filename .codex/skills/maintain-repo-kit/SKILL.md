@@ -30,7 +30,10 @@ python3.12 .codex/skills/maintain-repo-kit/scripts/survey.py
 Use `--base` or `--consumer-parent` only when defaults are wrong. The survey
 classifies evidence; it never authorizes a mutation. Inspect exact commits,
 diffs, ownership, and checks. Stop on relevant dirt, missing refs, or ambiguous
-authorship.
+authorship. The survey compares consumer files with committed kit revisions;
+staged and unstaged kit edits are excluded. Rendered outputs are listed as
+unassessed, not unchanged: reconcile their consumer-owned bindings separately.
+Unavailable provenance produces an incomplete survey and a nonzero exit.
 
 ## Reconcile one flow at a time
 

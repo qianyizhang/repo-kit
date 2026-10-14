@@ -79,6 +79,7 @@ def changed_from_blob(repo: Path, ref: str, source: str, target: Path) -> bool:
 class Worktree:
     path: Path
     branch: str | None
+    head: str = ""
 
 
 def worktrees(repo: Path) -> list[Worktree]:
@@ -93,6 +94,7 @@ def worktrees(repo: Path) -> list[Worktree]:
                     Worktree(
                         Path(current["worktree"]),
                         branch.removeprefix("refs/heads/") if branch else None,
+                        current.get("HEAD", ""),
                     )
                 )
                 current = {}
@@ -122,7 +124,8 @@ def survey_branches(repo: Path, base: str) -> None:
     print("## Local branches and worktrees\n")
     print("| Branch | Behind | Ahead | Worktree | Dirty | Candidate action |")
     print("| --- | ---: | ---: | --- | --- | --- |")
-    tree_by_branch = {item.branch: item.path for item in worktrees(repo)}
+    trees = worktrees(repo)
+    tree_by_branch = {item.branch: item.path for item in trees if item.branch}
     branches = git_text(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads").splitlines()
     for branch in sorted(branches):
         behind, ahead = relation(repo, base, branch)
@@ -130,72 +133,96 @@ def survey_branches(repo: Path, base: str) -> None:
         dirty = "—"
         if tree:
             dirty = "yes" if git_text(tree, "status", "--porcelain=v1") else "no"
-        print(f"| `{branch}` | {behind} | {ahead} | `{tree}` | {dirty} | {action_for(branch, base, behind, ahead)} |")
+        location = f"`{tree}`" if tree else "—"
+        print(f"| `{branch}` | {behind} | {ahead} | {location} | {dirty} | {action_for(branch, base, behind, ahead)} |")
+    for tree in trees:
+        if tree.branch is not None:
+            continue
+        behind, ahead = relation(repo, base, tree.head)
+        dirty = "yes" if git_text(tree.path, "status", "--porcelain=v1") else "no"
+        print(f"| `detached@{tree.head[:12]}` | {behind} | {ahead} | `{tree.path}` | {dirty} | inspect retained work |")
     print()
 
 
 def tracked_template_files(repo: Path, ref: str) -> list[str]:
-    raw = git_text(repo, "ls-tree", "-r", "--name-only", ref, "--", "template")
-    return [path for path in raw.splitlines() if path]
+    raw = git_text(repo, "ls-tree", "-rz", "--name-only", ref, "--", "template")
+    return [path for path in raw.split("\0") if path]
+
+
+def template_outputs(repo: Path, ref: str) -> dict[str, str]:
+    """Map delivered paths once; Copier's rendered source wins over its fallback."""
+    outputs: dict[str, str] = {}
+    for source in tracked_template_files(repo, ref):
+        output = output_path(source)
+        if output not in outputs or source.endswith(".jinja"):
+            outputs[output] = source
+    return outputs
 
 
 def format_paths(paths: list[str]) -> str:
     return ", ".join(f"`{path}`" for path in paths) if paths else "none"
 
 
-def survey_consumer(repo: Path, consumer: Path) -> None:
+def survey_consumer(repo: Path, consumer: Path) -> bool:
     answers = consumer / ".copier-answers.yml"
     baseline = answer_value(answers, "_commit")
     if not baseline:
         print(f"### {consumer.name}\n\nMissing `_commit`; stop and repair provenance.\n")
-        return
+        return False
     try:
         copier_at_baseline = git_text(repo, "show", f"{baseline}:copier.yml")
     except subprocess.CalledProcessError:
         print(f"### {consumer.name}\n\nBaseline `{baseline}` is unavailable locally.\n")
-        return
+        return False
 
     patterns = skip_patterns(copier_at_baseline)
     managed_delta: list[str] = []
     seeded_absorbed: list[str] = []
     seeded_review: list[str] = []
-    for source in tracked_template_files(repo, baseline):
+    baseline_outputs = template_outputs(repo, baseline)
+    current_outputs = template_outputs(repo, "HEAD")
+    rendered = sorted(
+        {
+            output
+            for inventory in (baseline_outputs, current_outputs)
+            for output, source in inventory.items()
+            if source.endswith(".jinja")
+        }
+    )
+    for output, source in baseline_outputs.items():
         if source.endswith(".jinja"):
             continue
-        output = output_path(source)
         if changed_from_blob(repo, baseline, source, consumer / output):
             if not is_skipped(output, patterns):
                 managed_delta.append(output)
                 continue
-            current_source = repo / source
+            current_source = current_outputs.get(output)
             consumer_target = consumer / output
             if (
-                current_source.is_file()
+                current_source
+                and not current_source.endswith(".jinja")
                 and consumer_target.is_file()
-                and current_source.read_bytes() == consumer_target.read_bytes()
+                and git_bytes(repo, "show", f"HEAD:{current_source}") == consumer_target.read_bytes()
             ):
                 seeded_absorbed.append(output)
             else:
                 seeded_review.append(output)
 
     current_drift: list[str] = []
-    current_patterns = skip_patterns((repo / "copier.yml").read_text())
-    for source in tracked_template_files(repo, "HEAD"):
+    current_patterns = skip_patterns(git_text(repo, "show", "HEAD:copier.yml"))
+    for output, source in current_outputs.items():
         if source.endswith(".jinja"):
             continue
-        output = output_path(source)
         if is_skipped(output, current_patterns):
             continue
-        source_file = repo / source
-        target_file = consumer / output
-        if not target_file.is_file() or source_file.read_bytes() != target_file.read_bytes():
+        if changed_from_blob(repo, "HEAD", source, consumer / output):
             current_drift.append(output)
 
     known_skills = {
-        output_path(path).split("/")[2]
-        for ref in (baseline, "HEAD")
-        for path in tracked_template_files(repo, ref)
-        if path.startswith("template/.codex/skills/")
+        output.split("/")[2]
+        for inventory in (baseline_outputs, current_outputs)
+        for output in inventory
+        if output.startswith(".codex/skills/")
     }
     consumer_skill_root = consumer / ".codex/skills"
     consumer_skills = (
@@ -212,9 +239,11 @@ def survey_consumer(repo: Path, consumer: Path) -> None:
     print(f"- Managed deltas from baseline: {format_paths(managed_delta)}")
     print(f"- Seeded deltas already absorbed: {format_paths(seeded_absorbed)}")
     print(f"- Seeded/local deltas needing review: {format_paths(seeded_review)}")
-    print(f"- Current managed drift: {format_paths(current_drift)}")
+    print(f"- Rendered outputs not compared (manual binding review required): {format_paths(rendered)}")
+    print(f"- Managed drift from committed kit HEAD: {format_paths(current_drift)}")
     print(f"- Consumer-only skills: {format_paths(extra_skills)}")
     print()
+    return True
 
 
 def consumers(repo: Path, parent: Path) -> list[Path]:
@@ -243,16 +272,23 @@ def main() -> int:
     print(f"- Repository: `{repo}`")
     print(f"- HEAD: `{head}`")
     print(f"- Base: `{args.base}`")
-    print("- Mode: read-only\n")
+    print("- Mode: read-only")
+    print(f"- Kit worktree dirty: `{'yes' if git_text(repo, 'status', '--porcelain=v1') else 'no'}`")
+    print("- Comparison source: committed HEAD; staged and unstaged kit changes are excluded.\n")
     survey_branches(repo, args.base)
 
     print("## Copier consumers\n")
     discovered = consumers(repo, parent)
     if not discovered:
         print("No consumers found.\n")
+    complete = True
     for consumer in discovered:
-        survey_consumer(repo, consumer)
-    return 0
+        try:
+            complete = survey_consumer(repo, consumer) and complete
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"### {consumer.name}\n\nSurvey incomplete: {exc}\n")
+            complete = False
+    return 0 if complete else 1
 
 
 if __name__ == "__main__":

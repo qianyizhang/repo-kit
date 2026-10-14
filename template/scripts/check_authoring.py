@@ -191,6 +191,28 @@ def _glossary_terms(repo_root: Path, config: Config) -> tuple[dict[str, set[tupl
     return replacements, canonical
 
 
+def _mask_literals(line: str) -> str:
+    """Keep visible prose, but do not lint code, URLs, or link destinations."""
+    runs = list(re.finditer(r"`+", line))
+    characters = list(line)
+    index = 0
+    while index < len(runs):
+        opening = runs[index]
+        closing_index = next(
+            (candidate for candidate in range(index + 1, len(runs)) if len(runs[candidate][0]) == len(opening[0])),
+            None,
+        )
+        if closing_index is None:
+            index += 1
+            continue
+        end = runs[closing_index].end()
+        characters[opening.start() : end] = " " * (end - opening.start())
+        index = closing_index + 1
+    line = "".join(characters)
+    line = re.sub(r"(!?\[[^\]]*\])\((?:\\.|[^)])*\)", r"\1", line)
+    return re.sub(r"(?:https?://|mailto:)[^\s<>]+", " ", line)
+
+
 def _selected_lines(path: Path, sections: tuple[str, ...]) -> list[tuple[int, str]]:
     lines = path.read_text(encoding="utf-8").splitlines()
     frontmatter_end = 0
@@ -199,41 +221,87 @@ def _selected_lines(path: Path, sections: tuple[str, ...]) -> list[tuple[int, st
             (line_number for line_number, line in enumerate(lines[1:], 2) if line.strip() == "---"),
             len(lines),
         )
-    if not sections:
-        selected = list(enumerate(lines, 1))
-    else:
-        wanted = {section.casefold() for section in sections}
-        active = False
-        selected = []
-        for line_number, line in enumerate(lines, 1):
-            heading = HEADING_RE.match(line)
-            if heading:
-                active = heading.group(1).strip().casefold() in wanted
-                continue
-            if active:
-                selected.append((line_number, line))
-
+    wanted = {section.casefold() for section in sections}
+    active = not sections
+    fence: str | None = None
+    in_comment = False
+    list_indents: list[int] = []
+    paragraph_open = False
+    in_indented_code = False
     prose: list[tuple[int, str]] = []
-    in_fence = False
-    for line_number, line in selected:
-        stripped = line.strip()
+    # Fence state belongs to the entire document, including unselected sections.
+    for line_number, line in enumerate(lines, 1):
         if line_number <= frontmatter_end:
             continue
-        if stripped.startswith("```"):
-            in_fence = not in_fence
+        original_line = line
+        line = re.sub(r"^(?: {0,3}>[ \t]?)+", "", line.expandtabs(4))
+        if fence is not None:
+            base_indent = list_indents[-1] if list_indents else 0
+            if line.startswith(" " * base_indent):
+                line = line[base_indent:]
+            if re.fullmatch(rf" {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}[ \t]*", line):
+                fence = None
             continue
-        if in_fence or not stripped or stripped.startswith(("#", "|", "<!--")):
+        if not line.strip():
+            paragraph_open = False
             continue
-        cleaned = re.sub(r"^\s*(?:[-*+] |\d+[.)]\s+)", "", line).strip()
+        indent = len(line) - len(line.lstrip())
+        while list_indents and indent < list_indents[-1]:
+            list_indents.pop()
+        base_indent = list_indents[-1] if list_indents else 0
+        if indent >= base_indent + 4 and (in_indented_code or not paragraph_open):
+            in_indented_code = True
+            continue
+        in_indented_code = False
+        list_item = re.match(r"^ *(?:[-*+]|\d+[.)]) +", line)
+        if list_item and indent < base_indent + 4:
+            list_indents.append(list_item.end())
+            line = line[list_item.end() :]
+        elif base_indent:
+            line = line[base_indent:]
+
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if not in_comment and opening and (opening.group(1).startswith("~") or "`" not in opening.group(2)):
+            fence = opening.group(1)
+            paragraph_open = False
+            continue
+        visible = ""
+        remaining = line
+        while remaining:
+            if in_comment:
+                _, closing, remaining = remaining.partition("-->")
+                if not closing:
+                    break
+                in_comment = False
+            else:
+                before, comment_opening, remaining = _mask_literals(remaining).partition("<!--")
+                visible += before
+                if not comment_opening:
+                    break
+                in_comment = True
+        line = visible
+        heading = HEADING_RE.match(line) if original_line.startswith("##") else None
+        if heading:
+            active = not sections or heading.group(1).strip().casefold() in wanted
+            paragraph_open = False
+            continue
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("#", "|")):
+            paragraph_open = False
+            continue
+        paragraph_open = True
+        if not active:
+            continue
+        cleaned = line.strip()
         cleaned = cleaned.replace("**", "").replace("__", "")
         for sentence in re.split(r"(?<=[.!?\u3002\uFF01\uFF1F])\s+", cleaned):
-            if sentence:
-                prose.append((line_number, sentence))
+            if sentence.strip():
+                prose.append((line_number, sentence.strip()))
     return prose
 
 
 def _contains_phrase(text: str, phrase: str) -> bool:
-    if re.search(r"[\u3400-\u9fff]", phrase) or " " in phrase or "-" in phrase or "/" in phrase:
+    if re.search(r"[\u3400-\u9fff]", phrase):
         return phrase.casefold() in text.casefold()
     return (
         re.search(

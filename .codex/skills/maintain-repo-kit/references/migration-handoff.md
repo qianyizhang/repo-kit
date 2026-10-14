@@ -1,7 +1,7 @@
 # Consumer migration handoff
 
-Maintainers only. Consumer propagation is outside the current refactor. No
-consumer was edited.
+Maintainers only. Consumer propagation is a separately authorized operation;
+this runbook prepares an attributable update and preserves consumer authority.
 
 ## Before the next release or update
 
@@ -20,7 +20,7 @@ consumer was edited.
 6. Propose the checkpoint/tag and each consumer update separately. Propagation,
    tagging, and pushing remain approval-gated.
 
-## Survey snapshot
+## Historical survey snapshot
 
 The read-only survey on 2026-08-17 at repo-kit `9a0df0db00ce` used the
 pre-refactor ownership map. It found no deltas in then-managed paths. The

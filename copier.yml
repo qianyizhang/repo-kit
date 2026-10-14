@@ -3,8 +3,9 @@
 # checks, ruff_base.toml, and AGENTS.md) plus one-time repository
 # bindings (CLAUDE.md, docs/index.md, backlog, glossary, and configuration).
 #
-# Kit-owned files (no `.jinja`, not in _skip_if_exists) are OVERWRITTEN on
-# `copier update`. Seeded files (below) are written once and then repo-owned.
+# Delivered paths outside _skip_if_exists are kit-owned. `copier update` merges
+# template changes against the recorded baseline; review local edits/conflicts.
+# Seeded paths (below) are written once and then repo-owned.
 # Doctrine: docs/rules/governance.md "Kit propagation".
 
 _subdirectory: template
@@ -26,20 +27,22 @@ _message_after_copy: |
   Governance kit applied.
 
   Next steps (see README.md for the full adoption
-  procedure):
+  procedure; replace <repo-python> with this repository's supported Python
+  invocation):
     1. Merge `pyproject-doc-governance.toml` into your pyproject.toml
        ([tool.doc_governance] + [tool.ruff] extend), then delete that file.
     2. Keep specialized local skill copies in `.codex/skills/`, then run
-       `python scripts/bootstrap_agents.py` to create the symlink layout.
+       `<repo-python> scripts/bootstrap_agents.py` to create the symlink layout.
     3. Add frontmatter to authority docs and fill the repository bindings.
-    4. `python scripts/check_docs.py` until green; wire it into `make lint`.
+    4. `<repo-python> scripts/check_docs.py` until green; wire it into `make lint`.
     5. Review `[tool.authoring_check]`, then wire
-       `python scripts/check_authoring.py` into a separate advisory target.
+       `<repo-python> scripts/check_authoring.py` into a separate advisory target.
 
 _message_after_update: |
   Kit files updated. Review local bindings before accepting the result. Then
-  run `python scripts/check_docs.py`; if the symlink map changed, also run
-  `python scripts/bootstrap_agents.py`.
+  replace <repo-python> with this repository's supported Python invocation and
+  run `<repo-python> scripts/check_docs.py`; if the symlink map changed, also run
+  `<repo-python> scripts/bootstrap_agents.py`.
 
 project_name:
   type: str
