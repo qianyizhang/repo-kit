@@ -1,12 +1,12 @@
 # repo-kit
 
 Shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
-governance template. `skills/` owns the eight-skill bundle; `template/` owns
+governance template. `skills/` owns the nine-skill bundle; `template/` owns
 portable governance. Root [CLAUDE.md](CLAUDE.md) governs maintenance here.
 
 ## Shared skills
 
-Six unchanged Matt Pocock skills plus concise `next-slice` and `show-me` are
+Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, and `finish-work` are
 installed once for your user account. From this repository:
 
 ```sh
@@ -63,3 +63,7 @@ update.
 
 Run the pinned unit, Copier-smoke, and Ruff commands in
 [`CLAUDE.md`](CLAUDE.md#verification).
+
+Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
+slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)
+record the evidence behind it; local bindings reuse each project's existing rules.

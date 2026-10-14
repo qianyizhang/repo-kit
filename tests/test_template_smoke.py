@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import os
 import re
 import subprocess
@@ -31,7 +32,8 @@ SEEDED_PATHS = (
 class TemplateOwnershipContractTest(unittest.TestCase):
     def test_governance_delivery_does_not_duplicate_shared_skills(self) -> None:
         self.assertEqual([], list((ROOT / "template/.codex/skills").glob("*/SKILL.md")))
-        self.assertEqual(8, len(list((ROOT / "skills").glob("*/SKILL.md"))))
+        selected = json.loads((ROOT / "skills-lock.json").read_text())["skills"]
+        self.assertEqual(set(selected), {p.parent.name for p in (ROOT / "skills").glob("*/SKILL.md")})
 
     def test_seeded_path_inventory_matches_copier(self) -> None:
         config = (ROOT / "copier.yml").read_text(encoding="utf-8")

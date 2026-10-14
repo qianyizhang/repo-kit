@@ -16,7 +16,7 @@ taking authority from project-specific rules or evidence.
 | Concept | Role | Authority |
 | --- | --- | --- |
 | **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
-| **Shared skills** | Eight skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
+| **Shared skills** | Nine skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
 | **Governance template** | Files intentionally exported from `template/` through Copier. | Repo-kit. |
 | **Consumer binding** | Repository-specific language, paths, policy, and verification. | That consumer. |
 

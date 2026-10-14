@@ -63,3 +63,9 @@ For governance delivery changes, run the opt-in Copier smoke test against a
 reviewed candidate index with `REPO_KIT_COPIER_SMOKE=1`. Preserve unrelated staged
 work; use a disposable candidate checkout when needed. Shared skills are tested
 through their standalone installer, not Copier.
+
+## Finishing a slice
+
+Use the shared `finish-work` skill for review and scoped commits. This constitution
+owns promotion authority; [skill maintenance](docs/skill-suite.md) owns bundle
+verification and installation. Keep consumer bindings and Copier delivery separate.

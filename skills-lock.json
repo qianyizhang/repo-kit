@@ -8,6 +8,9 @@
     "domain-modeling/GLOSSARY-FORMAT.md": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801",
     "domain-modeling/SKILL.md": "7b925d7b1e341a2eeae33ad68a8a8c0ab889a38ddd22a7598e4c240e5a7556a3",
     "domain-modeling/agents/openai.yaml": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b",
+    "finish-work/SKILL.md": "abd5ddfaf3d891dc8e0d0a69e34e1af23925b97c19674f14edc4ab24cc752982",
+    "finish-work/agents/openai.yaml": "d443f3a232b480d5c44ace4d6ec5e2a98401d9e9cac007966d602e0743563832",
+    "finish-work/references/repository-rules.md": "4d27d4067bd385e8ca969d221bc3975966f6ace5fce1241059361686e488d49c",
     "grilling/SKILL.md": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15",
     "grilling/agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b",
     "improve-codebase-architecture/HTML-REPORT.md": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
@@ -35,7 +38,8 @@
     "grilling",
     "writing-for-agents",
     "next-slice",
-    "show-me"
+    "show-me",
+    "finish-work"
   ],
   "upstream": {
     "files": {
