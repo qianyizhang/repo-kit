@@ -43,7 +43,7 @@ artifacts and frozen manifests own recorded observations within their provenance
 and conditions; summaries and generated reports do not replace that evidence.
 
 A repository states its core model in `CLAUDE.md` or `docs/models.md`. Use
-[`MODEL-NOTATION.md`](../../.codex/skills/domain-modeling/references/MODEL-NOTATION.md)
+[core-model guidance](core-models.md)
 for durable model shapes and update mechanics. A core-model change requires an
 explicit before/after model, evidence, affected authorities, and a decision lock;
 it must not arrive as an unnoticed feature side effect.
@@ -138,7 +138,7 @@ stable checkpoints and release events, not the sole transfer authority.
 Copier ownership is path-based:
 
 - paths absent from `_skip_if_exists` are kit-managed and may be replaced on
-  update, including shared skill cores;
+  update; shared skills are installed separately;
 - paths listed in `_skip_if_exists` are seeded once and then repository-owned,
   including local bindings;
 - the exact `_skip_if_exists` list is the ownership declaration.

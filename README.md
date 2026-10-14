@@ -1,8 +1,22 @@
 # repo-kit
 
-A [Copier](https://copier.readthedocs.io/) product for portable repository
-governance. `template/` is the product authority; the root
-[`CLAUDE.md`](CLAUDE.md) governs maintenance of this repository only.
+Shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
+governance template. `skills/` owns the eight-skill bundle; `template/` owns
+portable governance. Root [CLAUDE.md](CLAUDE.md) governs maintenance here.
+
+## Shared skills
+
+Six unchanged Matt Pocock skills plus concise `next-slice` and `show-me` are
+installed once for your user account. From this repository:
+
+```sh
+python3.12 scripts/skills.py diff
+python3.12 scripts/skills.py sync
+python3.12 scripts/skills.py check
+```
+
+See [pinning, update review, recovery and local mappings](docs/skill-suite.md).
+Shared skills are no longer copied by Copier. Project-specific skills stay local.
 
 The [core model](docs/models.md) and [decision records](docs/adr/) explain how
 Candidates, Campaigns, the portable product, and consumer bindings relate.
@@ -10,10 +24,10 @@ Candidates, Campaigns, the portable product, and consumer bindings relate.
 ## Ownership contract
 
 Kit-managed files are replaced by `copier update`: portable doctrine, checks,
-agent bootstrap, and every shared core under `template/.codex/skills/`.
+and agent bootstrap. Shared skills have separate delivery.
 
 True seeds and bindings stay consumer-owned: the consumer constitution, index,
-backlog, glossary, local configuration merge, and explainer binding. Copier
+backlog, glossary, local configuration merge. Copier
 distributes shared behavior; it does not own local meaning.
 
 Each consumer records its source revision in `.copier-answers.yml`. Reconcile
@@ -22,8 +36,8 @@ only valid source revisions.
 
 ## Apply or update
 
-Use the managed `governance-sync` skill for semantic reconciliation around the
-raw Copier operation.
+Inspect the consumer baseline and reconcile local bindings around the raw
+Copier operation.
 
 ```bash
 # first adoption

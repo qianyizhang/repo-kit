@@ -12,10 +12,12 @@ class SkillLinksTest(unittest.TestCase):
     def test_relative_markdown_links_resolve(self) -> None:
         roots = (
             ROOT / ".codex" / "skills" / "maintain-repo-kit",
-            ROOT / "template" / ".codex" / "skills" / "show-me",
+            ROOT / "skills",
         )
         for document in (path for root in roots for path in root.rglob("*.md")):
-            for target in re.findall(r"\[[^\]]*\]\(([^\s)]+)\)", document.read_text(encoding="utf-8")):
+            # Example documents in fenced blocks name hypothetical project paths.
+            prose = re.sub(r"(?ms)^```[^\n]*\n.*?^```[ \t]*$", "", document.read_text(encoding="utf-8"))
+            for target in re.findall(r"\[[^\]]*\]\(([^\s)]+)\)", prose):
                 url = urlsplit(target)
                 if url.scheme or url.netloc or not url.path:
                     continue

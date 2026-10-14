@@ -1,6 +1,0 @@
-interface:
-  display_name: "Explain Layman"
-  short_description: "Build governed stakeholder explainers"
-  default_prompt: "Use $explain-layman to build a maintained stakeholder explainer from the local binding."
-policy:
-  allow_implicit_invocation: false

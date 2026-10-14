@@ -2,26 +2,28 @@
 description: Core concepts and relationships governing repo-kit's evolution and distribution.
 scope: repo-kit core model
 status: stable
-last_update: 2026-08-17
+last_update: 2026-10-14
 document_class: coordination
 ---
 
 # Repo-kit core model
 
-Repo-kit evolves one portable governance product without taking authority from
-its consumers.
+Repo-kit owns a shared skill bundle and a separate governance template, without
+taking authority from project-specific rules or evidence.
 
 ## Product boundary
 
 | Concept | Role | Authority |
 | --- | --- | --- |
 | **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
-| **Portable product** | Files intentionally exported from `template/`. | Repo-kit. |
+| **Shared skills** | Eight skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
+| **Governance template** | Files intentionally exported from `template/` through Copier. | Repo-kit. |
 | **Consumer binding** | Repository-specific language, paths, policy, and verification. | That consumer. |
 
 ```text
-Candidate ------ explicit promotion ------> Portable product -- Copier --> consumer
-Consumer binding -- local meaning and policy ----------------------------> consumer
+Candidate -- explicit promotion --> skills/ -- standalone sync --> user installation
+Candidate -- explicit promotion --> template/ -- Copier --> governance consumer
+Consumer binding -- local meaning and policy -------------> project work
 ```
 
 Promotion recreates the smallest justified change in the portable product.
@@ -53,7 +55,9 @@ never keep an immortal Campaign.
 
 ## Delivery baseline
 
-Copier delivers the portable product. A consumer's `.copier-answers.yml`
+Copier delivers only the governance template. Shared skill delivery uses its
+source lock and generated installation receipt; [skill maintenance](skill-suite.md)
+owns that procedure. A consumer's `.copier-answers.yml`
 `_commit` identifies the source revision against which its next reconciliation
 starts. Tags name preferred stable checkpoints and release events; they do not
 replace the recorded source revision.
@@ -63,3 +67,5 @@ replace the recorded source revision.
 - [ADR-0001: Keep authority scoped and promotion explicit](adr/0001-scoped-authority-and-explicit-promotion.md)
 - [ADR-0002: Use Campaigns for bounded uncertainty](adr/0002-campaigns-for-bounded-uncertainty.md)
 - [ADR-0003: Manage shared cores and seed consumer bindings](adr/0003-managed-cores-and-seeded-bindings.md)
+
+- [ADR-0006: Deliver shared skills separately from governance](adr/0006-shared-skill-delivery.md)

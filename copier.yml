@@ -1,6 +1,6 @@
 # Governance kit — copier template.
 # Deterministic file propagation for the portable governance layer (docs/rules/*,
-# checks, shared skills, ruff_base.toml, and AGENTS.md) plus one-time repository
+# checks, ruff_base.toml, and AGENTS.md) plus one-time repository
 # bindings (CLAUDE.md, docs/index.md, backlog, glossary, and configuration).
 #
 # Kit-owned files (no `.jinja`, not in _skip_if_exists) are OVERWRITTEN on
@@ -21,16 +21,15 @@ _skip_if_exists:
   - records/work-items/backlog.md
   - docs/glossary/ddd.md
   - pyproject-doc-governance.toml
-  - ".codex/skills/explain-layman/references/repo-bindings.md"
 
 _message_after_copy: |
   Governance kit applied.
 
-  Next steps (see the `governance-sync` skill in the kit for the full adoption
+  Next steps (see README.md for the full adoption
   procedure):
     1. Merge `pyproject-doc-governance.toml` into your pyproject.toml
        ([tool.doc_governance] + [tool.ruff] extend), then delete that file.
-    2. Move any real .agents/.claude skill copies into `.codex/skills/`, then run
+    2. Keep specialized local skill copies in `.codex/skills/`, then run
        `python scripts/bootstrap_agents.py` to create the symlink layout.
     3. Add frontmatter to authority docs and fill the repository bindings.
     4. `python scripts/check_docs.py` until green; wire it into `make lint`.
@@ -38,7 +37,7 @@ _message_after_copy: |
        `python scripts/check_authoring.py` into a separate advisory target.
 
 _message_after_update: |
-  Kit files updated. Follow `governance-sync` before accepting the result. Then
+  Kit files updated. Review local bindings before accepting the result. Then
   run `python scripts/check_docs.py`; if the symlink map changed, also run
   `python scripts/bootstrap_agents.py`.
 

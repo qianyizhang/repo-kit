@@ -1,10 +1,10 @@
 ---
 name: maintain-repo-kit
-version: "1.4.1"
+version: "1.5.0"
 description: Survey and reconcile repo-kit's local topology, downstream candidates, external upstream ideas, and Copier baselines. Use for maintenance, promotion, consumer reconciliation, or release preparation.
 scope: repo-kit maintenance
 status: stable
-last_update: 2026-09-07
+last_update: 2026-10-14
 document_class: artifact
 ---
 
@@ -12,7 +12,8 @@ document_class: artifact
 
 Read root `CLAUDE.md` first. Keep local Git topology, consumer evidence, and
 external ideas separate. All enter as Candidates; only explicit promotion
-changes `template/`. Consumer bindings remain consumer authority.
+changes the shared `skills/` bundle or governance `template/`. Consumer bindings
+remain consumer authority.
 
 Use a Campaign only when a destination spans sessions and material fog must be
 revisited. It links the frontier, work, evidence, learning, and decisions while
@@ -56,7 +57,8 @@ Compare each consumer against the `_commit` in `.copier-answers.yml`:
 - a consumer-only skill is not automatically a kit candidate.
 
 For a portable Candidate, identify its commit and rationale, recreate the
-minimal change in `template/`, and verify it here. Never copy a dirty snapshot.
+minimal change in its product owner (`skills/` or `template/`), and verify it here.
+Never copy a dirty snapshot.
 Keep local vocabulary, paths, authority, and source identity downstream.
 
 Use the [migration handoff](references/migration-handoff.md) before a future

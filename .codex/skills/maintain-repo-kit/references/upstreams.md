@@ -4,6 +4,17 @@ Upstreams provide Candidates, never authority. For each review, fetch into a
 temporary directory, record the commit, compare behavior, and classify findings
 as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 
+## Shared suite adoption — 2026-10-14
+
+Adopted six unchanged Matt skills from `49dd158d1076134a641b33efb035946536778336`:
+`retro`, `improve-codebase-architecture`, `codebase-design`, `domain-modeling`,
+`grilling`, and `writing-for-agents`. Complete directories and MIT license are
+pinned in root `skills-lock.json`; root `skills/` is the shared product.
+Review depth: selected skill bodies, dependencies, references and invocation
+metadata. This is not adoption of Matt's tracker or ticket orchestration suite.
+Local authority preserves accepted decisions and resolves document destinations.
+See [suite maintenance](../../../../docs/skill-suite.md).
+
 ## mattpocock/skills
 
 - Source: `https://github.com/mattpocock/skills.git`

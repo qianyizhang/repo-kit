@@ -10,7 +10,7 @@ document_class: coordination
 
 Portable vocabulary for **directing an agent through work** — the words that make
 human↔agent coordination precise. Kit-owned doctrine (promoted via
-`governance-sync`), nothing here names a domain concept.
+the shared skill suite), nothing here names a domain concept.
 
 Sibling to [`skill-glossary.md`](skill-glossary.md): that sheet is for skill
 **authors** (levers on predictability); this one is for anyone **driving a task**.
@@ -27,7 +27,7 @@ How a single task is driven from ask to committed change.
 
 | Term | Meaning (why it exists) | How to invoke | _Avoid_ |
 | --- | --- | --- | --- |
-| **Lock** / **numbered lock** | A decision the user has **frozen**, optionally numbered for later reference. Turns direction into commitment. | Follow the acceptance and clarification rule in [grilling](../../.codex/skills/grilling/SKILL.md#frontier-batch-loop-default). | Confusing a decision lock with authorization for a separate action. |
+| **Lock** / **numbered lock** | A decision the user has **frozen**, optionally numbered for later reference. Turns direction into commitment. | Clear acceptance settles a concrete recommendation; clarify only material remaining ambiguity. | Confusing a decision lock with authorization for a separate action. |
 | **Grill** | A decision-interview: stress-test a plan with pointed questions *before* implementing. The `grilling` primitive. | User says "grill me", or a plan has ≥1 unresolved decision. Ground every question in the tree first. | Grilling from priors instead of from the actual repo state. |
 | **Slice** | One **verifiable unit** of work carved from a larger goal, sized to land and check independently. The `next-slice` skill picks one. | "What's the next slice?" → rank value, propose one testable slice. | Shipping a whole epic as one unreviewable change. |
 | **Checkpoint** | A mid-task **save of state** when you can't finish — the honest alternative to faking completion. Pairs with *full means full*. | Can't finish → write what's done, what's left, where you stopped. | Relabeling a partial run as done instead of checkpointing. |
@@ -40,7 +40,7 @@ Carrying work across sessions and across agents.
 
 | Term | Meaning (why it exists) | How to invoke | _Avoid_ |
 | --- | --- | --- | --- |
-| **Handoff** | A durable transfer that lets another session/agent continue **without chat memory**. The `handoff` skill; modes: *session*, *parallel*. | When transferring work to another session or agent, or when continuity is at risk. | Continuing past a degraded window instead of cutting a handoff. |
+| **Handoff** | A durable transfer that lets another session/agent continue **without chat memory**. Use the existing coordination record; include scope, evidence and the next action. | When transferring work to another session or agent, or when continuity is at risk. | Continuing past a degraded window instead of cutting a handoff. |
 | **Packet** | The self-contained **payload** of a handoff (session packet) or a claim (parallel). Minimal exported context — enough to resume, no more. | Assemble the packet at the stop point; keep it minimal and grounded. | Fat packets that re-export the whole conversation. |
 | **Ledger** | An **append-only** record on a work item (Implementation Ledger) or claims (claim ledger). Findings/decisions/deviations go here, not only chat. | Append at each material step; set terminal status at the stop condition. | Overwriting history, or leaving findings only in chat. |
 | **Integrator** | The **single session that merges** parallel writers' output. One owner merges; the rest only claim and write. | Multiple writers on shared paths → name one integrator up front. | Two sessions merging the same tree. |
@@ -87,7 +87,7 @@ These belong to another SSOT; this sheet links, never forks them.
 | **Frontier**, **Frontier batch**, **Context hygiene** | [`skill-glossary.md`](skill-glossary.md) §Coordination |
 | **Leading word**, **Progressive disclosure**, **Completion criterion** | [`skill-glossary.md`](skill-glossary.md) |
 | **SSOT** (single source of truth) | `docs/index.md` Authority by concern · [`skill-glossary.md`](skill-glossary.md) §Pruning |
-| **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `CLAUDE.md` or `docs/models.md` · `.codex/skills/domain-modeling/references/MODEL-NOTATION.md` mechanics |
+| **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `CLAUDE.md` or `docs/models.md` · [core-model guidance](core-models.md) mechanics |
 | **Campaign** | [`governance.md`](governance.md) §Campaigns · [`doc.md`](doc.md) §Campaign records |
 | **Provenance**, **Witness** | domain — the repo's glossary (`docs/glossary/`) + product SSOT |
 | **Fail-closed** / **fail-open** | [`governance.md`](governance.md) §Agent toolchains and symlinks · [`doc.md`](doc.md) §Frontmatter and classes |

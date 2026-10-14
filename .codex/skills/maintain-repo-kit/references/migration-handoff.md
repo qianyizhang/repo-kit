@@ -6,8 +6,9 @@ consumer was edited.
 ## Before the next release or update
 
 1. Re-run `survey.py` and compare every consumer with its recorded `_commit`.
-2. Reconcile the ownership change: shared skill cores are kit-managed; only
-   true repository bindings and seeds remain consumer-owned.
+2. Reconcile the 2026-10-14 skill delivery change: shared skills come from the
+   separate user installation. Preserve consumer-specific skills and edits before
+   Copier retires old generic copies. Governance seeds remain consumer-owned.
 3. Classify existing consumer edits as portable evidence, local binding, or
    obsolete before Copier can replace a formerly seeded core.
 4. Reconcile the new coordination paths into consumer-owned configuration and

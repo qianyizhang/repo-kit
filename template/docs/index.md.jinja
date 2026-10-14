@@ -65,15 +65,17 @@ keep `[tool.doc_governance].index_route_areas` synchronized.
 
 ## Main flows
 
-Humans can ask in ordinary language. Skills under `.codex/skills/` implement
-these flows; they are not a menu the user must memorize.
+Shared skills are installed separately from repo-kit. Local skills remain in
+`.codex/skills/`; project decisions and evidence stay in their owning documents.
 
-| Flow | Human intent | Supporting skills |
-|:--|:--|:--|
-| **Understand** | See the relevant model or change clearly. | `show-me` for conversation and data-state walkthroughs; `explain-layman` for explicitly requested maintained artifacts |
-| **Align** | Resolve fit, vocabulary, and durable decisions. | `show-gap` assesses feature fit; `grilling` resolves choices; explicit `grill-with-docs` interviews and captures; `domain-modeling` records accepted meaning |
-| **Change** | Advance a bounded destination through verifiable work; use a Campaign at the threshold in `docs/rules/governance.md`. | `next-slice` recommends one next move; work items own execution; `handoff` transports context |
-| **Maintain** | Preserve documentation and kit/consumer ownership. | `doc-hygiene-audit`, `governance-sync` |
+| Intent | Skill |
+| --- | --- |
+| Explain a mechanism or change | `show-me` |
+| Choose the next useful action | `next-slice` |
+| Resolve design choices or terminology | `grilling`, `domain-modeling` |
+| Improve module interfaces | `codebase-design` |
+| Review session friction or architecture | Explicit `retro`, `improve-codebase-architecture` |
+| Write agent guidance | `writing-for-agents` |
 
 <!-- Keep this a compact task/concept router. Configure area routes in
      pyproject.toml; generated Human View owns complete discovery. -->

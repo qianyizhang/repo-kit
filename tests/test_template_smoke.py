@@ -21,11 +21,14 @@ SEEDED_PATHS = (
     "docs/glossary/ddd.md",
     "records/work-items/backlog.md",
     "pyproject-doc-governance.toml",
-    ".codex/skills/explain-layman/references/repo-bindings.md",
 )
 
 
 class TemplateOwnershipContractTest(unittest.TestCase):
+    def test_governance_delivery_does_not_duplicate_shared_skills(self) -> None:
+        self.assertEqual([], list((ROOT / "template/.codex/skills").glob("*/SKILL.md")))
+        self.assertEqual(8, len(list((ROOT / "skills").glob("*/SKILL.md"))))
+
     def test_seeded_path_inventory_matches_copier(self) -> None:
         config = (ROOT / "copier.yml").read_text(encoding="utf-8")
         block = re.search(r"(?m)^_skip_if_exists:\n((?:  - .+\n)+)", config)
@@ -84,8 +87,8 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         run("git", "commit", "-m", "fixture v1", cwd=cls.source)
         run("git", "tag", FIXTURE_V1, cwd=cls.source)
 
-        cls.skill_paths = tuple(sorted((cls.source / "template" / ".codex" / "skills").glob("*/SKILL.md")))
-        for path in cls.skill_paths:
+        cls.managed_paths = tuple(cls.source / "template/docs/rules" / name for name in ("skill.md", "governance.md"))
+        for path in cls.managed_paths:
             path.write_text(f"{path.read_text(encoding='utf-8').rstrip()}\n\n{V2_MARKER}\n")
         for relative in SEEDED_PATHS:
             path = cls.source / "template" / f"{relative}.jinja"
@@ -159,7 +162,7 @@ document_class: coordination
         )
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
 
-    def test_update_manages_skill_cores_and_preserves_bindings(self) -> None:
+    def test_update_manages_governance_and_preserves_bindings(self) -> None:
         destination = self.temp_root / "update"
         self.copy(destination)
 
@@ -180,7 +183,7 @@ document_class: coordination
             content = (destination / relative).read_text(encoding="utf-8")
             self.assertIn(seed_marker, content)
             self.assertNotIn(SEED_V2_MARKER, content)
-        for source_path in self.skill_paths:
+        for source_path in self.managed_paths:
             relative = source_path.relative_to(self.source / "template")
             self.assertIn(V2_MARKER, (destination / relative).read_text(encoding="utf-8"))
 

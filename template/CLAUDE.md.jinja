@@ -22,7 +22,7 @@ identity, invariants, authority, and commands here. Portable doctrine lives in
 
 <!-- State the few concepts and relationships needed to predict the system, or
      point to docs/models.md. State the invariant that constrains implementation.
-     Use .codex/skills/domain-modeling/references/MODEL-NOTATION.md when the model
+     Use docs/rules/core-models.md when the model
      needs a durable graph or relationship specification. -->
 
 ## Authority map
@@ -71,28 +71,15 @@ make format    # auto-format and auto-fix
 
 ## Testing
 
-Portable doctrine: `docs/rules/testing.md`.
+Shared skills are installed separately from repo-kit; Copier does not distribute
+skill bodies. Keep specialized skills local under `.codex/skills/`.
+Use `next-slice` for prioritization, `show-me` for visual explanations, and the
+installed Matt skills for design, terminology and requested reviews.
+`retro` and `improve-codebase-architecture` are explicit-user workflows.
 
-<!-- Fill in runnable suites, fixtures, and environment variables that redirect
-     side effects. -->
-
-## Skills
-
-Portable doctrine: `docs/rules/skill.md`. `docs/index.md` §Main flows is the
-human-facing router.
-
-Invocation policy:
-
-- **Explicit-user only:** `explain-layman` and `grill-with-docs`. Their
-  `disable-model-invocation` and `agents/openai.yaml` policy fields enforce this
-  for Claude and Codex. An agent may suggest either, but does not invoke it.
-- **Shared grill loop:** model-invoked `grilling` (composed by
-  `grill-with-docs`, `show-gap`, and any local planner that needs the loop).
-- **Bounded automatic audit:** `show-gap` may be selected for an ambiguous
-  feature-fit question because its first phase is read-only repo grounding.
-  Use `next-slice` for readiness and prioritization.
-  Extending it into a decision interview or writing a specification requires
-  clear user intent.
+Repository paths, invariants and check commands stay in this constitution and
+its linked owners. Accepted decisions remain settled; continue already-authorized
+work without another confirmation unless a material ambiguity remains.
 
 ## Housekeeping (after a task)
 
