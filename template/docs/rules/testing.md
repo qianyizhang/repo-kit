@@ -2,7 +2,7 @@
 description: Portable testing doctrine — when a module earns tests, where tests live (colocated unit vs central e2e), and the hermetic conventions.
 scope: testing rules
 status: stable
-last_update: 2026-09-12
+last_update: 2026-10-14
 document_class: coordination
 ---
 
@@ -28,6 +28,24 @@ Broaden or repeat only when new changes, failures, or unresolved concerns justif
 it. A prose edit does not by itself require runtime tests. Existing mandatory
 gates still apply. Report the checks run, their input/environment scope, and any
 remaining limitation without combining differently scoped evidence.
+
+## Browser execution boundaries
+
+Use disposable browser profiles and the repository's existing harness. When an
+execution sandbox is known to block browser startup, request the approved execution
+path for the specific browser command from the outset; keep other checks sandboxed.
+Do not disable sandboxing globally. macOS browser startup may need LaunchServices
+and WindowServer access even in headless mode; browser flags do not grant access
+denied by an outer command sandbox. Record host-specific commands in the consumer
+binding or browser-testing guide.
+
+On startup permission errors or an immediate browser abort, inspect the first
+failure and stop unchanged relaunches. Prefer a once-per-run startup check that
+aborts the suite before individual tests repeat a failed launch. Retain diagnostics
+and distinguish blocked verification from application assertion failures. If the
+approved execution path is unavailable, report the blocked checks. Never use a
+personal profile, terminate unrelated browsers, or suppress crash notifications
+as a test workaround.
 
 ## When a module earns tests
 
