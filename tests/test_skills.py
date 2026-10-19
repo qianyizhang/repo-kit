@@ -9,6 +9,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).parents[1]
 SPEC = importlib.util.spec_from_file_location("skill_sync", ROOT / "scripts/skills.py")
@@ -29,6 +30,72 @@ class SkillSyncTest(unittest.TestCase):
     def sync(self, **options) -> bool:
         with contextlib.redirect_stdout(io.StringIO()):
             return MODULE.sync(self.root, self.target, **options)
+
+    def install_previous_selection(self) -> None:
+        previous = Path(self.temp.name) / "previous"
+        shutil.copytree(self.root, previous)
+        shutil.rmtree(previous / "skills/simplify-repository")
+        lock = json.loads((previous / "skills-lock.json").read_text())
+        lock["skills"].remove("simplify-repository")
+        lock["files"] = {p: h for p, h in lock["files"].items() if not p.startswith("simplify-repository/")}
+        MODULE.write_json(previous / "skills-lock.json", lock)
+        with patch.object(MODULE, "LOCAL_SKILLS", ("next-slice", "show-me")):
+            with contextlib.redirect_stdout(io.StringIO()):
+                MODULE.sync(previous, self.target, apply=True)
+
+    def test_additive_upgrade_preserves_existing_skills_and_recovery(self) -> None:
+        self.install_previous_selection()
+        before = MODULE.files(self.target)
+        other = self.target / "medical/SKILL.md"
+        other.parent.mkdir()
+        other.write_text("independent workflow")
+        self.assertFalse(self.sync())
+        self.sync(apply=True)
+        self.assertTrue(self.sync())
+        for path, data in before.items():
+            if path != MODULE.RECEIPT:
+                self.assertEqual(data, (self.target / path).read_bytes())
+        self.assertEqual("independent workflow", other.read_text())
+        self.assertEqual(
+            (self.root / "skills/simplify-repository/SKILL.md").read_bytes(),
+            (self.target / "simplify-repository/SKILL.md").read_bytes(),
+        )
+        recovery = self.target.parent / ".repo-kit-skill-backups"
+        self.assertTrue(any(MODULE.files(path) == before for path in recovery.iterdir()))
+
+    def test_additive_upgrade_rejects_empty_or_populated_unmanaged_destination(self) -> None:
+        self.install_previous_selection()
+        collision = self.target / "simplify-repository"
+        collision.mkdir()
+        for populated in (False, True):
+            with self.subTest(populated=populated):
+                if populated:
+                    (collision / "SKILL.md").write_text("independently owned")
+                before = MODULE.files(self.target)
+                with self.assertRaisesRegex(ValueError, "Unmanaged skill collision"):
+                    self.sync(apply=True)
+                self.assertEqual(before, MODULE.files(self.target))
+                self.assertTrue(collision.is_dir())
+
+    def test_additive_upgrade_rejects_edited_existing_skill(self) -> None:
+        self.install_previous_selection()
+        (self.target / "next-slice/SKILL.md").write_text("independent changes")
+        before = MODULE.files(self.target)
+        with self.assertRaisesRegex(ValueError, "local edits or missing files"):
+            self.sync(apply=True)
+        self.assertEqual(before, MODULE.files(self.target))
+        self.assertFalse((self.target / "simplify-repository").exists())
+
+    def test_retired_selection_requires_explicit_reconciliation(self) -> None:
+        self.sync(apply=True)
+        receipt_path = self.target / MODULE.RECEIPT
+        receipt = json.loads(receipt_path.read_text())
+        receipt["skills"].append("retired-skill")
+        MODULE.write_json(receipt_path, receipt)
+        before = MODULE.files(self.target)
+        with self.assertRaisesRegex(ValueError, "retired skills"):
+            self.sync(apply=True)
+        self.assertEqual(before, MODULE.files(self.target))
 
     def test_install_update_and_idempotence_preserve_unrelated_skills(self) -> None:
         other = self.target / "medical" / "SKILL.md"
@@ -146,7 +213,7 @@ class SkillSyncTest(unittest.TestCase):
 
     def test_source_and_invocation_selection(self) -> None:
         lock, content = MODULE.bundle(ROOT)
-        self.assertEqual(8, len(lock["skills"]))
+        self.assertEqual(9, len(lock["skills"]))
         for name in MODULE.UPSTREAM_SKILLS:
             expected = {p: h for p, h in lock["upstream"]["files"].items() if p.startswith(name + "/")}
             actual = {p: MODULE.digest(data) for p, data in content.items() if p.startswith(name + "/")}

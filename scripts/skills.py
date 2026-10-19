@@ -23,7 +23,7 @@ UPSTREAM_SKILLS = (
     "grilling",
     "writing-for-agents",
 )
-LOCAL_SKILLS = ("next-slice", "show-me")
+LOCAL_SKILLS = ("next-slice", "show-me", "simplify-repository")
 RECEIPT = ".repo-kit-skills.json"
 
 
@@ -106,10 +106,13 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
     if receipt_path.is_symlink():
         raise ValueError("Installation receipt must not be a symlink")
     receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else None
-    if receipt and (receipt.get("schemaVersion") != 1 or set(receipt["skills"]) != set(lock["skills"])):
+    if receipt and (receipt.get("schemaVersion") != 1 or not set(receipt["skills"]) <= set(lock["skills"])):
         raise ValueError("Installation selection changed; explicitly reconcile retired skills first")
     actual = installed_files(target, lock["skills"])
     if apply:
+        added_names = set(lock["skills"]) - set(receipt["skills"] if receipt else ())
+        if any((target / name).exists() for name in added_names):
+            raise ValueError("Unmanaged skill collision; reconcile existing copies before installation")
         if receipt is None and actual:
             raise ValueError("Unmanaged skill collision; reconcile existing copies before installation")
         if receipt and hashes(actual) != receipt["files"]:
