@@ -1,7 +1,8 @@
 # Shared skill suite
 
 `skills/` is the canonical shared bundle. Six directories are copied unchanged
-from Matt Pocock; `next-slice`, `show-me`, and `finish-work` are maintained here. The single
+from Matt Pocock; `next-slice`, `show-me`, `finish-work`, and
+`simplify-repository` are maintained here. The single
 [lock](../skills-lock.json) records the upstream revision, original paths and all
 delivered file hashes. The MIT licenses are retained in the bundle.
 
@@ -22,7 +23,7 @@ python3.12 scripts/skills.py check
 
 The default destination is `~/.agents/skills`; `--installed-root PATH` supports
 another discovery location or a disposable verification directory. Existing
-parent discovery symlinks are respected. Only nine managed directories and the
+parent discovery symlinks are respected. Only ten managed directories and the
 license are updated; unrelated skills stay untouched. The installation receipt
 records the applied lock. It is generated state, not another source to maintain.
 
@@ -51,7 +52,7 @@ network request and installs nothing. Review upstream monthly
 or when friction appears; changed instructions need a representative invocation
 in addition to structural checks. No background updater is installed.
 
-For edits to the three local skills, run `python3.12 scripts/skills.py lock` after
+For edits to the four local skills, run `python3.12 scripts/skills.py lock` after
 review; it refuses changes to upstream bytes. Git history owns local change
 history. To roll back, restore the previous reviewed bundle and lock in repo-kit,
 review the diff, then sync it. Restore independently edited installations from
@@ -60,7 +61,7 @@ their recovery copies before applying a different lock.
 ## Invocation and local bindings
 
 `retro` and `improve-codebase-architecture` require explicit invocation. The other
-seven skills can be selected for relevant requests. Keep upstream metadata as-is;
+eight skills can be selected for relevant requests. Keep upstream metadata as-is;
 add host metadata only when required, recording that exception separately.
 
 Each project's guidance routes upstream names such as `GLOSSARY.md`, `docs/adr/`
@@ -96,3 +97,15 @@ The previous installation and receipt remain in the normal recovery directory.
 
 Repository bindings point to existing contracts, testing and retention owners.
 They do not install local copies, run Copier, or require a new rulebook or ledger.
+
+## Simplify-repository adoption — 2026-10-19
+
+[simplify-repository](../skills/simplify-repository/SKILL.md) is imported from the
+[user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
+version 2. Its workflow, references, host metadata, and icon retain the account
+source content. It supports evidence-based repository simplification while
+preserving behavior and public contracts; it does not authorize unrelated rewrites.
+
+Sync accepts additions to an existing managed selection when prior files match
+their receipt and new destinations are absent. Unmanaged collisions, including
+empty directories, and retired skills still require explicit reconciliation.

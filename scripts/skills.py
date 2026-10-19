@@ -23,7 +23,7 @@ UPSTREAM_SKILLS = (
     "grilling",
     "writing-for-agents",
 )
-LOCAL_SKILLS = ("next-slice", "show-me", "finish-work")
+LOCAL_SKILLS = ("next-slice", "show-me", "finish-work", "simplify-repository")
 RECEIPT = ".repo-kit-skills.json"
 
 

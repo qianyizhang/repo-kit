@@ -1,13 +1,13 @@
 # repo-kit
 
 Shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
-governance template. `skills/` owns the nine-skill bundle; `template/` owns
+governance template. `skills/` owns the ten-skill bundle; `template/` owns
 portable governance. Root [CLAUDE.md](CLAUDE.md) governs maintenance here.
 
 ## Shared skills
 
-Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, and `finish-work` are
-installed once for your user account. From this repository:
+Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, `finish-work`, and
+`simplify-repository` are installed once for your user account. From this repository:
 
 ```sh
 python3.12 scripts/skills.py diff

@@ -1,0 +1,14 @@
+interface:
+  display_name: Simplify Repository
+  short_description: Reduce maintenance burden with evidence-backed cleanup
+  default_prompt: Use $simplify-repository to simplify this repository while preserving
+    its behavior and public contracts.
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  products:
+  - chatgpt
+  - codex
+  - api
+  - atlas
+  allow_implicit_invocation: true
