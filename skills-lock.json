@@ -22,6 +22,10 @@
     "show-me/SKILL.md": "32ad01a2979eac1c6a997ff2828638420dd00e288c517aecb62763f74014a25b",
     "show-me/agents/openai.yaml": "c216589d775636524ef464bfa67339aa659807697632d31e7a2f7220e243deda",
     "show-me/references/data-transformations.md": "28635a9f9184ebcc600ee31ca05d429152a3abaaea706a97806ae9707f68e119",
+    "simplify-repository/SKILL.md": "a51eea7a6c0fe57eb40b06773458af2a0a4a04d02c49c377497e1dab4b70728b",
+    "simplify-repository/agents/openai.yaml": "27eab88f6d984ed5873e355f75eb03fe6bda0081874d4a62d253d2701e4ce6c7",
+    "simplify-repository/assets/icon.svg": "72343cc4b66256ae7de8474c7cad14e711ad84a94c473732a44f96a56124c42d",
+    "simplify-repository/references/principles.md": "124c2ed2a22246c01781d9d1a0bf715a3487d9af7f34044e8dbce7f2b791866e",
     "writing-for-agents/SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
     "writing-for-agents/SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
     "writing-for-agents/agents/openai.yaml": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
@@ -35,7 +39,8 @@
     "grilling",
     "writing-for-agents",
     "next-slice",
-    "show-me"
+    "show-me",
+    "simplify-repository"
   ],
   "upstream": {
     "files": {
