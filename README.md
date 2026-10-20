@@ -31,6 +31,9 @@ architecture stays in the target repository. Plugin builds and dependencies are 
 from shared skills and Copier. See its [installation and
 checks](plugins/repo-workbench/README.md).
 
+Track deferred desktop/manual acceptance and the final fix round in the
+[collective migration checklist](docs/migrations/repo-workbench.md).
+
 ## Ownership contract
 
 Among paths delivered by `template/`, those outside Copier's `_skip_if_exists`

@@ -32,9 +32,11 @@ npm install --save-dev /absolute/repo-kit-workbench-0.1.0.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
-Setup writes the repository's `.agents/plugins/marketplace.json`, pointing at its local npm installation. It prints an `enable` object: merge its `toml` snippet into its `file` (`.codex/config.toml`), preserving other configuration. Then open the trusted repository in Codex and refresh plugins or start a fresh chat. Repo setup does not run or recommend the user-wide CLI activation commands above. Keep the catalog, project enablement, and npm lockfile in source control if sharing setup.
+Setup merges the repository's `.agents/plugins/marketplace.json` and `.codex/config.toml`. It enables the repository's package and disables other `repo-workbench@…` identities found in the user or project configuration **only for this project**. User configuration is read from `$CODEX_HOME/config.toml` (default `~/.codex/config.toml`) and is never changed. Unrelated plugins/settings and existing comments are preserved. Run setup again after adding another user-level Workbench installation; it is idempotent.
 
-New repo catalogs receive distinct names so two repositories can use different package versions without sharing a plugin identity. Existing catalog names are preserved. Codex still caches installed files at user scope; activation belongs to the trusted project's configuration. An existing user-wide installation remains enabled independently; repo setup does not disable it.
+New repo catalogs receive distinct names. Existing names are preserved; a name shared with a user Workbench identity is rejected with instructions to choose a distinct name. Invalid TOML, unsupported inline/dotted plugin layouts, symlinked configuration paths, or concurrent file changes stop setup instead of replacing unrelated settings. Changed existing files are backed up in a private OS temporary directory printed as `backup`; retain that path if recovery is needed. Both files are validated first, and each is replaced atomically. An interruption between the two replacements is recoverable by rerunning setup; the pair is not a filesystem transaction.
+
+Keep the catalog, project enablement, and npm lockfile in source control if sharing setup. Codex loads project settings only in trusted repositories. Open the trusted repository and refresh plugins or start a fresh chat; the runtime cache remains user-scoped. **Effective configuration and catalog discovery are verified with CLI 0.147.0; automatic materialization/activation is not yet verified.** Its model-free refresh still reported `installed=false` and `enabled=false`. The collective checklist in repo-kit at `docs/migrations/repo-workbench.md` tracks native activation, restart-dependent acceptance, and the final fix round. Do not use user-wide `plugin add` as a workaround for repo-only activation.
 
 For a Markdown-only repository that should not acquire a root npm manifest, install with `npm install --prefix .cache/repo-workbench-runtime /absolute/package.tgz --ignore-scripts`, then invoke that installation's CLI with `setup --scope repo --repo /absolute/repo`. This runtime cache can be recreated; the saved architecture is elsewhere.
 
@@ -72,6 +74,8 @@ A curated case declares `assetRoot`, `captureSubjects`, and `captureViews` (view
 ## Maintain and verify
 
 `npm run check` covers formatting, typed lint, types, synthetic parser/export/usage tests, repository/MCP tests, and the packaged build. `npm run test:browser` exercises Canvas's hosted/standalone flow and the review/usage journeys. On macOS run browser-launching commands outside the restricted sandbox from the first launch; the startup guard uses disposable Chrome profiles and stops on startup failure.
+
+The optional `REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node --test tests/codex.test.ts` checks native configuration precedence, catalog isolation and package rediscovery after server restart. It uses a disposable Codex configuration and starts no model turn; desktop activation remains a separate check.
 
 Build before tests because runtime renderers use the same prebuilt assets delivered to users. Run `npm run test:package` to pack and install into a fresh temporary consumer with lifecycle scripts disabled, then verify the CLI, MCP resource, two repositories, and offline export without this source checkout's dependencies.
 

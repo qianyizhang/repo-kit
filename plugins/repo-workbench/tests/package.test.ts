@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, writeFile, rm, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, realpath, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -31,6 +31,10 @@ void test('packed npm installation runs independently with scripts disabled and 
       },
     ),
   ) as { filename: string }[];
+  const codexHome = resolve(temporary, 'codex-home');
+  await mkdir(codexHome);
+  const userConfiguration = '[plugins."repo-workbench@user-test"]\nenabled = true\n';
+  await writeFile(resolve(codexHome, 'config.toml'), userConfiguration);
   const consumer = resolve(temporary, 'consumer');
   await mkdir(consumer);
   execFileSync(
@@ -94,6 +98,7 @@ void test('packed npm installation runs independently with scripts disabled and 
       cwd: consumer,
     }),
   );
+  let lastContext: string | undefined;
   try {
     const resources = await client.readResource({ uri: 'ui://repo-canvas/workbench-v2.html' });
     assert.ok(
@@ -104,6 +109,7 @@ void test('packed npm installation runs independently with scripts disabled and 
     for (const repo of repos) {
       const opened = await client.callTool({ name: 'canvas_open', arguments: { repo } });
       const { contextId } = opened.structuredContent as { contextId: string };
+      lastContext = contextId;
       const result = await client.callTool({
         name: 'canvas_app',
         arguments: { contextId, action: 'state' },
@@ -139,14 +145,97 @@ void test('packed npm installation runs independently with scripts disabled and 
     const setup = JSON.parse(
       execFileSync(process.execPath, [cli, 'setup', '--scope', 'repo', '--repo', consumer], {
         cwd: temporary,
+        env: { ...process.env, CODEX_HOME: codexHome },
         encoding: 'utf8',
       }),
-    ) as { marketplace: string; register?: unknown; enable: { file: string; toml: string } };
+    ) as { marketplace: string; register?: unknown; enable: { file: string; disabled: string[] } };
     assert.equal(setup.marketplace, resolve(consumer, '.agents/plugins/marketplace.json'));
     assert.equal(setup.register, undefined);
     assert.equal(setup.enable.file, resolve(consumer, '.codex/config.toml'));
-    assert.match(setup.enable.toml, /enabled = true/);
+    assert.match(await readFile(setup.enable.file, 'utf8'), /enabled = true/);
+    assert.deepEqual(setup.enable.disabled, ['repo-workbench@user-test']);
+    assert.equal(await readFile(resolve(codexHome, 'config.toml'), 'utf8'), userConfiguration);
   } finally {
     await client.close();
+  }
+
+  const savedMaps = await Promise.all(
+    repos.map((repo) => readFile(resolve(repo, '.repo-canvas/architecture.json'))),
+  );
+  const savedConfig = await readFile(resolve(consumer, '.codex/config.toml'));
+  const candidate = resolve(temporary, 'upgrade');
+  await cp(installed, candidate, { recursive: true });
+  for (const name of ['package.json', 'plugin.json']) {
+    const file = resolve(candidate, name);
+    const manifest = JSON.parse(await readFile(file, 'utf8')) as { version: string };
+    manifest.version = '0.1.1-test';
+    await writeFile(file, JSON.stringify(manifest));
+  }
+  const upgraded = JSON.parse(
+    execFileSync(
+      npm,
+      [
+        'pack',
+        '--ignore-scripts',
+        '--json',
+        '--pack-destination',
+        temporary,
+        '--cache',
+        resolve(temporary, 'npm-cache'),
+      ],
+      { cwd: candidate, encoding: 'utf8' },
+    ),
+  ) as { filename: string }[];
+  execFileSync(
+    npm,
+    [
+      'install',
+      '--prefix',
+      consumer,
+      resolve(temporary, upgraded[0].filename),
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--offline',
+      '--cache',
+      resolve(temporary, 'npm-cache'),
+    ],
+    { encoding: 'utf8' },
+  );
+  assert.equal(
+    (JSON.parse(await readFile(resolve(installed, 'plugin.json'), 'utf8')) as { version: string })
+      .version,
+    '0.1.1-test',
+  );
+  assert.deepEqual(await readFile(resolve(consumer, '.codex/config.toml')), savedConfig);
+  const restarted = new Client({ name: 'upgraded-consumer', version: '1' });
+  await restarted.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve(installed, 'dist/canvas-server.mjs')],
+      cwd: consumer,
+    }),
+  );
+  try {
+    const stale = await restarted.callTool({
+      name: 'canvas_app',
+      arguments: { contextId: lastContext, action: 'state' },
+    });
+    assert.equal(stale.isError, true);
+    for (const [index, repo] of repos.entries()) {
+      const opened = await restarted.callTool({ name: 'canvas_open', arguments: { repo } });
+      const { contextId } = opened.structuredContent as { contextId: string };
+      const state = await restarted.callTool({
+        name: 'canvas_app',
+        arguments: { contextId, action: 'state' },
+      });
+      assert.equal((state.structuredContent as { value: Snapshot }).value.document.title, repo);
+      assert.deepEqual(
+        await readFile(resolve(repo, '.repo-canvas/architecture.json')),
+        savedMaps[index],
+      );
+    }
+  } finally {
+    await restarted.close();
   }
 });
