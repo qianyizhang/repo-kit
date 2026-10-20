@@ -1,8 +1,10 @@
 # repo-kit
 
 Shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
-governance template. `skills/` owns the ten-skill bundle; `template/` owns
-portable governance. Root [CLAUDE.md](CLAUDE.md) governs maintenance here.
+governance template, plus the optional [Repo Workbench
+plugin](plugins/repo-workbench/README.md). `skills/` owns the ten-skill bundle;
+`template/` owns portable governance; `plugins/` owns executable development tools. Root
+[CLAUDE.md](CLAUDE.md) governs maintenance here.
 
 ## Shared skills
 
@@ -21,11 +23,20 @@ Shared skills are no longer copied by Copier. Project-specific skills stay local
 The [core model](docs/models.md) and [decision records](docs/adr/) explain how
 Candidates, Campaigns, the portable product, and consumer bindings relate.
 
+## Repo Workbench
+
+Repo Canvas, recorded-session review, trace reading and usage analytics are delivered as
+one standalone npm-compatible plugin. Install at user or repository scope; saved
+architecture stays in the target repository. Plugin builds and dependencies are isolated
+from shared skills and Copier. See its [installation and
+checks](plugins/repo-workbench/README.md).
+
 ## Ownership contract
 
 Among paths delivered by `template/`, those outside Copier's `_skip_if_exists`
 list are kit-managed: portable doctrine, checks and agent bootstrap.
-`copier update` merges template changes against the recorded baseline; review conflicts and local edits before accepting the managed result.
+`copier update` merges template changes against the recorded baseline; review conflicts
+and local edits before accepting the managed result.
 
 True seeds and bindings stay consumer-owned: the consumer constitution, index,
 backlog, glossary and local configuration. Copier

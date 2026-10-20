@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Codex usage · Offline dashboard</title>
+    <!--USAGE_STYLE-->
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <div>
+          <h1>Codex usage</h1>
+          <p id="updated">Offline usage dashboard</p>
+        </div>
+        <div class="actions">
+          <span class="status"><span class="dot"></span>Local session logs</span
+          ><button id="refresh">Refresh logs</button><button id="export">Export CSV</button>
+        </div>
+      </header>
+      <nav class="tabs" aria-label="Dashboard views">
+        <button data-tab="overview" class="active">Overview</button
+        ><button data-tab="pricing">Pricing</button><button data-tab="sources">Sources</button>
+      </nav>
+      <div id="message" role="status"></div>
+      <section id="overview">
+        <div class="filters">
+          <label>From<input type="date" id="from" /></label
+          ><label>Through<input type="date" id="to" /></label>
+          <label
+            >Model<select id="model">
+              <option value="">All models</option>
+            </select></label
+          ><label
+            >Project<select id="project">
+              <option value="">All projects</option>
+            </select></label
+          ><label
+            >Effort<select id="effort">
+              <option value="">All efforts</option>
+            </select></label
+          >
+          <label
+            >Time zone<select id="timezone">
+              <option value="Asia/Shanghai">Asia/Shanghai</option>
+              <option value="UTC">UTC</option>
+            </select></label
+          >
+          <label
+            >Search<input type="search" id="search" placeholder="Session, model or project"
+          /></label>
+          <div class="presets">
+            <button data-range="7">7 days</button><button data-range="30">30 days</button
+            ><button data-range="all">All time</button><button id="reset">Reset</button>
+          </div>
+        </div>
+        <div id="coverage" class="notice" hidden></div>
+        <div class="filters">
+          <label
+            class="toggle"
+            title="Hide sessions whose metered records all use codex-auto-review. Mixed-model sessions stay visible."
+            ><input id="ignore-auto-review" type="checkbox" checked />Ignore auto-review
+            sessions</label
+          >
+        </div>
+        <div class="kpis">
+          <div class="card kpi">
+            <span class="label">Total tokens</span><strong id="total">—</strong
+            ><span class="sub" id="token-sub"></span>
+          </div>
+          <div class="card kpi">
+            <span class="label">Usage events</span><strong id="events">—</strong
+            ><span class="sub" id="event-sub"></span>
+          </div>
+          <div class="card kpi">
+            <span class="label">Input cache share</span><strong id="cache">—</strong
+            ><span class="sub" id="cache-sub"></span>
+          </div>
+          <div class="card kpi">
+            <span class="label">Reasoning share of output</span><strong id="reasoning">—</strong
+            ><span class="sub" id="reasoning-sub"></span>
+          </div>
+          <div class="card kpi">
+            <span class="label">API-equivalent estimate · USD</span><strong id="cost">—</strong
+            ><span class="sub" id="cost-sub"></span>
+          </div>
+        </div>
+        <div class="grid">
+          <section class="card">
+            <div class="chart-head">
+              <div>
+                <h2>Daily usage</h2>
+                <p class="caption">Click a day to inspect its usage.</p>
+              </div>
+              <select id="measure" aria-label="Trend measure">
+                <option value="tokens">Tokens</option>
+                <option value="events">Usage events</option>
+                <option value="cost">Estimated USD</option>
+                <option value="reasoning">Reasoning / output · %</option>
+              </select>
+            </div>
+            <div class="chart" id="trend"></div>
+            <div id="legend" class="legend"></div>
+          </section>
+          <section class="card">
+            <h2>Activity</h2>
+            <p class="caption" id="activity-caption"></p>
+            <div id="heatmap" class="heatmap"></div>
+            <div class="heat-labels"><span id="heat-start"></span><span id="heat-end"></span></div>
+            <div class="legend">
+              <span>Less</span><i style="background: #edf1ec"></i><i style="background: #d0e5d5"></i
+              ><i style="background: #94bfa3"></i><i style="background: #57956d"></i
+              ><i style="background: #276344"></i><span>More tokens</span>
+            </div>
+            <details>
+              <summary>Token accounting</summary>
+              <p class="caption">
+                Total = input + output. Cache read and cache write are included in input; reasoning
+                is included in output. Reasoning share = summed reasoning ÷ summed output, not an
+                average of percentages. Missing reasoning counters make the share a lower bound.
+                Input cache share = cache read ÷ input. Response records take precedence over legacy
+                snapshots in the same session.
+              </p>
+            </details>
+          </section>
+        </div>
+        <div class="breakdowns">
+          <section class="card">
+            <h2>By model</h2>
+            <p class="caption">Total tokens · click to filter</p>
+            <div id="models" class="bars"></div>
+          </section>
+          <section class="card">
+            <h2>By project</h2>
+            <p class="caption">Total tokens · click to filter</p>
+            <div id="projects" class="bars"></div>
+          </section>
+          <section class="card">
+            <h2>By effort</h2>
+            <p class="caption">Tokens and reasoning share · click to filter</p>
+            <div id="efforts" class="bars"></div>
+          </section>
+        </div>
+        <section class="card full">
+          <div class="chart-head">
+            <div>
+              <h2>Sessions</h2>
+              <p class="caption">
+                Click a column header to sort. Click a row to inspect its source files and exact
+                accounting records; Enter and Space also open it.
+              </p>
+            </div>
+            <span id="session-count" class="caption"></span>
+          </div>
+          <div id="sessions" class="table-wrap"></div>
+          <div class="pager">
+            <button id="previous">Previous</button><span id="page-count"></span
+            ><button id="next">Next</button>
+          </div>
+        </section>
+      </section>
+      <section id="pricing" hidden class="card full">
+        <h2>Model pricing</h2>
+        <p class="price-help">
+          Current Standard API rates apply to all history.
+          <a id="price-source" target="_blank" rel="noreferrer"></a>. You can override rates in
+          <b>USD per million tokens</b>. Estimates use uncached input, cache read, cache write and
+          output separately. A blank model remains unpriced; unknown prices are never treated as
+          free. These are API-equivalent estimates, not subscription charges or provider invoices.
+          Prices stay in this browser and can be exported. Above 272K input tokens, eligible models
+          use 2× input/cache rates and 1.5× output. Processing-tier and region premiums are not
+          inferred. For older models with unpublished cache-write pricing, the displayed 0 only
+          applies when no writes are recorded; records with writes stay unpriced. GPT-5.6 Sol uses
+          the current promotional rate (available at least through November 21, 2026).
+        </p>
+        <div class="tools">
+          <button id="save-prices">Save prices</button
+          ><button id="reset-prices">Restore official rates</button
+          ><button id="export-prices">Export pricing JSON</button
+          ><button id="import-prices">Import pricing JSON</button
+          ><input id="price-file" type="file" accept=".json,application/json" hidden />
+        </div>
+        <div id="price-table" class="table-wrap"></div>
+        <p class="caption" id="price-status" role="status"></p>
+      </section>
+      <section id="sources" hidden class="card full">
+        <h2>Sources and coverage</h2>
+        <p class="price-help">
+          This report contains usage counters and source metadata only. It excludes prompts, message
+          bodies, tool arguments, credentials and private reasoning. Refresh reads the configured
+          roots; it never modifies the source logs. Generated HTML, JSON and CSV contain local paths
+          and usage metadata.
+        </p>
+        <p class="caption">
+          Counter warnings mean the recorded input + output differs from total_tokens. They do not
+          indicate failed requests. Only the inconsistent snapshot is excluded; valid records in the
+          same session remain counted. Zero-component notices with a positive total are not assigned
+          invented input/output. An absent metered record means no supported usage was found in that
+          file.
+        </p>
+        <div id="source-summary" class="tools"></div>
+        <details>
+          <summary id="gap-label">Coverage gaps</summary>
+          <div id="gap-summary" class="caption"></div>
+          <div id="gaps" class="sources-list"></div>
+        </details>
+        <details>
+          <summary id="source-label">Source files</summary>
+          <div id="source-list" class="sources-list"></div>
+        </details>
+      </section>
+      <footer class="footer">
+        <span id="footer-count"></span><span>Offline analysis · no provider API calls</span>
+      </footer>
+    </main>
+    <div
+      id="evidence"
+      class="evidence"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="evidence-title"
+    >
+      <div class="drawer">
+        <button class="close" id="close-evidence">Close</button>
+        <h2 id="evidence-title">Usage evidence</h2>
+        <div id="evidence-content"></div>
+      </div>
+    </div>
+    <div id="tooltip" hidden></div>
+    <!--USAGE_DATA-->
+    <!--USAGE_RUNTIME-->
+  </body>
+</html>

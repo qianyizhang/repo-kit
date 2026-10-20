@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "repo-workbench",
+  "version": "0.1.0",
+  "description": "Explore repository architecture and review recorded coding sessions locally.",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true,
+      "interface": {
+        "displayName": "Repo Workbench",
+        "shortDescription": "Architecture canvas and session review"
+      }
+    }
+  }
+}

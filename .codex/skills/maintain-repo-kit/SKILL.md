@@ -12,8 +12,8 @@ document_class: artifact
 
 Read root `CLAUDE.md` first. Keep local Git topology, consumer evidence, and
 external ideas separate. All enter as Candidates; only explicit promotion
-changes the shared `skills/` bundle or governance `template/`. Consumer bindings
-remain consumer authority.
+changes the shared `skills/` bundle, governance `template/`, or optional
+executable `plugins/`. Consumer bindings remain consumer authority.
 
 Use a Campaign only when a destination spans sessions and material fog must be
 revisited. It links the frontier, work, evidence, learning, and decisions while
@@ -60,7 +60,8 @@ Compare each consumer against the `_commit` in `.copier-answers.yml`:
 - a consumer-only skill is not automatically a kit candidate.
 
 For a portable Candidate, identify its commit and rationale, recreate the
-minimal change in its product owner (`skills/` or `template/`), and verify it here.
+minimal change in its product owner (`skills/`, `template/`, or `plugins/`),
+and verify it here.
 Never copy a dirty snapshot.
 Keep local vocabulary, paths, authority, and source identity downstream.
 

@@ -2,13 +2,13 @@
 description: Core concepts and relationships governing repo-kit's evolution and distribution.
 scope: repo-kit core model
 status: stable
-last_update: 2026-10-14
+last_update: 2026-10-20
 document_class: coordination
 ---
 
 # Repo-kit core model
 
-Repo-kit owns a shared skill bundle and a separate governance template, without
+Repo-kit owns shared skills, a separate governance template, and optional executable plugins, without
 taking authority from project-specific rules or evidence.
 
 ## Product boundary
@@ -16,13 +16,15 @@ taking authority from project-specific rules or evidence.
 | Concept | Role | Authority |
 | --- | --- | --- |
 | **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
-| **Shared skills** | Nine skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
+| **Shared skills** | Ten skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
 | **Governance template** | Files intentionally exported from `template/` through Copier. | Repo-kit. |
+| **Executable plugin** | Prebuilt Repo Workbench package in `plugins/repo-workbench/`, installed through npm and a user/repo plugin catalog. | Repo-kit owns tool behavior; target repositories own maps, case definitions and evidence. |
 | **Consumer binding** | Repository-specific language, paths, policy, and verification. | That consumer. |
 
 ```text
 Candidate -- explicit promotion --> skills/ -- standalone sync --> user installation
 Candidate -- explicit promotion --> template/ -- Copier --> governance consumer
+Candidate -- explicit promotion --> plugins/ -- npm/plugin catalog --> optional tool installation
 Consumer binding -- local meaning and policy -------------> project work
 ```
 
