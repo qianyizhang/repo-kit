@@ -35,3 +35,16 @@ void test('registry canonicalizes, deduplicates, reloads edits, and keeps missin
   assert.deepEqual(await registeredRepositories(file), []);
   assert.ok(await readFile(resolve(repo + '-moved', '.git/HEAD')));
 });
+
+void test('concurrent registrations preserve every repository', async (t) => {
+  const root = await realpath(await mkdtemp(resolve(tmpdir(), 'workbench-registry-concurrent-')));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const file = resolve(root, 'config/repositories.json');
+  const repos = Array.from({ length: 8 }, (_, i) => resolve(root, `repo-${i}`));
+  for (const repo of repos) execFileSync('git', ['init', '-q', repo]);
+  await Promise.all(repos.map((repo) => registerRepository(repo, undefined, file)));
+  assert.deepEqual(
+    (await registeredRepositories(file)).map((entry) => entry.path).sort(),
+    repos.sort(),
+  );
+});

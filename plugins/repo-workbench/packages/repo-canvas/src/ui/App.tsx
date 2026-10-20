@@ -17,6 +17,7 @@ import {
   prepareHost,
   resolveRepositoryFromChat,
   repositoryChoices,
+  rememberRepository,
 } from './host';
 import type { RegisteredRepository } from '../../../runtime/repositories';
 
@@ -26,6 +27,9 @@ export function App() {
   const [connecting, setConnecting] = useState(false);
   const [choices, setChoices] = useState<RegisteredRepository[]>([]);
   const [catalogError, setCatalogError] = useState('');
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [repositoryFilter, setRepositoryFilter] = useState('');
+  const [deliveryWarning, setDeliveryWarning] = useState('');
   const askedChat = useRef(false);
   const [session, setSession] = useState<Session | null>(null),
     [document, setDocument] = useState<Architecture | null>(null);
@@ -60,6 +64,10 @@ export function App() {
       }
       setNeedsRepository(false);
       data.document = parseDocument(data.document);
+      if (hosted)
+        void rememberRepository().catch(() => {
+          setNotice('Opened this repository, but could not remember it on this device.');
+        });
       if (recover) {
         try {
           const transferred = hosted ? await request<unknown>('draft_read', data.token) : null;
@@ -121,8 +129,9 @@ export function App() {
   const connectChat = useCallback(async () => {
     setConnecting(true);
     setError('');
+    setDeliveryWarning('');
     try {
-      if (await resolveRepositoryFromChat()) await load(true);
+      if (await resolveRepositoryFromChat(setDeliveryWarning)) await load(true);
     } catch (error) {
       setError(error instanceof Error ? error.message : String(error));
     } finally {
@@ -146,6 +155,8 @@ export function App() {
         }
       } catch (error) {
         if (active) setCatalogError(error instanceof Error ? error.message : String(error));
+      } finally {
+        if (active) setCatalogLoading(false);
       }
     };
     void refresh();
@@ -162,6 +173,17 @@ export function App() {
   async function chooseRepository(path: string) {
     setError('');
     try {
+      if (!hosted) {
+        const response = await fetch('/api/repositories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+        const entry = (await response.json()) as RegisteredRepository & { error?: string };
+        if (!response.ok) throw new Error(entry.error ?? 'Cannot add repository');
+        location.assign(`/canvas/${entry.id}/`);
+        return;
+      }
       await openRepository(path);
       await load(true);
     } catch (error) {
@@ -206,6 +228,7 @@ export function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       const revision = state.current.revision;
+      if (!revision) return;
       void request<Session>('state')
         .then((data) => {
           setSession((previous) =>
@@ -282,7 +305,8 @@ export function App() {
         <h1>Repo Canvas</h1>
         {needsRepository ? (
           <>
-            <p>
+            <p className="connection-status" role="status">
+              {connecting && <span className="connection-spinner" aria-hidden="true" />}
               {hosted
                 ? connecting
                   ? 'Connecting to this chat’s repository…'
@@ -291,60 +315,87 @@ export function App() {
             </p>
             {connecting && (
               <p className="connection-hint">
-                This chat will supply the path. You can also choose a repository below.
+                {deliveryWarning ||
+                  'Waiting for this chat to supply the path. You can also choose a repository below.'}
               </p>
             )}
             {error && <p role="alert">{error}</p>}
             {hosted && !connecting && (
               <button onClick={() => void connectChat()}>Use this chat’s repository</button>
             )}
+            <h2 className="repository-heading">Saved repositories</h2>
+            <p className="connection-hint">Repositories you open are remembered on this device.</p>
+            {catalogLoading && <p role="status">Loading saved repositories…</p>}
+            {!catalogLoading && !catalogError && choices.length === 0 && (
+              <p>No saved repositories yet. Open a folder below to add the first one.</p>
+            )}
+            {choices.length > 0 && (
+              <label>
+                Find a repository
+                <input
+                  type="search"
+                  value={repositoryFilter}
+                  onChange={(event) => setRepositoryFilter(event.target.value)}
+                  placeholder="Name or path"
+                />
+              </label>
+            )}
             {choices.length > 0 && (
               <div className="repository-choices" aria-label="Registered repositories">
-                {choices.map((entry) => (
-                  <button
-                    key={entry.id}
-                    disabled={!entry.available}
-                    onClick={() =>
-                      hosted
-                        ? void chooseRepository(entry.path)
-                        : location.assign(`/canvas/${entry.id}/`)
-                    }
-                  >
-                    <strong>{entry.name}</strong>
-                    <code>{entry.path}</code>
-                    {!entry.available && <span>Unavailable</span>}
-                  </button>
-                ))}
+                {choices
+                  .filter((entry) =>
+                    `${entry.name} ${entry.path}`
+                      .toLowerCase()
+                      .includes(repositoryFilter.toLowerCase()),
+                  )
+                  .map((entry) => (
+                    <button
+                      key={entry.id}
+                      disabled={!entry.available}
+                      onClick={() =>
+                        hosted
+                          ? void chooseRepository(entry.path)
+                          : location.assign(`/canvas/${entry.id}/`)
+                      }
+                    >
+                      <strong>{entry.name}</strong>
+                      <code>{entry.path}</code>
+                      {!entry.available && <span>Unavailable</span>}
+                    </button>
+                  ))}
               </div>
             )}
+            {choices.length > 0 &&
+              !choices.some((entry) =>
+                `${entry.name} ${entry.path}`
+                  .toLowerCase()
+                  .includes(repositoryFilter.toLowerCase()),
+              ) && <p>No repositories match your search.</p>}
             {catalogError && <p role="alert">{catalogError}</p>}
-            {hosted ? (
-              <details>
-                <summary>Choose another folder</summary>
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void chooseRepository(repoPath.trim());
-                  }}
-                >
-                  <label>
-                    Repository path
-                    <input
-                      value={repoPath}
-                      onChange={(event) => setRepoPath(event.target.value)}
-                      placeholder="/absolute/path/to/repository"
-                      required
-                    />
-                  </label>
-                  <button type="submit">Open repository</button>
-                </form>
-              </details>
-            ) : (
-              <p>
-                Register a folder with <code>repo-workbench repos add /path/to/repo</code>. This
-                list updates automatically.
-              </p>
-            )}
+            <details>
+              <summary>Add another repository</summary>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void chooseRepository(repoPath.trim());
+                }}
+              >
+                <label>
+                  Repository path
+                  <input
+                    value={repoPath}
+                    onChange={(event) => setRepoPath(event.target.value)}
+                    placeholder="/absolute/path/to/repository"
+                    required
+                  />
+                </label>
+                <button type="submit">Open and remember</button>
+              </form>
+            </details>
+            <p className="connection-hint">
+              This list updates automatically. You can also manage it with{' '}
+              <code>repo-workbench repos</code>.
+            </p>
           </>
         ) : (
           <>

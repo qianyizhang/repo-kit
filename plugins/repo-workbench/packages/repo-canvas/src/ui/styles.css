@@ -1349,3 +1349,49 @@ summary:focus-visible {
   gap: 0.6rem;
   margin-top: 0.8rem;
 }
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.connection-spinner {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--muted);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: connection-spin 0.9s linear infinite;
+}
+@keyframes connection-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .connection-spinner {
+    animation: none;
+  }
+}
+.repository-heading {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1rem;
+}
+.repository-choices {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.loading {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+}
+.loading input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+.loading form button {
+  justify-self: start;
+}

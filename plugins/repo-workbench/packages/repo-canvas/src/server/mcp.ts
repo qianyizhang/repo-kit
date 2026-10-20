@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { operate } from './operations.ts';
 import { operations, type Operation } from '../model/operations.ts';
-import { registeredRepositories } from '../../../runtime/repositories.ts';
+import { registeredRepositories, registerRepository } from '../../../runtime/repositories.ts';
 import { APP_URI, appResource } from './app-resource.ts';
 
 export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository): McpServer {
@@ -30,13 +30,19 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
     contexts.set(context.id, context);
     return context;
   }
+  // A live panel renews its lease; a sleeping/closed panel has 30 minutes of grace.
+  const bindingLease = 30 * 60_000;
   const bindings = new Map<string, { expires: number; target?: Context }>();
   function binding(id: string) {
     const value = bindings.get(id);
-    if (!value || value.expires < Date.now()) {
+    if (!value)
+      throw new Error(
+        'Repository request is no longer available. It was cancelled or the server restarted. Use this chat’s repository in the canvas to reconnect.',
+      );
+    if (value.expires < Date.now()) {
       bindings.delete(id);
       throw new Error(
-        'Repository request expired or was cancelled. Open a new request from the canvas.',
+        'Repository request expired after 30 minutes without contact from the panel. Use this chat’s repository in the canvas to reconnect.',
       );
     }
     return value;
@@ -55,7 +61,7 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
     return value;
   }
   const server = new McpServer(
-    { name: 'repo-canvas', version: '0.1.1' },
+    { name: 'repo-canvas', version: '0.1.2' },
     {
       capabilities: { extensions: { 'io.modelcontextprotocol/ui': {} } },
       instructions:
@@ -155,6 +161,7 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
             'open',
             'bootstrap',
             'catalog',
+            'remember',
             'binding_create',
             'binding_read',
             'binding_cancel',
@@ -184,15 +191,21 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
       if (args.action === 'bootstrap')
         return valueResult(fixed ? { contextId: fixed.id, repo: fixed.repository.root } : null);
       if (args.action === 'catalog') return valueResult(await registeredRepositories());
+      if (args.action === 'remember') {
+        await registerRepository(context(args.contextId).repository.root);
+        return valueResult(null);
+      }
       if (args.action === 'binding_create') {
         for (const [id, value] of bindings) if (value.expires < Date.now()) bindings.delete(id);
         if (bindings.size >= 100) throw new Error('Too many pending repository requests.');
         const id = randomUUID();
-        bindings.set(id, { expires: Date.now() + 5 * 60_000 });
+        bindings.set(id, { expires: Date.now() + bindingLease });
         return valueResult({ bindingId: id });
       }
       if (args.action === 'binding_read') {
-        const selected = binding(args.bindingId ?? '').target;
+        const pending = binding(args.bindingId ?? '');
+        pending.expires = Date.now() + bindingLease;
+        const selected = pending.target;
         return valueResult(
           selected ? { contextId: selected.id, repo: selected.repository.root } : null,
         );

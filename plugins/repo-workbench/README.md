@@ -17,7 +17,7 @@ The tarball includes all runtime code and UI assets, with no production dependen
 ### User-wide
 
 ```sh
-npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.1.tgz --ignore-scripts
+npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.2.tgz --ignore-scripts
 "$HOME/.local/share/repo-workbench/node_modules/.bin/repo-workbench" setup --scope user
 ```
 
@@ -28,7 +28,7 @@ Setup merges one entry into `~/.agents/plugins/marketplace.json`, preserving oth
 From the target repository:
 
 ```sh
-npm install --save-dev /absolute/repo-kit-workbench-0.1.1.tgz --ignore-scripts
+npm install --save-dev /absolute/repo-kit-workbench-0.1.2.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
@@ -68,7 +68,9 @@ repo-workbench serve --port 4317
 repo-workbench repos remove /absolute/repo
 ```
 
-The registry lives at `$XDG_CONFIG_HOME/repo-workbench/repositories.json`, defaulting to `~/.config/repo-workbench/repositories.json`. Registration resolves the Git checkout root and deduplicates canonical paths. Removing an entry leaves repository files untouched. The hosted picker and the standalone launch page reload the list every five seconds. Missing folders stay visible as unavailable; active canvases never switch when the list changes.
+Successfully opened embedded canvases remember their repository on this device. Both pickers offer searchable saved repositories and an **Add another repository** form that opens and remembers a folder. No filesystem scan is performed; existing Codex projects can be registered through `repos add`.
+
+The registry lives at `$XDG_CONFIG_HOME/repo-workbench/repositories.json`, defaulting to `~/.config/repo-workbench/repositories.json`. Registration resolves the Git checkout root and deduplicates canonical paths. Concurrent chat/server registrations are serialized; existing display names survive automatic remembering. Removing an entry leaves repository files untouched. The hosted picker and the standalone launch page reload the list every five seconds. Missing folders stay visible as unavailable; active canvases never switch when the list changes.
 
 `serve` starts a loopback-only, headless-capable process without opening a browser or model. Visit its printed URL to select a registered repository. Each repository route keeps its own state and source access, and browser drafts remain tab-local. Removing a registration hides it from new selections; existing server routes remain usable until that server restarts. This is a local trusted-user tool, not an authenticated remote service.
 
@@ -93,3 +95,5 @@ The optional `REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node --test tests
 Build before tests because runtime renderers use the same prebuilt assets delivered to users. Run `npm run test:package` to pack and install into a fresh temporary consumer with lifecycle scripts disabled, then verify the CLI, MCP resource, two repositories, and offline export without this source checkout's dependencies.
 
 Source extracted from Card Workshop commit `2db3b0d` (2026-10-20 review). Project maps, authored case specifications, private session logs, retained evidence, and game policy review remain owned by their repositories. Repo-kit's existing shared skills and Copier governance delivery are independent products.
+
+Connection requests stay valid while the panel polls, with 30 minutes of inactivity grace. Delayed host message acknowledgments do not cancel or resend a request. A spinner indicates waiting; manual selection cancels that ticket so a late reply cannot retarget the panel. Requests remain server-local: a server restart requires a fresh request.

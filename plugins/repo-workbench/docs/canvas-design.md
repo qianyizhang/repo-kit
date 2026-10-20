@@ -72,8 +72,10 @@ binding. Explicit tool targets open directly. Manual selection cancels any pendi
 binding; late answers cannot replace the selected repository. Do not guess a target
 from the plugin process directory or another panel's most recent repository.
 
+Show an accessible status with a reduced-motion-aware spinner while awaiting the chat. A live panel renews its 30-minute request lease, and missing message acknowledgment does not cancel delivery or trigger another message.
+
 Keep registered repositories visible as named choices. Disclose manual path entry
-under “Choose another folder.” A standalone launcher uses the same registered list,
+under “Add another repository.” Successful opens remember the canonical repository; empty lists explain how to add the first entry. Search filters names and paths. A standalone launcher uses the same registered list,
 without offering chat actions. Refresh the list while choosing, preserving targets
 already open. Show “Retry loading map” only after a selected repository fails to
 load; an empty selection is not an error and has no Retry button.

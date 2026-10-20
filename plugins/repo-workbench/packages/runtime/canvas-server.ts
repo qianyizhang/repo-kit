@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { asset } from './assets.ts';
-import { registeredRepositories } from './repositories.ts';
+import { registeredRepositories, registerRepository } from './repositories.ts';
 import { apiMiddleware } from '../repo-canvas/src/server/api.ts';
 /** One loopback launcher; each registered route keeps its own repository and bridge. */
 export async function canvasServer() {
@@ -29,6 +29,19 @@ export async function canvasServer() {
       }
       if (url.pathname === '/api/repositories' && req.method === 'GET') {
         json(await registeredRepositories());
+        return;
+      }
+      if (url.pathname === '/api/repositories' && req.method === 'POST') {
+        let body = '';
+        for await (const chunk of req) {
+          body += String(chunk);
+          if (body.length > 8192) throw new Error('Repository path is too long');
+        }
+        const value = JSON.parse(body) as { path?: unknown };
+        if (typeof value.path !== 'string' || !value.path.startsWith('/'))
+          throw new Error('Provide an absolute repository path');
+        const path = await registerRepository(value.path);
+        json((await registeredRepositories()).find((entry) => entry.path === path));
         return;
       }
       const sendHtml = () => {

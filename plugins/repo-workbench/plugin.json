@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "repo-workbench",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Explore repository architecture and review recorded coding sessions locally.",
   "extensions": {
     "com.openai": {

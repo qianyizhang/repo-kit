@@ -130,3 +130,50 @@ were inspected. The installed user runtime and plugin cache match the new build.
 The current chat still has the older tool set; native `canvas_bind` and automatic
 menu launch remain pending a host refresh. Existing draft and pending acceptance
 proposal were not changed by this update.
+
+## Acceptance finding: waiting requests and saved repositories
+
+Native v0.1.1 follow-up: binding `f75c967e-dda3-4fd2-8770-b4b78b453ef4`
+successfully connected the existing panel to project-index. Its subsequent
+request `6e76de6d-049c-46c7-aa5d-57adc15cab33` was read and received a lifecycle
+map proposal. This verifies the live handoff and discussion route, not Save or
+restart recovery.
+
+The user then reported a lost connection request and an empty picker in another
+chat. Source review identified three relevant defects: a fixed five-minute
+binding lifetime; a 30-second `ui/message` acknowledgment timeout that cancelled
+the ticket even when delivery was uncertain; and map refresh polling before a
+repository was connected, producing a misleading missing-repository error.
+The screenshot alone cannot distinguish expiry from cancellation/server loss.
+
+The v0.1.2 fix renews a 30-minute inactivity lease while the panel polls, keeps
+polling independently of acknowledgment, shows a waiting spinner, and defers map
+refresh until a repository session exists. Manual selection still cancels the
+ticket. A server restart still invalidates in-memory tickets and requires a fresh
+request; that condition now has a distinct message from expiry.
+
+The registry existed but had no entries. Registered 22 unique local Git projects
+from Codex's saved-project inventory in the user's registry; repository files
+were untouched. Successful embedded opens now remember their repository in the
+background. Both launchers provide search, an explicit empty state, and an add
+folder form; separate chat/server writes serialize updates to avoid losing entries.
+
+- [ ] At the next coordinated host refresh, verify v0.1.2's spinner, saved-repo
+  choices, and successful connection after a busy main chat takes over 30 seconds.
+- [ ] Confirm native manual selection wins over a delayed chat reply and that a
+  newly opened repository appears in another panel's picker.
+
+Keep the earlier proposal Apply/Save, repository-only activation gap, restart
+recovery and final fix-round checks open. This follow-up does not reset those
+acceptance items or require another immediate restart.
+
+Verification for v0.1.2: `npm run check` passed (12 model/MCP tests;
+41 Node tests passed, 2 opt-in/native-loopback skips). All 24 browser journeys
+passed, including a real 30-second missing message acknowledgment followed by
+successful binding, no unbound map-poll error, cancellation on manual selection,
+remembered/searchable entries, standalone add-folder, hot loading and cross-origin
+write rejection. Server tests cover lease renewal beyond the former five-minute
+limit and expiry after inactivity; concurrent registry registration preserves all
+entries. Narrow/desktop waiting-state screenshots were inspected. The packaged
+user installation and Codex cache were upgraded to v0.1.2 and their runtime files
+matched the source build. Native v0.1.2 acceptance remains pending host refresh.

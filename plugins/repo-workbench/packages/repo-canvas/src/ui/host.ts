@@ -22,13 +22,14 @@ const pending = new Map<
 function post(message: object) {
   window.parent.postMessage({ jsonrpc: '2.0', ...message }, '*');
 }
+class HostTimeoutError extends Error {}
 function rpc<T>(method: string, params: unknown): Promise<T> {
   return new Promise((resolve, reject) => {
     const id = ++sequence;
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(
-        new Error(
+        new HostTimeoutError(
           'Codex did not acknowledge the request. Delivery is uncertain; inspect the main chat before sending again.',
         ),
       );
@@ -76,7 +77,7 @@ if (hosted)
 let initialization: Promise<Initialization> | undefined;
 export function initializeHost() {
   initialization ??= rpc<Initialization>('ui/initialize', {
-    appInfo: { name: 'Repo Canvas', version: '0.1.1' },
+    appInfo: { name: 'Repo Canvas', version: '0.1.2' },
     appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
     protocolVersion: '2026-01-26',
   }).then((result) => {
@@ -155,7 +156,9 @@ export async function cancelRepositoryRequest() {
   pendingBinding = undefined;
   if (id) await connectionTool('binding_cancel', { bindingId: id }).catch(() => {});
 }
-export async function resolveRepositoryFromChat(): Promise<boolean> {
+export async function resolveRepositoryFromChat(
+  onDeliveryWarning: (message: string) => void,
+): Promise<boolean> {
   await requireMessaging();
   const current = ++generation;
   const { bindingId } = await connectionTool<{ bindingId: string }>('binding_create');
@@ -165,13 +168,29 @@ export async function resolveRepositoryFromChat(): Promise<boolean> {
   }
   pendingBinding = bindingId;
   try {
-    await sendToChat(
+    // Message acknowledgment can lag behind delivery. Keep polling the same ticket;
+    // never cancel it or resend the message solely because acknowledgment timed out.
+    void sendToChat(
       `Repo Canvas is waiting for this chat's repository. Call canvas_bind with bindingId ${bindingId} and the absolute current working directory from this chat's trusted environment, unless I explicitly requested another repository. This connects the existing waiting panel; do not open another canvas. If the repository is ambiguous, ask me here.`,
-    );
+    ).catch(() => {
+      if (current === generation)
+        onDeliveryWarning(
+          'The chat has not acknowledged the request yet. Still waiting here; check the chat or choose a repository below.',
+        );
+    });
     while (current === generation) {
-      const target = await connectionTool<{ contextId: string } | null>('binding_read', {
-        bindingId,
-      });
+      let target: { contextId: string } | null;
+      try {
+        target = await connectionTool<{ contextId: string } | null>('binding_read', { bindingId });
+      } catch (error) {
+        if (!(error instanceof HostTimeoutError)) throw error;
+        if (current === generation)
+          onDeliveryWarning(
+            'The host is taking longer to respond. Still waiting for this chat; you can choose a repository below.',
+          );
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
       if (current !== generation) return false;
       if (target) {
         contextId = target.contextId;
@@ -189,4 +208,8 @@ export async function resolveRepositoryFromChat(): Promise<boolean> {
 }
 export async function repositoryChoices<T>(): Promise<T> {
   return connectionTool<T>('catalog');
+}
+
+export async function rememberRepository() {
+  return connectionTool('remember', { contextId });
 }

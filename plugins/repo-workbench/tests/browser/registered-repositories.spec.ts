@@ -11,7 +11,7 @@ test('standalone picker hot-loads registrations and preserves already-open repos
   const cli = resolve('dist/cli.mjs');
   const env = { ...process.env, XDG_CONFIG_HOME: resolve(temporary, 'config') };
   const repos = [];
-  for (const name of ['alpha', 'beta']) {
+  for (const name of ['alpha', 'beta', 'gamma']) {
     const repo = resolve(temporary, name);
     await mkdir(repo);
     execFileSync('git', ['init', '-q', repo]);
@@ -66,10 +66,23 @@ test('standalone picker hot-loads registrations and preserves already-open repos
     await expect(fresh.getByRole('button', { name: /^Beta/ })).toBeVisible();
     await opened.reload();
     await expect(opened.locator('.checkout-path')).toHaveText(repos[0]);
+    await fresh.getByText('Add another repository', { exact: true }).click();
+    await fresh.getByLabel('Repository path').fill(repos[2]);
+    await fresh.getByRole('button', { name: 'Open and remember', exact: true }).click();
+    await expect(fresh.locator('.checkout-path')).toHaveText(repos[2]);
+    const finalRegistry = JSON.parse(run('repos', 'list')) as { repositories: { path: string }[] };
+    expect(finalRegistry.repositories.map((entry) => entry.path).sort()).toEqual(
+      repos.slice(1).sort(),
+    );
     const denied = await context.request.get(url + 'api/repositories', {
       headers: { Origin: 'https://unrelated.example' },
     });
     expect(denied.status()).toBe(403);
+    const deniedWrite = await context.request.post(url + 'api/repositories', {
+      headers: { Origin: 'https://unrelated.example' },
+      data: { path: repos[0] },
+    });
+    expect(deniedWrite.status()).toBe(403);
   } finally {
     lines.close();
     child.kill('SIGTERM');

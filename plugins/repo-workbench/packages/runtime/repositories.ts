@@ -1,7 +1,7 @@
 import { homedir } from 'node:os';
 import { resolve, dirname, basename } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
-import { readFile, mkdir, writeFile, rename, realpath } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, rename, realpath, rm, stat } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 export type RegisteredRepository = { id: string; path: string; name: string; available: boolean };
 export function registryFile() {
@@ -64,20 +64,25 @@ export async function registerRepository(path: string, name?: string, file = reg
       stdio: ['ignore', 'pipe', 'pipe'],
     }).trim(),
   );
-  const entries = await records(file);
-  const existing = entries.find((entry) => entry.path === root);
-  if (existing) existing.name = name ?? existing.name;
-  else entries.push({ path: root, name: name ?? basename(root) });
-  await save(entries, file);
+  await updateRegistry(file, async () => {
+    const entries = await records(file);
+    const existing = entries.find((entry) => entry.path === root);
+    if (existing && (name === undefined || name === existing.name)) return;
+    if (existing) existing.name = name ?? existing.name;
+    else entries.push({ path: root, name: name ?? basename(root) });
+    await save(entries, file);
+  });
   return root;
 }
 export async function unregisterRepository(path: string, file = registryFile()) {
   const requested = resolve(path),
     canonical = await realpath(requested).catch(() => requested);
-  await save(
-    (await records(file)).filter((entry) => entry.path !== canonical),
-    file,
-  );
+  await updateRegistry(file, async () => {
+    await save(
+      (await records(file)).filter((entry) => entry.path !== canonical),
+      file,
+    );
+  });
 }
 async function save(entries: Array<{ path: string; name: string }>, file: string) {
   await mkdir(dirname(file), { recursive: true });
@@ -88,4 +93,32 @@ async function save(entries: Array<{ path: string; name: string }>, file: string
     { mode: 0o600, flag: 'wx' },
   );
   await rename(temporary, file);
+}
+
+/** Serialize separate chat/server processes so concurrent opens cannot lose entries. */
+async function updateRegistry(file: string, update: () => Promise<void>) {
+  await mkdir(dirname(file), { recursive: true });
+  const lock = file + '.lock';
+  const deadline = Date.now() + 3000;
+  for (;;) {
+    try {
+      await mkdir(lock);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+      const age = await stat(lock).then(
+        (info) => Date.now() - info.mtimeMs,
+        () => 0,
+      );
+      if (age > 60_000) await rm(lock, { recursive: true, force: true });
+      if (Date.now() >= deadline)
+        throw new Error('Repository registry is busy. Try again shortly.');
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+  try {
+    await update();
+  } finally {
+    await rm(lock, { recursive: true, force: true });
+  }
 }

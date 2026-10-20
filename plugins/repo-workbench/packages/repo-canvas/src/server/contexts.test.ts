@@ -1,4 +1,4 @@
-import { test, expect } from 'vitest';
+import { test, expect, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
@@ -89,6 +89,7 @@ test('two repositories and two canvases in the same repository keep targets, dra
       ).isError,
     ).toBe(true);
   } finally {
+    vi.restoreAllMocks();
     await client.close();
     await server.close();
     roots.forEach((root) => rmSync(root, { recursive: true, force: true }));
@@ -113,6 +114,14 @@ test('repository handoffs bind one waiting panel and reject cancelled or repeate
     const second = (await action('binding_create')).structuredContent as {
       value: { bindingId: string };
     };
+    const now = Date.now();
+    const time = vi.spyOn(Date, 'now').mockReturnValue(now + 6 * 60_000);
+    expect((await action('binding_read', first.value)).isError).not.toBe(true);
+    // A visible panel keeps a lease through long agent work, rather than a fixed TTL.
+    time.mockReturnValue(now + 34 * 60_000);
+    expect((await action('binding_read', first.value)).isError).not.toBe(true);
+    expect((await action('binding_read', second.value)).isError).toBe(true);
+    time.mockRestore();
     const bind = await client.callTool({
       name: 'canvas_bind',
       arguments: { bindingId: first.value.bindingId, repo: root },
@@ -122,7 +131,10 @@ test('repository handoffs bind one waiting panel and reject cancelled or repeate
       value: { contextId: string; repo: string };
     };
     expect(selected.value.repo).toBe(root);
-    expect((await action('binding_read', second.value)).structuredContent).toMatchObject({
+    const third = (await action('binding_create')).structuredContent as {
+      value: { bindingId: string };
+    };
+    expect((await action('binding_read', third.value)).structuredContent).toMatchObject({
       value: null,
     });
     expect(
@@ -133,12 +145,12 @@ test('repository handoffs bind one waiting panel and reject cancelled or repeate
         })
       ).isError,
     ).toBe(true);
-    await action('binding_cancel', second.value);
+    await action('binding_cancel', third.value);
     expect(
       (
         await client.callTool({
           name: 'canvas_bind',
-          arguments: { bindingId: second.value.bindingId, repo: root },
+          arguments: { bindingId: third.value.bindingId, repo: root },
         })
       ).isError,
     ).toBe(true);
@@ -146,6 +158,7 @@ test('repository handoffs bind one waiting panel and reject cancelled or repeate
       (await action('state', { contextId: selected.value.contextId })).structuredContent,
     ).toMatchObject({ value: { repo: root } });
   } finally {
+    vi.restoreAllMocks();
     await client.close();
     await server.close();
     rmSync(root, { recursive: true, force: true });
