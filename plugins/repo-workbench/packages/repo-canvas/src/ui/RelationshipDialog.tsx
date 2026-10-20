@@ -1,5 +1,10 @@
-import { useEffect, useRef } from 'react';
-import type { Architecture, Connection } from '../model/document';
+import { useEffect, useRef, useState } from 'react';
+import {
+  connectionKinds,
+  parseDocument,
+  type Architecture,
+  type Connection,
+} from '../model/document';
 interface Props {
   document: Architecture;
   connections: Connection[];
@@ -9,6 +14,7 @@ interface Props {
 /** Exact relationships remain inspectable even when an edge represents nested modules. */
 export function RelationshipDialog({ document, connections, edit, close }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const [error, setError] = useState('');
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -40,23 +46,51 @@ export function RelationshipDialog({ document, connections, edit, close }: Props
             const label = fields.get('label'),
               description = fields.get('description');
             if (typeof label !== 'string' || typeof description !== 'string') return;
+            const kind = fields.get('kind'),
+              sources = fields.get('sources');
+            if (typeof kind !== 'string' || typeof sources !== 'string') return;
             const next = {
               ...c,
+              kind: kind as Connection['kind'],
+              sources: sources
+                .split('\n')
+                .map((s) => s.trim())
+                .filter(Boolean),
               label: label.trim(),
               description: description.trim(),
             };
             if (!next.label) return;
-            edit({
-              ...document,
-              connections: [...document.connections.filter((edge) => edge.id !== c.id), next],
-            });
-            close();
+            try {
+              edit(
+                parseDocument({
+                  ...document,
+                  connections: document.connections.some((edge) => edge.id === c.id)
+                    ? document.connections.map((edge) => (edge.id === c.id ? next : edge))
+                    : [...document.connections, next],
+                }),
+              );
+              close();
+            } catch (error) {
+              setError(error instanceof Error ? error.message : String(error));
+            }
           }}
         >
           <p className="relationship-endpoints">
             {document.modules.find((m) => m.id === c.from)?.name} <span>→</span>{' '}
             {document.modules.find((m) => m.id === c.to)?.name}
           </p>
+          <label>
+            Relationship type
+            <select
+              name="kind"
+              aria-label="Relationship type"
+              defaultValue={c.kind ?? 'dependency'}
+            >
+              {connectionKinds.map((kind) => (
+                <option key={kind}>{kind}</option>
+              ))}
+            </select>
+          </label>
           <label>
             Relationship label
             <input
@@ -79,10 +113,20 @@ export function RelationshipDialog({ document, connections, edit, close }: Props
               placeholder="What crosses this connection, and why does the dependency exist?"
             />
           </label>
+          <label>
+            Source evidence (repository paths, one per line)
+            <textarea
+              name="sources"
+              aria-label="Relationship sources"
+              rows={2}
+              defaultValue={c.sources?.join('\n') ?? ''}
+            />
+          </label>
           <p className="muted">
             Use a precise verb such as calls, reads, publishes, or shares geometry. Connections stay
             attached as modules move.
           </p>
+          {error && <p role="alert">{error}</p>}
           <footer>
             {document.connections.some((edge) => edge.id === c.id) && (
               <button

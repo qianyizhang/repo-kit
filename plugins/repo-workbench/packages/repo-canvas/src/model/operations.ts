@@ -1,5 +1,9 @@
 /** Existing HTTP routes and MCP action names describe the same canvas operations. */
 export const operations = {
+  view_write: { method: 'PUT', path: 'view' },
+  agent_read: { method: 'GET', path: 'agent' },
+  command_ack: { method: 'POST', path: 'command/ack' },
+  proposal_dismiss: { method: 'POST', path: 'proposal/dismiss' },
   state: { method: 'GET', path: 'state' },
   source: { method: 'GET', path: 'source' },
   save: { method: 'PUT', path: 'state' },

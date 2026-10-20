@@ -9,6 +9,7 @@ import { isAbsolute } from 'node:path';
 import { operate } from './operations.ts';
 import { operations, type Operation } from '../model/operations.ts';
 import { registeredRepositories, registerRepository } from '../../../runtime/repositories.ts';
+import { commandSchema } from './session.ts';
 import { APP_URI, appResource } from './app-resource.ts';
 
 export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository): McpServer {
@@ -179,6 +180,10 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
         selection: z.string().nullable().optional(),
         messages: z.array(z.unknown()).optional(),
         draft: z.unknown().optional(),
+        view: z.unknown().optional(),
+        status: z.string().optional(),
+        message: z.string().optional(),
+        selections: z.array(z.string()).optional(),
       },
       _meta: { ui: { visibility: ['app'] } },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -267,6 +272,73 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
     },
   );
   server.registerTool(
+    'canvas_snapshot',
+    {
+      description:
+        'Read the latest panel-reported semantic state: scope, multi-selection, viewport, panels, draft/conflict, command result and freshness. Include the document before proposing edits. DOM, dialogs and pixels are available through browser tools, not this semantic snapshot.',
+      inputSchema: { contextId: z.string(), includeDocument: z.boolean().optional() },
+      annotations: { readOnlyHint: true, openWorldHint: false },
+    },
+    ({ contextId, includeDocument }) => {
+      const selected = context(contextId);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: JSON.stringify({
+              contextId,
+              repo: selected.repository.root,
+              ...selected.bridge.session.snapshot(includeDocument),
+            }),
+          },
+        ],
+      };
+    },
+  );
+  server.registerTool(
+    'canvas_command',
+    {
+      description:
+        'Queue one reversible view command against an exact snapshot revision. Does not edit or save the map. Read canvas_snapshot again to check applied/rejected status; queuing is not completion.',
+      inputSchema: { contextId: z.string(), expectedRevision: z.string(), command: commandSchema },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    },
+    ({ contextId, expectedRevision, command }) => ({
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(
+            context(contextId).bridge.session.enqueue(expectedRevision, command),
+          ),
+        },
+      ],
+    }),
+  );
+  server.registerTool(
+    'canvas_propose',
+    {
+      description:
+        'Offer a complete map against an exact live snapshot revision, without requiring a side-chat request. Preserves the current draft; the user reviews, applies to draft and saves. Stale proposals cannot apply.',
+      inputSchema: {
+        contextId: z.string(),
+        expectedRevision: z.string(),
+        document: z.record(z.string(), z.unknown()),
+        explanation: z.string().min(1).max(12000),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    },
+    ({ contextId, expectedRevision, document, explanation }) => ({
+      content: [
+        {
+          type: 'text' as const,
+          text: JSON.stringify(
+            context(contextId).bridge.session.propose(expectedRevision, document, explanation),
+          ),
+        },
+      ],
+    }),
+  );
+  server.registerTool(
     'canvas_reply',
     {
       description:
@@ -278,7 +350,7 @@ export function canvasMcp(bridge = new CanvasBridge(), repository?: Repository):
           .record(z.string(), z.unknown())
           .optional()
           .describe(
-            'Optional complete version-1 architecture document with title, modules, connections and annotations. Read the request first to preserve its layout and notes.',
+            'Optional complete version-1 or version-2 architecture document with title, modules, connections and annotations. Read the request first to preserve its layout and notes.',
           ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },

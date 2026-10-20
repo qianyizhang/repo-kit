@@ -1,3 +1,4 @@
+import { CanvasSession } from './session.ts';
 import { randomUUID } from 'node:crypto';
 import { parseReply, parseDocument, type ChatRequest } from '../model/document.ts';
 import type { CanvasExchange } from '../model/bridge.ts';
@@ -10,11 +11,13 @@ function canvasKey(value: unknown): string {
 
 /** A bounded local mailbox. Only the connected agent supplies answers; no model runs here. */
 export class CanvasBridge {
+  readonly session = new CanvasSession();
   private recovery: {
     document: ChatRequest['document'];
     revision: string;
     scope: string;
     selection: string | null;
+    selections?: string[];
   } | null = null;
 
   draft() {
@@ -36,11 +39,21 @@ export class CanvasBridge {
       (data.selection !== null && !document.modules.some((m) => m.id === data.selection))
     )
       throw new Error('Invalid draft context');
+    const selections = data.selections;
+    if (
+      selections !== undefined &&
+      (!Array.isArray(selections) ||
+        selections.length > 500 ||
+        selections.some((id) => !document.modules.some((m) => m.id === id)) ||
+        new Set(selections).size !== selections.length)
+    )
+      throw new Error('Invalid draft selections');
     this.recovery = {
       document,
       revision: data.revision,
       scope: data.scope,
       selection: data.selection as string | null,
+      ...(selections === undefined ? {} : { selections: selections as string[] }),
     };
     return { stored: true };
   }
@@ -73,6 +86,7 @@ export class CanvasBridge {
       status,
       scope: context.scope,
       selection: context.selection,
+      selections: context.selections ?? (context.selection ? [context.selection] : []),
       question: context.messages.at(-1)!.text,
     }));
   }

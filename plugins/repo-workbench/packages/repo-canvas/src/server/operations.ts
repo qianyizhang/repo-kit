@@ -11,6 +11,14 @@ export function operate(
   bridge: CanvasBridge,
 ) {
   switch (action) {
+    case 'view_write':
+      return bridge.session.observe(args.view);
+    case 'agent_read':
+      return bridge.session.inbox();
+    case 'command_ack':
+      return bridge.session.acknowledge(args.id, args.status, args.message);
+    case 'proposal_dismiss':
+      return bridge.session.dismiss(args.id);
     case 'state':
       return repository.snapshot();
     case 'source':

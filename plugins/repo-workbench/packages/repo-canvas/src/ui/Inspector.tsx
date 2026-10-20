@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Architecture, Module } from '../model/document';
+import { moduleKinds, annotationKinds, type Architecture, type Module } from '../model/document';
 import { request } from './api';
 interface Props {
   document: Architecture;
@@ -13,6 +13,7 @@ export function Inspector({ document, module, token, edit, enter, close }: Props
   const [note, setNote] = useState(''),
     [target, setTarget] = useState(''),
     [label, setLabel] = useState('depends on');
+  const [noteKind, setNoteKind] = useState<(typeof annotationKinds)[number]>('note');
   const [preview, setPreview] = useState<{
     path: string;
     content: string;
@@ -34,7 +35,18 @@ export function Inspector({ document, module, token, edit, enter, close }: Props
           ×
         </button>
       </div>
-      <span className="kind-label">{module.kind}</span>
+      <label>
+        Node type
+        <select
+          aria-label="Node type"
+          value={module.kind}
+          onChange={(e) => update({ kind: e.target.value as Module['kind'] })}
+        >
+          {moduleKinds.map((kind) => (
+            <option key={kind}>{kind}</option>
+          ))}
+        </select>
+      </label>
       <label>
         Name
         <input
@@ -169,7 +181,7 @@ export function Inspector({ document, module, token, edit, enter, close }: Props
           .map((a) => (
             <article className="annotation" key={a.id}>
               <span>
-                {a.author === 'human' ? 'YOU' : 'CODEX'}
+                {a.kind ?? 'note'} · {a.author === 'human' ? 'YOU' : 'CODEX'}
                 <button
                   aria-label="Remove annotation"
                   onClick={() =>
@@ -193,12 +205,27 @@ export function Inspector({ document, module, token, edit, enter, close }: Props
               ...document,
               annotations: [
                 ...document.annotations,
-                { id: crypto.randomUUID(), target: module.id, text: note.trim(), author: 'human' },
+                {
+                  id: crypto.randomUUID(),
+                  target: module.id,
+                  text: note.trim(),
+                  author: 'human',
+                  kind: noteKind,
+                },
               ],
             });
             setNote('');
           }}
         >
+          <select
+            aria-label="Annotation type"
+            value={noteKind}
+            onChange={(e) => setNoteKind(e.target.value as typeof noteKind)}
+          >
+            {annotationKinds.map((kind) => (
+              <option key={kind}>{kind}</option>
+            ))}
+          </select>
           <textarea
             aria-label="Annotation"
             maxLength={12000}

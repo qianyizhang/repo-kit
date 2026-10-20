@@ -1,5 +1,24 @@
 /** The shared document is data, independent of its renderer and agent adapter. */
-export type ModuleKind = 'system' | 'package' | 'module' | 'data' | 'external';
+export const moduleKinds = [
+  'system',
+  'package',
+  'module',
+  'data',
+  'external',
+  'process',
+  'interface',
+  'concept',
+] as const;
+export type ModuleKind = (typeof moduleKinds)[number];
+export const connectionKinds = [
+  'dependency',
+  'data-flow',
+  'control-flow',
+  'evidence',
+  'ownership',
+] as const;
+export type ConnectionKind = (typeof connectionKinds)[number];
+export const annotationKinds = ['note', 'question', 'risk', 'decision'] as const;
 export interface Module {
   id: string;
   parent: string | null;
@@ -16,15 +35,18 @@ export interface Connection {
   to: string;
   label: string;
   description?: string;
+  kind?: ConnectionKind;
+  sources?: string[];
 }
 export interface Annotation {
   id: string;
   target: string;
   text: string;
   author: 'human' | 'agent';
+  kind?: (typeof annotationKinds)[number];
 }
 export interface Architecture {
-  version: 1;
+  version: 1 | 2;
   title: string;
   modules: Module[];
   connections: Connection[];
@@ -44,6 +66,7 @@ export interface ChatRequest {
   document: Architecture;
   scope: string;
   selection: string | null;
+  selections?: string[];
   messages: ChatMessage[];
 }
 export interface ChatReply {
@@ -83,10 +106,10 @@ export function sourcePath(value: unknown): string {
 }
 export function parseDocument(value: unknown): Architecture {
   const data = object(value);
-  if (data.version !== 1) throw new Error('Unsupported architecture version');
+  if (data.version !== 1 && data.version !== 2) throw new Error('Unsupported architecture version');
   const modules = list(data.modules, 500).map((entry): Module => {
     const m = object(entry);
-    if (!['system', 'package', 'module', 'data', 'external'].includes(String(m.kind)))
+    if (!(moduleKinds as readonly string[]).includes(String(m.kind)))
       throw new Error('Unknown module kind');
     if (
       typeof m.x !== 'number' ||
@@ -128,7 +151,11 @@ export function parseDocument(value: unknown): Architecture {
       to = id(c.to);
     if (!ids.has(from) || !ids.has(to) || from === to)
       throw new Error('Invalid connection endpoints');
+    if (c.kind !== undefined && !(connectionKinds as readonly string[]).includes(text(c.kind)))
+      throw new Error('Unknown relationship kind');
     return {
+      ...(c.kind === undefined ? {} : { kind: c.kind as ConnectionKind }),
+      ...(c.sources === undefined ? {} : { sources: list(c.sources, 100).map(sourcePath) }),
       id: id(c.id),
       from,
       to,
@@ -140,7 +167,10 @@ export function parseDocument(value: unknown): Architecture {
     const a = object(entry);
     if (!ids.has(String(a.target)) || !['human', 'agent'].includes(String(a.author)))
       throw new Error('Invalid annotation target or author');
+    if (a.kind !== undefined && !(annotationKinds as readonly string[]).includes(text(a.kind)))
+      throw new Error('Unknown annotation kind');
     return {
+      ...(a.kind === undefined ? {} : { kind: a.kind as Annotation['kind'] }),
       id: id(a.id),
       target: id(a.target),
       text: text(a.text),
@@ -150,7 +180,17 @@ export function parseDocument(value: unknown): Architecture {
   for (const entries of [connections, annotations])
     if (new Set(entries.map((e) => e.id)).size !== entries.length)
       throw new Error('Duplicate identifier');
-  return { version: 1, title: text(data.title, 200), modules, connections, annotations };
+  const extended =
+    modules.some((m) => ['process', 'interface', 'concept'].includes(m.kind)) ||
+    connections.some((c) => c.kind || c.sources) ||
+    annotations.some((a) => a.kind);
+  return {
+    version: data.version === 2 || extended ? 2 : 1,
+    title: text(data.title, 200),
+    modules,
+    connections,
+    annotations,
+  };
 }
 export function parseChat(value: unknown): ChatRequest {
   const data = object(value);
@@ -170,7 +210,13 @@ export function parseChat(value: unknown): ChatRequest {
   });
   if (!messages.length || messages.at(-1)?.role !== 'user')
     throw new Error('A user message is required');
-  return { document, scope, selection, messages };
+  const selections = data.selections === undefined ? undefined : list(data.selections, 500).map(id);
+  if (
+    selections?.some((key) => !document.modules.some((m) => m.id === key)) ||
+    (selections && new Set(selections).size !== selections.length)
+  )
+    throw new Error('Invalid selections');
+  return { document, scope, selection, ...(selections ? { selections } : {}), messages };
 }
 export function parseReply(value: unknown): ChatReply {
   const data = object(value);
@@ -203,6 +249,7 @@ export function visibleConnections(document: Architecture, scope: string): Conne
     const key = `${from}:${to}`;
     const previous = grouped.get(key);
     grouped.set(key, {
+      ...(previous && previous.kind !== c.kind ? {} : c.kind ? { kind: c.kind } : {}),
       id: key,
       from,
       to,

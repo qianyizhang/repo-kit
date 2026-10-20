@@ -1,8 +1,12 @@
 # Repo Canvas design: Little Clarity adaptation
 
-This contract applies only to `packages/repo-canvas`. It does not replace the
-Card Workshop game or art direction. The main path is **view architecture → inspect
+This contract applies to Repo Workbench’s `packages/repo-canvas`. The main path is **view architecture → inspect
 source → discuss → review a proposal → apply and save**.
+
+The map is a simplified but faithful architecture and feature-design view for
+onboarding and design discussion. Show core concepts, use cases and data flow.
+Prefer a small overview and selected nested concepts; supporting files and
+artifacts belong in source references, not separate nodes.
 
 ## Source and provenance
 
@@ -95,3 +99,66 @@ adaptation does not add or claim verification of a light theme.
 
 Run the normal repository gate and the Repo Canvas browser suite. Report actual
 Codex host integration separately from protocol and simulated-host browser tests.
+
+## Architecture and agent controls
+
+A folder scaffold is incomplete discovery, not a semantic claim. Discover breadth
+first and disclose truncation so a large early subtree cannot hide root owners.
+A curated map should show responsibilities, source references, meaningful verbs,
+and boundaries. Keep detail inside scopes; avoid making a card for every file.
+
+Use typed nodes for systems, packages, modules, data, external systems, processes,
+interfaces and concepts. Connections have a precise label plus an optional type
+(dependency, data flow, control flow, evidence or ownership), explanation and source
+paths. Review notes distinguish notes, questions, risks and decisions. Keep actor
+attribution explicit. These additions use document version 2; existing version-1
+maps remain readable and unchanged until extended fields are used. Older clients
+must reject version 2 rather than silently erase its meaning.
+
+Fit centers complete card bounds inside the drawing pane with reserved control
+space. It is an overview, not a promise that all text stays readable. Offer 100%
+reading, Fit selection and undoable Arrange for the pane’s aspect ratio. Preserve
+manual pan/zoom on resize; refit changed node sets before paint. Auto-collapse
+navigation below 1100px and keep Browse/Close usable at every width. Dense maps
+show edge labels on selection or focus; vertical edges join the nearest faces.
+
+Select several and modifier-click support explicit sets without requiring a
+pointer gesture. Side chat includes all selected IDs and names. Native gestures,
+keyboard focus, compact navigation, stale proposals and save conflicts must work.
+
+MCP exposes semantic snapshots, exact-revision view commands and reviewed proposals.
+Snapshots name their timestamp and freshness, selected IDs, scope, viewport,
+panels, dirty/conflict state, visible nodes and command receipts. A command is
+queued until the panel acknowledges it; read the resulting snapshot to verify it.
+Retry interrupted acknowledgments without executing a view command again. Commands
+apply to their original scope and must not replay when navigating elsewhere.
+View commands never save. Proposals compare the captured document before Apply;
+Save remains a separate user action. Browser tools own DOM and screenshot evidence,
+including transient dialogs; arbitrary JavaScript execution is not part of this SDK.
+
+Named multi-view maps, lasso selection and freeform highlight regions are deferred.
+The current evidence supports typed graph semantics and attached review notes;
+more drawing primitives should follow concrete workflows, not mimic a whiteboard.
+
+## Purpose and initialization
+
+An unsaved repository offers **Initialize architecture**. The button explicitly
+asks the owning Codex chat to inspect instructions, relevant files/docs, a bounded
+recent commit history and available prior sessions for this repository. The chat
+uses that evidence to propose the important and discussed features, with limits
+where history is unavailable. Opening a repository alone does not send a modeling
+request. Initialization returns a proposal for review, Apply and Save; standalone
+preview explains the connected-chat requirement.
+
+Deferred proposal comparison may replace the graphics in
+`improve-codebase-architecture`: current versus proposed structure, affected
+files, problem, solution, locality/leverage/testability benefits, recommendation
+strength and any ADR conflict. Keep this independent of executing a refactor or
+reopening accepted decisions.
+
+Text must remain readable under discussion: place inline relationship labels only
+where their conservative bounds avoid cards and other labels. Full names remain
+in accessible link controls and relationship inspection when an inline label cannot
+fit. The renderer clips and ellipsizes text within those bounds, including wide
+Unicode glyphs. Hover details render at screen scale and stay within the drawing pane; they
+close when selecting. Dense maps disclose labels on selection/focus.

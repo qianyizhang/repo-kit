@@ -32,7 +32,9 @@ export function repositoryFiles(root: string): string[] {
 /** A directory map is only a starting point, never a claim about semantic architecture. */
 export function discover(root: string): Architecture {
   const files = repositoryFiles(root).filter(
-    (p) => !p.startsWith('.') && /\.(tsx?|[cm]?js|py|rs|go|json|md)$/.test(p),
+    (p) =>
+      !p.startsWith('.') &&
+      /\.(tsx?|[cm]?[jt]s|py|rs|go|json|md|toml|ya?ml|css|html|swift|sql|sh)$/.test(p),
   );
   const modules: Module[] = [
     {
@@ -53,7 +55,14 @@ export function discover(root: string): Architecture {
     for (let depth = 1; depth <= Math.min(parts.length, 4); depth++)
       dirs.add(parts.slice(0, depth).join('/'));
   }
-  for (const path of [...dirs].sort().slice(0, 180)) {
+  // Breadth first: a large early subtree must not hide later top-level owners.
+  const ordered = [...dirs].sort(
+    (a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b),
+  );
+  const selected = ordered.slice(0, 480);
+  if (dirs.size > selected.length)
+    modules[0].summary += ` Showing ${selected.length} of ${dirs.size} directories (up to four levels); use search or curate a semantic map.`;
+  for (const path of selected) {
     const parentPath = dirname(path);
     const parent = parentPath === '.' ? 'repo' : parentPath;
     if (!modules.some((m) => m.id === parent)) continue;

@@ -73,3 +73,30 @@ describe('shared architecture document', () => {
     ).toThrow('position');
   });
 });
+it('round-trips semantic kinds, relationship evidence and review notes without changing legacy maps', () => {
+  const enhanced = {
+    ...map,
+    modules: map.modules.map((m) => (m.id === 'app' ? { ...m, kind: 'process' } : m)),
+    connections: [{ ...map.connections[0], kind: 'evidence', sources: ['src/evidence.py'] }],
+    annotations: [
+      { id: 'risk', target: 'app', author: 'agent', kind: 'risk', text: 'Reference under review' },
+    ],
+  };
+  expect(parseDocument(enhanced)).toEqual({ ...enhanced, version: 2 });
+  expect(parseDocument(map)).toEqual(map);
+  expect(() =>
+    parseDocument({ ...enhanced, connections: [{ ...enhanced.connections[0], kind: 'invented' }] }),
+  ).toThrow('kind');
+});
+it('keeps multi-selection in requests and rejects unknown or repeated selections', () => {
+  const request = {
+    document: map,
+    scope: 'repo',
+    selection: 'store',
+    selections: ['app', 'store'],
+    messages: [{ role: 'user', text: 'Compare' }],
+  };
+  expect(parseChat(request).selections).toEqual(['app', 'store']);
+  expect(() => parseChat({ ...request, selections: ['unknown'] })).toThrow('selections');
+  expect(() => parseChat({ ...request, selections: ['app', 'app'] })).toThrow('selections');
+});

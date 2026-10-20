@@ -501,42 +501,6 @@ label textarea {
 .port.out {
   right: -7px;
 }
-.hover-card {
-  position: absolute;
-  top: 175px;
-  left: 16px;
-  width: 290px;
-  padding: 17px;
-  background: #303a43;
-  border: 1px solid #71828b;
-  border-radius: 7px;
-  z-index: 10;
-  box-shadow: 0 12px 25px #0009;
-  pointer-events: none;
-}
-.module-wrap:has(.hover-card) {
-  z-index: 10;
-}
-.hover-card b {
-  font-size: 14px;
-}
-.hover-card p {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--ink);
-}
-.hover-card code {
-  display: block;
-  font-size: 12px;
-  color: #bad1b9;
-  overflow-wrap: anywhere;
-}
-.hover-card > span {
-  display: block;
-  margin-top: 13px;
-  color: #93a3af;
-  font-size: 12px;
-}
 .canvas-controls {
   display: flex;
   align-items: center;
@@ -1027,6 +991,14 @@ label textarea {
 .connections .edge-label {
   pointer-events: all;
   cursor: pointer;
+  padding: 0 9px;
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 28px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .connections .link-preview {
   stroke: #afc5bc;
@@ -1394,4 +1366,186 @@ summary:focus-visible {
 }
 .loading form button {
   justify-self: start;
+}
+
+/* A narrow host should spend its width on the drawing, with navigation on demand. */
+.workbench.nav-closed {
+  grid-template-columns: minmax(0, 1fr);
+}
+.workbench.nav-closed.with-panel {
+  grid-template-columns: minmax(0, 1fr) 290px;
+}
+.nav-closed .hierarchy {
+  display: none;
+}
+.panel-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-eyebrow button {
+  padding: 2px 8px;
+}
+.selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.canvas-controls {
+  flex-wrap: wrap;
+  max-width: calc(100% - 32px);
+}
+.readability-hint {
+  position: absolute;
+  top: 8px;
+  left: 16px;
+  right: 16px;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+.note-badge {
+  color: var(--accent);
+}
+.edge-kind-data-flow .edge-line {
+  stroke-width: 2.5;
+}
+.edge-kind-control-flow .edge-line {
+  stroke-dasharray: 8 4;
+}
+.edge-kind-evidence .edge-line {
+  stroke-dasharray: 2 4;
+}
+.edge-kind-ownership .edge-line {
+  stroke-dasharray: 10 3 2 3;
+}
+.agent-proposal {
+  max-height: 260px;
+  overflow: auto;
+  padding: 12px 16px;
+  background: var(--wash);
+}
+.agent-proposal pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1099px) {
+  .workbench.nav-open .hierarchy {
+    display: flex;
+    position: absolute;
+    z-index: 8;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    width: 240px;
+    box-shadow: 8px 0 24px #0005;
+  }
+  .workbench.nav-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workbench.nav-open.with-panel {
+    grid-template-columns: minmax(0, 1fr) 290px;
+  }
+}
+@media (max-width: 820px) {
+  .workbench.nav-closed.with-panel,
+  .workbench.nav-open.with-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workbench.nav-open .hierarchy {
+    top: 100px;
+  }
+  .selection-bar {
+    padding: 4px 12px;
+  }
+}
+
+/* Dense overviews disclose relationship labels on focus or selection. */
+.connections.has-selection > g:not(.related) {
+  opacity: 0.2;
+}
+.connections.dense-links > g:not(.related) .connection-label {
+  opacity: 0;
+}
+.connections.dense-links > g:hover .connection-label,
+.connections.dense-links > g:focus-within .connection-label {
+  opacity: 1;
+}
+
+.initialize-map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.initialize-map div {
+  flex: 1 1 280px;
+}
+.initialize-map p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.initialize-map small {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+
+.connection-label rect {
+  fill: var(--canvas);
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.canvas-tooltip {
+  position: absolute;
+  z-index: 6;
+  width: min(300px, calc(100% - 24px));
+  max-height: 210px;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 8px 24px #0006;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.canvas-tooltip strong {
+  font-size: 15px;
+}
+.canvas-tooltip p {
+  margin: 6px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.canvas-tooltip code {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* Selection must not resize the canvas between the two clicks of a double-click. */
+.app-footer {
+  height: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.app-footer .selection-bar {
+  padding: 0;
+  border: 0;
+  flex-wrap: nowrap;
 }

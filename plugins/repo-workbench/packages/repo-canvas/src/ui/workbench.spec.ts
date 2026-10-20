@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CanvasExchange } from '../model/bridge';
 import { APP_URI } from '../server/app-resource';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseDocument, type Snapshot } from '../model/document';
 
@@ -113,6 +113,9 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   page,
   request,
 }) => {
+  const initial = (await (await request.get('/api/state')).json()) as Snapshot;
+  // A genuinely unmodeled disposable repository: no implicit chat scan before the click.
+  unlinkSync(join(initial.repo, '.repo-canvas/architecture.json'));
   // Render the delivered resource in an isolated MCP Apps host; all data goes through tools/call.
   const client = new Client({ name: 'canvas-app-host-test', version: '1' });
   await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
@@ -170,6 +173,41 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await expect(ui.locator('.checkout-path')).toHaveText(
     ((await (await request.get('/api/state')).json()) as Snapshot).repo,
   );
+  await expect(
+    ui.getByRole('button', { name: 'Initialize architecture', exact: true }),
+  ).toBeVisible();
+  expect(messages).toHaveLength(0);
+  await page.screenshot({ path: 'test-results/repo-canvas/initialize-before.png' });
+  await ui.getByRole('button', { name: 'Initialize architecture', exact: true }).click();
+  await expect.poll(() => messages.length).toBe(1);
+  const initializationId = messages[0].content[0].text.match(/request ([a-f0-9-]+)/)![1];
+  const initializationResult = await client.callTool({
+    name: 'canvas_read',
+    arguments: { requestId: initializationId },
+  });
+  const initialization = (
+    JSON.parse((initializationResult.content as { text: string }[])[0].text) as {
+      request: CanvasExchange;
+    }
+  ).request;
+  expect(initialization.context.messages.at(-1)!.text).toContain('recent commits');
+  expect(initialization.context.messages.at(-1)!.text).toContain('previous sessions');
+  expect(((await (await request.get('/api/state')).json()) as Snapshot).saved).toBe(false);
+  await client.callTool({
+    name: 'canvas_reply',
+    arguments: {
+      requestId: initializationId,
+      reply: 'A concise architecture candidate is ready for review.',
+      proposal: initialization.context.document,
+    },
+  });
+  await expect(ui.getByRole('button', { name: 'Apply to draft', exact: true })).toBeEnabled();
+  await ui.getByRole('button', { name: 'Apply to draft', exact: true }).click();
+  await ui.getByRole('button', { name: 'Save map', exact: true }).click();
+  await expect(
+    ui.getByRole('button', { name: 'Initialize architecture', exact: true }),
+  ).toHaveCount(0);
+  messages.length = 0;
   // Undoing a new, selected module must restore a valid scope and chat context.
   await ui.getByText('Map actions', { exact: true }).click();
   await ui.getByRole('button', { name: '+ Module', exact: true }).click();
@@ -224,8 +262,15 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await ui
     .getByLabel('Explanation', { exact: true })
     .fill('Adapters call domain rules without owning their state.');
+  await ui.getByLabel('Relationship sources').fill('../outside.ts');
   await ui.getByRole('button', { name: 'Save relationship', exact: true }).click();
-  await expect(ui.locator('.connections text')).toHaveText('calls');
+  await expect(ui.getByRole('dialog', { name: 'Relationship', exact: true })).toBeVisible();
+  await expect(ui.getByRole('alert')).toContainText('relative');
+  await ui.getByLabel('Relationship sources').fill('src/core/rules.ts');
+  await ui.getByRole('button', { name: 'Save relationship', exact: true }).click();
+  await expect(
+    ui.getByRole('button', { name: 'Explain relationship: calls', exact: true }),
+  ).toBeVisible();
   await ui.getByRole('button', { name: 'Explain relationship: calls' }).focus();
   await page.keyboard.press('Enter');
   await expect(ui.getByLabel('Explanation', { exact: true })).toHaveValue(
@@ -243,7 +288,9 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     .toContain('Adapters call domain rules');
   await page.reload();
   await expect(ui.getByRole('status')).toContainText('Restored your unsaved draft');
-  await expect(ui.locator('.connections text')).toHaveText('calls');
+  await expect(
+    ui.getByRole('button', { name: 'Explain relationship: calls', exact: true }),
+  ).toBeVisible();
   await ui.getByRole('button', { name: 'Save map', exact: true }).click();
   await expect(ui.getByText('✓ Shared document')).toBeVisible();
   await expect
@@ -509,4 +556,215 @@ test('short compact windows can scroll to chat controls and back to the map', as
   await page.getByRole('button', { name: 'Close side chat' }).click();
   await expect(page.getByRole('button', { name: 'Save map', exact: true })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Fit view', exact: true })).toBeInViewport();
+});
+
+test('narrow canvas supports readable arrangement, multi-selection and revision-checked agent views', async ({
+  page,
+  request,
+}) => {
+  const original = (await (await request.get('/api/state')).json()) as Snapshot & { token: string };
+  const headers = { 'X-Repo-Canvas-Token': original.token };
+  const document = parseDocument({
+    version: 1,
+    title: 'Viewport study',
+    modules: [
+      {
+        id: 'repo',
+        parent: null,
+        name: 'Viewport study',
+        kind: 'system',
+        summary: 'Architecture overview',
+        sources: [],
+        x: 0,
+        y: 0,
+      },
+      ...Array.from({ length: 6 }, (_, i) => ({
+        id: `node-${i}`,
+        parent: 'repo',
+        name: `Owner ${i}`,
+        kind: 'module',
+        summary: 'A readable responsibility with source evidence',
+        sources: ['src/core/rules.ts'],
+        x: (i % 3) * 320,
+        y: Math.floor(i / 3) * 230,
+      })),
+    ],
+    connections: [
+      { id: 'edge-one', from: 'node-0', to: 'node-1', label: 'dispatches workflow' },
+      {
+        id: 'edge-two',
+        from: 'node-0',
+        to: 'node-4',
+        label: '保存用于研究和架构讨论的完整证据来源以及关联关系',
+      },
+      { id: 'edge-three', from: 'node-2', to: 'node-3', label: 'projects current state' },
+    ],
+    annotations: [],
+  });
+  await request.put('/api/state', { headers, data: { document, revision: original.revision } });
+  const client = new Client({ name: 'agent-ui-test', version: '1' });
+  await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
+  async function snapshot() {
+    const result = await client.callTool({
+      name: 'canvas_snapshot',
+      arguments: { contextId: 'fixed', includeDocument: true },
+    });
+    expect(result.isError).not.toBe(true);
+    return JSON.parse((result.content as { text: string }[])[0].text) as {
+      available: boolean;
+      revision: string;
+      document: Snapshot['document'];
+      selections: string[];
+      navigation: boolean;
+      viewport: { zoom: number; height: number };
+      command?: { id: string; status: string };
+    };
+  }
+  try {
+    await page.setViewportSize({ width: 876, height: 1000 });
+    await page.goto('/');
+    await expect(page.getByRole('navigation')).toBeHidden();
+    await page.getByRole('button', { name: 'Toggle navigation' }).click();
+    await expect(page.getByRole('navigation')).toBeVisible();
+    await page.getByRole('button', { name: 'Hide navigation' }).click();
+    await page.getByRole('button', { name: 'Inspect Owner 3', exact: true }).dblclick();
+    await expect(page.getByRole('heading', { name: /^Owner 3/, level: 1 })).toBeVisible();
+    await page.getByRole('button', { name: 'Viewport study', exact: true }).click();
+    await page.getByRole('button', { name: 'Side chat', exact: true }).click();
+    await page.getByRole('button', { name: 'Arrange', exact: true }).click();
+    await expect
+      .poll(async () =>
+        Number(
+          (await page.getByRole('button', { name: 'Read at 100 percent' }).innerText()).replace(
+            '%',
+            '',
+          ),
+        ),
+      )
+      .toBeGreaterThanOrEqual(80);
+    const canvas = (await page.locator('.canvas').boundingBox())!;
+    for (const card of await page.locator('.module-card').all()) {
+      const box = (await card.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(canvas.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(canvas.x + canvas.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(canvas.y + canvas.height - 55);
+    }
+    const labelBoxes = await page.locator('.connection-label rect').evaluateAll((elements) =>
+      elements.map((e) => {
+        const b = e.getBoundingClientRect();
+        return { x: b.x, y: b.y, width: b.width, height: b.height };
+      }),
+    );
+    const cardBoxes = await page.locator('.module-card').evaluateAll((elements) =>
+      elements.map((e) => {
+        const b = e.getBoundingClientRect();
+        return { x: b.x, y: b.y, width: b.width, height: b.height };
+      }),
+    );
+    expect(labelBoxes.length).toBeGreaterThan(0);
+    const overlap = (a: (typeof labelBoxes)[number], b: (typeof labelBoxes)[number]) =>
+      a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+    for (const [i, label] of labelBoxes.entries()) {
+      expect(cardBoxes.some((card) => overlap(label, card))).toBe(false);
+      expect(labelBoxes.slice(i + 1).some((other) => overlap(label, other))).toBe(false);
+    }
+    for (const label of await page.locator('.connection-label').all()) {
+      const bounds = (await label.locator('rect').boundingBox())!;
+      const text = (await label.locator('.edge-label').boundingBox())!;
+      expect(text.x).toBeGreaterThanOrEqual(bounds.x);
+      expect(text.x + text.width).toBeLessThanOrEqual(bounds.x + bounds.width);
+    }
+    await page.getByRole('button', { name: 'Select several', exact: true }).click();
+    await page.getByRole('button', { name: 'Inspect Owner 0', exact: true }).click();
+    await page.getByRole('button', { name: 'Inspect Owner 1', exact: true }).click();
+    await expect(page.locator('.context-chip')).toContainText('2 nodes: Owner 0, Owner 1');
+    await expect.poll(async () => (await snapshot()).selections).toEqual(['node-0', 'node-1']);
+    const live = await snapshot();
+    expect(
+      (
+        await client.callTool({
+          name: 'canvas_command',
+          arguments: { contextId: 'fixed', expectedRevision: 'stale', command: { action: 'fit' } },
+        })
+      ).isError,
+    ).toBe(true);
+    let acknowledgments = 0;
+    await page.route('**/api/command/ack', async (route) => {
+      acknowledgments++;
+      if (acknowledgments === 1) await route.abort('failed');
+      else await route.continue();
+    });
+    const result = await client.callTool({
+      name: 'canvas_command',
+      arguments: {
+        contextId: 'fixed',
+        expectedRevision: live.revision,
+        command: { action: 'panel', panel: null },
+      },
+    });
+    expect(result.isError).not.toBe(true);
+    await expect(page.locator('.side-chat')).toBeHidden();
+    await expect.poll(async () => (await snapshot()).command?.status).toBe('applied');
+    expect(acknowledgments).toBe(2);
+    await expect(page.getByText('Agent state sync unavailable:', { exact: false })).toHaveCount(0);
+    await expect
+      .poll(async () => (await snapshot()).viewport.height)
+      .toBe(await page.locator('.canvas').evaluate((element) => element.clientHeight));
+    // A command belongs to its scope; remounting the canvas must not replay it.
+    const selected = await snapshot();
+    expect(
+      (
+        await client.callTool({
+          name: 'canvas_command',
+          arguments: {
+            contextId: 'fixed',
+            expectedRevision: selected.revision,
+            command: { action: 'fit_selection' },
+          },
+        })
+      ).isError,
+    ).not.toBe(true);
+    await expect.poll(async () => (await snapshot()).command?.status).toBe('applied');
+    await page.getByRole('button', { name: 'Inspect Owner 3', exact: true }).dblclick();
+    await page.getByRole('button', { name: 'Viewport study', exact: true }).click();
+    const automaticallyFitted = await page.locator('.canvas-world').getAttribute('style');
+    await page.getByRole('button', { name: 'Fit view', exact: true }).click();
+    await expect(page.locator('.canvas-world')).toHaveAttribute('style', automaticallyFitted!);
+    const basis = await snapshot();
+    const proposal = { ...basis.document, title: 'Agent reviewed map' };
+    expect(
+      (
+        await client.callTool({
+          name: 'canvas_propose',
+          arguments: {
+            contextId: 'fixed',
+            expectedRevision: basis.revision,
+            document: proposal,
+            explanation: 'Keep sources and arrangement; improve the title.',
+          },
+        })
+      ).isError,
+    ).not.toBe(true);
+    await expect(page.getByRole('region', { name: 'Agent map proposal' })).toBeVisible();
+    expect(((await (await request.get('/api/state')).json()) as Snapshot).document.title).toBe(
+      'Viewport study',
+    );
+    await page.getByText('Review proposed map · 7 concepts', { exact: true }).click();
+    await page.getByRole('button', { name: 'Apply to draft', exact: true }).click();
+    await expect(page.getByText('● Draft changes', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Save map', exact: true }).click();
+    await expect(page.getByText('✓ Shared document', { exact: true })).toBeVisible();
+    expect(((await (await request.get('/api/state')).json()) as Snapshot).document.title).toBe(
+      'Agent reviewed map',
+    );
+    await page.screenshot({ path: 'test-results/canvas-narrow-after.png' });
+  } finally {
+    await client.close();
+    await page.goto('about:blank');
+    const latest = (await (await request.get('/api/state')).json()) as Snapshot;
+    await request.put('/api/state', {
+      headers,
+      data: { document: original.document, revision: latest.revision },
+    });
+  }
 });

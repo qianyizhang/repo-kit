@@ -73,3 +73,23 @@ it('refreshes unsaved directory discovery while preserving drafts and curated ma
   rmSync(join(root, 'new-module'), { recursive: true });
   expect(repo.snapshot()).toEqual(saved);
 });
+it('keeps later top-level owners visible when early directories exhaust discovery', () => {
+  const { root, repo } = setup();
+  for (let i = 0; i < 520; i++) {
+    mkdirSync(join(root, 'archive', `old-${i}`), { recursive: true });
+    writeFileSync(join(root, 'archive', `old-${i}`, 'record.md'), 'old');
+  }
+  mkdirSync(join(root, 'presentation'));
+  writeFileSync(join(root, 'presentation', 'view.tsx'), 'view');
+  mkdirSync(join(root, 'tests'));
+  writeFileSync(join(root, 'tests', 'check.py'), '# check');
+  const map = repo.snapshot().document;
+  expect(map.modules.filter((m) => m.parent === 'repo').map((m) => m.id)).toEqual([
+    'archive',
+    'presentation',
+    'src',
+    'tests',
+  ]);
+  expect(map.modules[0].summary).toContain('Showing 480 of 524');
+  expect(map.modules.length).toBeLessThanOrEqual(500);
+});

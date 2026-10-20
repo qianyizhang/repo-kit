@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+} from 'react';
 import {
   ancestors,
   visibleConnections,
@@ -6,21 +13,41 @@ import {
   type Module,
   type Connection,
 } from '../model/document';
+import { fitView, arrangeNodes, connectionPath, placeLabels, type Viewport } from '../model/layout';
 import { RelationshipDialog } from './RelationshipDialog';
 interface Props {
   document: Architecture;
   scope: string;
   selection: string | null;
-  select: (id: string | null) => void;
+  selections: string[];
+  multiSelect: boolean;
+  select: (id: string | null, additive?: boolean) => void;
+  reportView: (view: Viewport) => void;
+  viewAction: { id: string; action: 'fit' | 'read' | 'selection' } | null;
   enter: (id: string) => void;
   move: (id: string, x: number, y: number) => void;
   edit: (document: Architecture) => void;
 }
-export function Canvas({ document, scope, selection, select, enter, move, edit }: Props) {
+export function Canvas({
+  document,
+  scope,
+  selection,
+  selections,
+  multiSelect,
+  select,
+  enter,
+  move,
+  edit,
+  reportView,
+  viewAction,
+}: Props) {
   const modules = document.modules.filter((m) => m.parent === scope);
   const modulesRef = useRef(modules);
   modulesRef.current = modules;
   const [view, setView] = useState({ x: 0, y: 0, zoom: 0.8 });
+  const automaticFit = useRef(true);
+  const clickMoved = useRef(false);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   const [hover, setHover] = useState<string | null>(null);
   const [position, setPosition] = useState<{ id: string; x: number; y: number } | null>(null);
   const [link, setLink] = useState<{
@@ -31,6 +58,7 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
   } | null>(null);
   const linkRef = useRef(link);
   const [relationships, setRelationships] = useState<Connection[] | null>(null);
+  const [hoverPoint, setHoverPoint] = useState({ x: 0, y: 0 });
   function connect(from: string, to: string) {
     const existing = document.connections.filter((c) => c.from === from && c.to === to);
     setRelationships(
@@ -62,10 +90,43 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
   } | null>(null);
   const viewport = useRef<HTMLDivElement>(null);
   const coords = (m: Module) => (position?.id === m.id ? position : m);
+  const projected = visibleConnections(document, scope);
+  function explain(connection: Connection) {
+    const project = (id: string) => ancestors(document, id).find((m) => m.parent === scope)?.id;
+    setRelationships(
+      document.connections.filter(
+        (edge) => project(edge.from) === connection.from && project(edge.to) === connection.to,
+      ),
+    );
+  }
+  const labels = placeLabels(
+    projected.map((c) => {
+      const path = connectionPath(
+        coords(modules.find((m) => m.id === c.from)!),
+        coords(modules.find((m) => m.id === c.to)!),
+        modules.map(coords),
+      );
+      return { id: c.id, text: c.label, x: path.x, y: path.y };
+    }),
+    modules.map(coords),
+  );
+  const hoverModule = document.modules.find((m) => m.id === hover);
+  function showHover(id: string, target: HTMLElement) {
+    const parent = viewport.current?.getBoundingClientRect(),
+      rect = target.getBoundingClientRect();
+    if (!parent) return;
+    const width = Math.min(300, parent.width - 24),
+      maxY = Math.max(8, parent.height - 220);
+    setHoverPoint({
+      x: Math.max(12, Math.min(rect.left - parent.left, parent.width - width - 12)),
+      y: Math.max(8, Math.min(rect.bottom - parent.top + 10, maxY)),
+    });
+    setHover(id);
+  }
   function start(event: PointerEvent, node?: Module) {
     if (event.button !== 0) return;
     event.stopPropagation();
-    if (node) select(node.id);
+    clickMoved.current = false;
     drag.current = {
       id: node?.id ?? null,
       clientX: event.clientX,
@@ -102,6 +163,8 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
       dy = event.clientY - d.clientY;
     if (Math.abs(dx) + Math.abs(dy) < 4 && !d.moved) return;
     d.moved = true;
+    clickMoved.current = true;
+    automaticFit.current = false;
     setHover(null);
     if (d.id) setPosition({ id: d.id, x: d.x + dx / view.zoom, y: d.y + dy / view.zoom });
     else setView((v) => ({ ...v, x: d.x + dx, y: d.y + dy }));
@@ -121,22 +184,62 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
   const fit = useCallback(() => {
     const modules = modulesRef.current;
     if (!modules.length || !viewport.current) return;
-    const minX = Math.min(...modules.map((m) => m.x)) - 45,
-      minY = Math.min(...modules.map((m) => m.y)) - 65;
-    const w = Math.max(...modules.map((m) => m.x)) + 285 - minX,
-      h = Math.max(...modules.map((m) => m.y)) + 250 - minY;
-    const zoom = Math.min(
-      1.15,
-      viewport.current.clientWidth / w,
-      viewport.current.clientHeight / h,
-    );
-    setView({ x: -minX * zoom, y: -minY * zoom, zoom });
+    automaticFit.current = true;
+    setView(fitView(modules, viewport.current.clientWidth, viewport.current.clientHeight));
   }, []);
+  const nodeSet = modules.map((m) => m.id).join('|');
+  useLayoutEffect(() => {
+    fit();
+  }, [fit, nodeSet]);
   useEffect(() => {
-    const observer = new ResizeObserver(fit);
+    const observer = new ResizeObserver(() => {
+      if (!viewport.current) return;
+      setSize({ width: viewport.current.clientWidth, height: viewport.current.clientHeight });
+      if (automaticFit.current) fit();
+    });
     if (viewport.current) observer.observe(viewport.current);
     return () => observer.disconnect();
   }, [fit]);
+  useEffect(() => {
+    reportView({ ...view, ...size });
+  }, [view, size, reportView]);
+  const selectionRef = useRef(selections);
+  selectionRef.current = selections;
+  const lastViewAction = useRef(viewAction?.id);
+  useEffect(() => {
+    if (!viewAction || !viewport.current || viewAction.id === lastViewAction.current) return;
+    lastViewAction.current = viewAction.id;
+    const target =
+      viewAction.action === 'selection'
+        ? modulesRef.current.filter((m) => selectionRef.current.includes(m.id))
+        : modulesRef.current;
+    automaticFit.current = viewAction.action === 'fit';
+    setView(
+      fitView(
+        target,
+        viewport.current.clientWidth,
+        viewport.current.clientHeight,
+        viewAction.action === 'read' ? 1 : undefined,
+      ),
+    );
+  }, [viewAction]);
+  function zoomTo(zoom: number) {
+    automaticFit.current = false;
+    setView((v) => ({
+      zoom,
+      x: size.width / 2 - ((size.width / 2 - v.x) * zoom) / v.zoom,
+      y: size.height / 2 - ((size.height / 2 - v.y) * zoom) / v.zoom,
+    }));
+  }
+  function arrange() {
+    const positioned = arrangeNodes(modules, size.width, size.height);
+    edit({
+      ...document,
+      modules: document.modules.map((m) => positioned.find((p) => p.id === m.id) ?? m),
+    });
+    automaticFit.current = true;
+    setView(fitView(positioned, size.width, size.height));
+  }
   useEffect(() => {
     const cancel = (event: KeyboardEvent) => {
       if (event.key === 'Escape') cancelLink();
@@ -157,6 +260,7 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
         setPosition(null);
       }}
       onWheel={(event) => {
+        automaticFit.current = false;
         if (event.ctrlKey || event.metaKey) {
           const rect = event.currentTarget.getBoundingClientRect(),
             px = event.clientX - rect.left,
@@ -176,7 +280,10 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
         className="canvas-world"
         style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})` }}
       >
-        <svg className="connections" aria-label="Module relationships">
+        <svg
+          className={`connections ${selections.length ? 'has-selection' : ''} ${projected.length > 5 ? 'dense-links' : ''}`}
+          aria-label="Module relationships"
+        >
           <defs>
             <marker
               id="arrow"
@@ -190,20 +297,17 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
             </marker>
           </defs>
-          {visibleConnections(document, scope).map((c) => {
+          {projected.map((c) => {
             const a = coords(modules.find((m) => m.id === c.from)!),
               b = coords(modules.find((m) => m.id === c.to)!);
-            const x1 = a.x + 240,
-              y1 = a.y + 66,
-              x2 = b.x,
-              y2 = b.y + 66;
+            const geometry = connectionPath(a, b, modules.map(coords));
+            const label = labels.get(c.id);
             return (
-              <g key={c.id} className={selection === c.from || selection === c.to ? 'related' : ''}>
-                <path
-                  className="edge-line"
-                  d={`M${x1},${y1} C${x1 + 65},${y1} ${x2 - 65},${y2} ${x2},${y2}`}
-                  markerEnd="url(#arrow)"
-                >
+              <g
+                key={c.id}
+                className={`${selections.includes(c.from) || selections.includes(c.to) ? 'related' : ''} edge-kind-${c.kind ?? 'dependency'}`}
+              >
+                <path className="edge-line" d={geometry.path} markerEnd="url(#arrow)">
                   <title>{c.label} · Click to explain</title>
                 </path>
                 <path
@@ -211,49 +315,45 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
                   role="button"
                   tabIndex={0}
                   aria-label={`Explain relationship: ${c.label}`}
-                  d={`M${x1},${y1} C${x1 + 65},${y1} ${x2 - 65},${y2} ${x2},${y2}`}
+                  d={geometry.path}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
-                    const projected = (id: string) =>
-                      ancestors(document, id).find((m) => m.parent === scope)?.id;
-                    setRelationships(
-                      document.connections.filter(
-                        (edge) => projected(edge.from) === c.from && projected(edge.to) === c.to,
-                      ),
-                    );
+                    explain(c);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      const projected = (id: string) =>
-                        ancestors(document, id).find((m) => m.parent === scope)?.id;
-                      setRelationships(
-                        document.connections.filter(
-                          (edge) => projected(edge.from) === c.from && projected(edge.to) === c.to,
-                        ),
-                      );
+                      explain(c);
                     }
                   }}
                 />
-                <text
-                  x={(x1 + x2) / 2}
-                  y={(y1 + y2) / 2 - 9}
-                  textAnchor="middle"
-                  className="edge-label"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={() => {
-                    const projected = (id: string) =>
-                      ancestors(document, id).find((m) => m.parent === scope)?.id;
-                    setRelationships(
-                      document.connections.filter(
-                        (edge) => projected(edge.from) === c.from && projected(edge.to) === c.to,
-                      ),
-                    );
-                  }}
-                >
-                  {c.label}
-                </text>
+                {label && (
+                  <g className="connection-label">
+                    <rect
+                      x={label.x - label.width / 2}
+                      y={label.y - 18}
+                      width={label.width}
+                      height={28}
+                      rx={4}
+                    />
+                    <foreignObject
+                      x={label.x - label.width / 2}
+                      y={label.y - 18}
+                      width={label.width}
+                      height={28}
+                    >
+                      <div
+                        className="edge-label"
+                        title={c.label}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => explain(c)}
+                      >
+                        {label.text}
+                      </div>
+                    </foreignObject>
+                  </g>
+                )}
               </g>
             );
           })}
@@ -276,17 +376,22 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
           return (
             <div
               key={m.id}
-              className={`module-wrap ${selection === m.id ? 'selected' : ''}`}
+              className={`module-wrap ${selections.includes(m.id) || selection === m.id ? 'selected' : ''}`}
               style={{ left: p.x, top: p.y }}
             >
               <button
                 className={`module-card kind-${m.kind}`}
                 onPointerDown={(event) => start(event, m)}
                 onDoubleClick={() => enter(m.id)}
-                onClick={() => select(m.id)}
-                onMouseEnter={() => setHover(m.id)}
+                onClick={(e) => {
+                  setHover(null);
+                  if (!clickMoved.current)
+                    select(m.id, multiSelect || e.shiftKey || e.metaKey || e.ctrlKey);
+                }}
+                aria-pressed={selections.includes(m.id)}
+                onMouseEnter={(e) => showHover(m.id, e.currentTarget)}
                 onMouseLeave={() => setHover(null)}
-                onFocus={() => setHover(m.id)}
+                onFocus={(e) => showHover(m.id, e.currentTarget)}
                 onBlur={() => setHover(null)}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowRight') {
@@ -298,7 +403,16 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
                 aria-label={`Inspect ${m.name}`}
                 aria-describedby={hover === m.id ? `tip-${index}` : undefined}
               >
-                <span className="module-type">{m.kind}</span>
+                <span className="module-type">
+                  {m.kind}
+                  {notes > 0 && (
+                    <span className="note-badge">
+                      {' '}
+                      · {notes}{' '}
+                      {document.annotations.find((a) => a.target === m.id)?.kind ?? 'note'}
+                    </span>
+                  )}
+                </span>
                 <strong>{m.name}</strong>
                 <span className="module-summary">{m.summary}</span>
                 <span className="module-footer">
@@ -307,7 +421,9 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
                       ? `${children} internal modules`
                       : `${m.sources.length} source references`}
                   </span>
-                  <span>{notes ? `${notes} notes` : children ? '↳' : '·'}</span>
+                  <span>
+                    {notes ? `${notes} ${notes === 1 ? 'note' : 'notes'}` : children ? '↳' : '·'}
+                  </span>
                 </span>
               </button>
               <button
@@ -337,18 +453,22 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
                   }
                 }}
               />
-              {hover === m.id && !drag.current && (
-                <div id={`tip-${index}`} className="hover-card" role="tooltip">
-                  <b>{m.name}</b>
-                  <p>{m.summary}</p>
-                  <code>{m.sources[0] ?? 'No source attached'}</code>
-                  <span>Click to inspect · Double-click to enter</span>
-                </div>
-              )}
             </div>
           );
         })}
       </div>
+      {hoverModule && !drag.current && (
+        <div
+          id={`tip-${modules.findIndex((m) => m.id === hover)}`}
+          className="canvas-tooltip"
+          role="tooltip"
+          style={{ left: hoverPoint.x, top: hoverPoint.y }}
+        >
+          <strong>{hoverModule.name}</strong>
+          <p>{hoverModule.summary}</p>
+          <code>{hoverModule.sources[0] ?? 'No source attached'}</code>
+        </div>
+      )}
       {link && (
         <div className="link-instruction" role="status">
           {link.target
@@ -374,22 +494,42 @@ export function Canvas({ document, scope, selection, select, enter, move, edit }
         </div>
       )}
       <div className="canvas-controls" onPointerDown={(e) => e.stopPropagation()}>
-        <button
-          onClick={() => setView((v) => ({ ...v, zoom: Math.max(0.3, v.zoom - 0.1) }))}
-          aria-label="Zoom out"
-        >
+        <button onClick={() => zoomTo(Math.max(0.1, view.zoom - 0.1))} aria-label="Zoom out">
           −
         </button>
-        <span>{Math.round(view.zoom * 100)}%</span>
-        <button
-          onClick={() => setView((v) => ({ ...v, zoom: Math.min(1.6, v.zoom + 0.1) }))}
-          aria-label="Zoom in"
-        >
+        <button aria-label="Read at 100 percent" title="Read at 100%" onClick={() => zoomTo(1)}>
+          {Math.round(view.zoom * 100)}%
+        </button>
+        <button onClick={() => zoomTo(Math.min(1.6, view.zoom + 0.1))} aria-label="Zoom in">
           +
         </button>
         <i />
         <button onClick={fit}>Fit view</button>
+        {selections.length > 0 && (
+          <button
+            onClick={() => {
+              automaticFit.current = false;
+              setView(
+                fitView(
+                  modules.filter((m) => selections.includes(m.id)),
+                  size.width,
+                  size.height,
+                ),
+              );
+            }}
+          >
+            Fit selection
+          </button>
+        )}
+        <button onClick={arrange} title="Arrange this scope for the pane; Undo restores positions">
+          Arrange
+        </button>
       </div>
+      {view.zoom < 0.7 && (
+        <div className="readability-hint" role="status">
+          Overview scale · Arrange for this pane, or click the percentage to read at 100%.
+        </div>
+      )}
       <div className="canvas-hint">Drag to arrange · Scroll to pan · ⌘ scroll to zoom</div>
     </div>
   );

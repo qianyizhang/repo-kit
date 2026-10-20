@@ -8,9 +8,11 @@ import {
   type Snapshot,
 } from '../model/document';
 import { download, request, type Session } from './api';
+import { useCanvasAgent } from './useCanvasAgent';
+import type { Viewport } from '../model/layout';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
-import { SideChat } from './SideChat';
+import { SideChat, type ChatActions } from './SideChat';
 import {
   hosted,
   openRepository,
@@ -22,6 +24,14 @@ import {
 import type { RegisteredRepository } from '../../../runtime/repositories';
 
 export function App() {
+  const chatActions = useRef<ChatActions>(null);
+  const inspectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (inspectTimer.current) clearTimeout(inspectTimer.current);
+    },
+    [],
+  );
   const [repoPath, setRepoPath] = useState('');
   const [needsRepository, setNeedsRepository] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -36,6 +46,23 @@ export function App() {
   const [scope, setScope] = useState('repo'),
     [selection, setSelection] = useState<string | null>(null),
     [query, setQuery] = useState('');
+  const [selections, setSelections] = useState<string[]>([]);
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [navigation, setNavigation] = useState<boolean | null>(null);
+  const [compact, setCompact] = useState(() => window.innerWidth < 1100);
+  const navigationOpen = navigation ?? !compact;
+  const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1, width: 0, height: 0 });
+  const [viewAction, setViewAction] = useState<{
+    id: string;
+    action: 'fit' | 'read' | 'selection';
+  } | null>(null);
+  const reportView = useCallback((view: Viewport) => setViewport(view), []);
+  useEffect(() => {
+    const media = matchMedia('(max-width: 1099px)');
+    const change = () => setCompact(media.matches);
+    media.addEventListener('change', change);
+    return () => media.removeEventListener('change', change);
+  }, []);
   const [panel, setPanel] = useState<'inspect' | 'chat' | null>(hosted ? 'chat' : null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
@@ -80,6 +107,7 @@ export function App() {
               revision: string;
               scope: string;
               selection: string | null;
+              selections?: string[];
             };
             const restored = parseDocument(draft.document);
             if (
@@ -96,6 +124,11 @@ export function App() {
               setSelection(
                 restored.modules.some((m) => m.id === draft.selection) ? draft.selection : null,
               );
+              setSelections(
+                (draft.selections ?? (draft.selection ? [draft.selection] : [])).filter((id) =>
+                  restored.modules.some((m) => m.id === id),
+                ),
+              );
               setDirty(true);
               setConflict(data.revision !== draft.revision);
               setNotice('Restored your unsaved draft in this tab.');
@@ -110,6 +143,7 @@ export function App() {
       setDocument(data.document);
       setScope(rootOf(data.document).id);
       setSelection(null);
+      setSelections([]);
       setDirty(false);
       setConflict(false);
       setHistory([]);
@@ -197,19 +231,21 @@ export function App() {
       if (dirty)
         sessionStorage.setItem(
           key,
-          JSON.stringify({ document, revision: session.revision, scope, selection }),
+          JSON.stringify({ document, revision: session.revision, scope, selection, selections }),
         );
       else sessionStorage.removeItem(key);
     } catch {
       /* Persistence still works when browser storage is unavailable. */
     }
-  }, [session, document, dirty, scope, selection]);
+  }, [session, document, dirty, scope, selection, selections]);
   useEffect(() => {
     if (!session || !document) return;
     const timer = setTimeout(
       () => {
         void request('draft_write', session.token, {
-          draft: dirty ? { document, revision: session.revision, scope, selection } : null,
+          draft: dirty
+            ? { document, revision: session.revision, scope, selection, selections }
+            : null,
         }).catch(() => {
           /* Local draft remains intact if the bridge disconnects. */
         });
@@ -217,7 +253,7 @@ export function App() {
       dirty ? 350 : 0,
     );
     return () => clearTimeout(timer);
-  }, [session, document, dirty, scope, selection]);
+  }, [session, document, dirty, scope, selection, selections]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (state.current.dirty) event.preventDefault();
@@ -293,9 +329,82 @@ export function App() {
     }
   }
   function enter(id: string) {
+    if (inspectTimer.current) clearTimeout(inspectTimer.current);
     setScope(id);
     setSelection(null);
+    setSelections([]);
+    setMultiSelect(false);
+    if (compact) setNavigation(false);
     setQuery('');
+  }
+  const activeSelections = selections.filter((id) =>
+    document?.modules.some((m) => m.id === id && m.parent === scope),
+  );
+  function select(id: string | null, additive = false) {
+    const next =
+      id === null
+        ? []
+        : additive
+          ? activeSelections.includes(id)
+            ? activeSelections.filter((key) => key !== id)
+            : [...activeSelections, id]
+          : [id];
+    setSelections(next);
+    setSelection(next.at(-1) ?? null);
+    if (inspectTimer.current) clearTimeout(inspectTimer.current);
+    // Keep the second click on the same card before the inspector changes pane width.
+    if (id && !additive && panel !== 'chat')
+      inspectTimer.current = setTimeout(
+        () => setPanel((current) => (current === 'chat' ? current : 'inspect')),
+        250,
+      );
+  }
+  const agent = useCanvasAgent(
+    document && session
+      ? {
+          document,
+          baseRevision: session.revision,
+          scope,
+          selections: activeSelections,
+          panel,
+          navigation: navigationOpen,
+          viewport,
+          dirty,
+          conflict,
+        }
+      : null,
+    session?.token,
+    (command, id) => {
+      switch (command.action) {
+        case 'focus':
+          enter(command.target);
+          break;
+        case 'select':
+          setSelections(command.targets);
+          setSelection(command.targets.at(-1) ?? null);
+          break;
+        case 'panel':
+          setPanel(command.panel);
+          break;
+        case 'navigation':
+          setNavigation(command.open);
+          break;
+        default:
+          setViewAction({
+            id,
+            action: command.action === 'fit_selection' ? 'selection' : command.action,
+          });
+      }
+    },
+  );
+  let staleProposal = false;
+  if (agent.proposal) {
+    try {
+      staleProposal =
+        JSON.stringify(parseDocument(document)) !== JSON.stringify(agent.proposal.baseDocument);
+    } catch {
+      staleProposal = true;
+    }
   }
   const file = useRef<HTMLInputElement>(null);
   if (!session || !document)
@@ -436,7 +545,9 @@ export function App() {
     );
   }
   return (
-    <div className={`workbench ${panel ? 'with-panel' : ''}`}>
+    <div
+      className={`workbench ${panel ? 'with-panel' : ''} ${navigationOpen ? 'nav-open' : 'nav-closed'}`}
+    >
       <header className="app-header">
         <div className="brand">
           <strong>Repo Canvas</strong>
@@ -460,15 +571,31 @@ export function App() {
           </button>
         </div>
       </header>
-      <nav className="hierarchy">
-        <div className="panel-eyebrow">Modules</div>
+      <nav
+        className="hierarchy"
+        aria-label="Architecture navigation"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setNavigation(false);
+            window.document
+              .querySelector<HTMLButtonElement>('[aria-label="Toggle navigation"]')
+              ?.focus();
+          }
+        }}
+      >
+        <div className="panel-eyebrow">
+          Architecture{' '}
+          <button aria-label="Hide navigation" onClick={() => setNavigation(false)}>
+            ×
+          </button>
+        </div>
         <label className="search">
           <span>⌕</span>
           <input
             aria-label="Find module"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find a module…"
+            placeholder="Find a node or source…"
           />
         </label>
         <div className="tree">
@@ -481,6 +608,7 @@ export function App() {
                   onClick={() => {
                     enter(m.parent ?? m.id);
                     setSelection(m.id);
+                    setSelections([m.id]);
                   }}
                 >
                   <span>◇</span>
@@ -508,6 +636,13 @@ export function App() {
       </nav>
       <main className="main">
         <div className="canvas-toolbar">
+          <button
+            aria-label="Toggle navigation"
+            aria-expanded={navigationOpen}
+            onClick={() => setNavigation(!navigationOpen)}
+          >
+            Browse
+          </button>
           <div className="breadcrumbs">
             {ancestors(document, scope).map((m, i) => (
               <span key={m.id}>
@@ -517,6 +652,9 @@ export function App() {
             ))}
           </div>
           <div className="toolbar-actions">
+            <button aria-pressed={multiSelect} onClick={() => setMultiSelect(!multiSelect)}>
+              Select several
+            </button>
             <button
               aria-pressed={panel === 'inspect'}
               className={panel === 'inspect' ? 'active' : ''}
@@ -598,6 +736,33 @@ export function App() {
             </button>
           </div>
         )}
+        {!session.saved && (
+          <section className="initialize-map" aria-label="Initialize architecture">
+            <div>
+              <strong>No architecture model yet</strong>
+              <p>
+                This directory scaffold is only a starting point. Build a concise view of the core
+                concepts, use cases and data flow from code, docs, recent commits and relevant
+                discussions.
+              </p>
+            </div>
+            <button
+              className="primary"
+              disabled={!hosted}
+              onClick={() => {
+                setPanel('chat');
+                chatActions.current?.initialize();
+              }}
+            >
+              Initialize architecture
+            </button>
+            {!hosted && (
+              <small>
+                Open this repository in the Codex Repo Canvas app to initialize with this chat.
+              </small>
+            )}
+          </section>
+        )}
         <div className="scope-heading">
           <div>
             <h1>
@@ -607,16 +772,48 @@ export function App() {
           </div>
           <p>{current.summary}</p>
         </div>
+        {agent.error && (
+          <div className="status-banner warning" role="status">
+            Agent state sync unavailable: {agent.error}
+          </div>
+        )}
+        {agent.proposal && (
+          <section className="agent-proposal" aria-label="Agent map proposal">
+            <details>
+              <summary>
+                Review proposed map · {agent.proposal.document.modules.length} concepts
+              </summary>
+              <p>{agent.proposal.explanation}</p>
+              <details>
+                <summary>Review proposed document</summary>
+                <pre>{JSON.stringify(agent.proposal.document, null, 2)}</pre>
+              </details>
+              <button
+                className="primary"
+                disabled={staleProposal}
+                onClick={() => {
+                  edit(agent.proposal!.document);
+                  void agent.dismiss();
+                }}
+              >
+                Apply to draft
+              </button>
+              <button onClick={() => void agent.dismiss()}>Dismiss proposal</button>
+              {staleProposal && <p>The draft changed. Ask for a fresh proposal.</p>}
+            </details>
+          </section>
+        )}
         <Canvas
           edit={edit}
+          selections={activeSelections}
+          multiSelect={multiSelect}
+          reportView={reportView}
+          viewAction={viewAction}
           key={scope}
           document={document}
           scope={scope}
           selection={selection}
-          select={(id) => {
-            setSelection(id);
-            if (id && panel !== 'chat') setPanel('inspect');
-          }}
+          select={select}
           enter={enter}
           move={(id, x, y) =>
             edit({
@@ -626,10 +823,18 @@ export function App() {
           }
         />
         <footer className="app-footer">
-          <span>
-            {document.modules.length} modules <i>·</i> {document.connections.length} relationships{' '}
-            <i>·</i> {document.annotations.length} annotations
-          </span>
+          {activeSelections.length > 0 ? (
+            <div className="selection-bar">
+              <span>{activeSelections.length} selected</span>
+              <button onClick={() => setPanel('chat')}>Discuss selection</button>
+              <button onClick={() => select(null)}>Clear selection</button>
+            </div>
+          ) : (
+            <span>
+              {document.modules.length} nodes <i>·</i> {document.connections.length} relationships{' '}
+              <i>·</i> {document.annotations.length} notes
+            </span>
+          )}
         </footer>
       </main>
       {panel === 'inspect' && (
@@ -645,9 +850,11 @@ export function App() {
       )}
       <div className={panel === 'chat' ? 'chat-slot' : 'chat-slot hidden'}>
         <SideChat
+          actions={chatActions}
           document={document}
           scope={scope}
           selection={selection}
+          selections={activeSelections}
           token={session.token}
           apply={edit}
           close={() => setPanel(null)}
@@ -699,6 +906,7 @@ export function App() {
                 ],
               });
               setSelection(id);
+              setSelections([id]);
               setPanel('inspect');
               setAdding(false);
               setNewName('');

@@ -1,18 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useImperativeHandle, type Ref } from 'react';
 import { parseDocument, type Architecture, type ChatMessage } from '../model/document';
 import type { CanvasExchange } from '../model/bridge';
 import { request } from './api';
+import { initializationPrompt } from '../model/initialization';
 import { hosted, requireMessaging, sendToChat } from './host';
 
+export interface ChatActions {
+  initialize: () => void;
+}
 interface Props {
+  actions?: Ref<ChatActions>;
   document: Architecture;
   scope: string;
   selection: string | null;
+  selections: string[];
   token: string;
   apply: (document: Architecture) => void;
   close: () => void;
 }
-export function SideChat({ document, scope, selection, token, apply, close }: Props) {
+export function SideChat({
+  document,
+  scope,
+  selection,
+  selections,
+  token,
+  apply,
+  close,
+  actions,
+}: Props) {
   const [canvasId] = useState(() => {
     const key = 'repo-canvas:chat-tab';
     try {
@@ -66,8 +81,10 @@ export function SideChat({ document, scope, selection, token, apply, close }: Pr
       stale = true;
     }
   }
-  async function send() {
-    if (!hosted || !input.trim() || busy || pending) return;
+  const sending = useRef(false);
+  async function send(text = input) {
+    if (!hosted || !text.trim() || sending.current || busy || pending) return;
+    sending.current = true;
     setBusy(true);
     setError('');
     try {
@@ -77,7 +94,8 @@ export function SideChat({ document, scope, selection, token, apply, close }: Pr
         document,
         scope,
         selection,
-        messages: [...messages, { role: 'user', text: input.trim() }].slice(-30),
+        selections,
+        messages: [...messages, { role: 'user', text: text.trim() }].slice(-30),
       });
       setExchange(next);
       setInput('');
@@ -87,9 +105,15 @@ export function SideChat({ document, scope, selection, token, apply, close }: Pr
     } catch (error) {
       setError(String(error));
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }
+  useImperativeHandle(actions, () => ({
+    initialize: () => {
+      void send(initializationPrompt);
+    },
+  }));
   return (
     <aside className="side-chat">
       <div className="panel-heading">
@@ -100,7 +124,12 @@ export function SideChat({ document, scope, selection, token, apply, close }: Pr
       </div>
       <p className="muted">Discuss the selection. Review proposals before saving.</p>
       <div className="context-chip">
-        {context.name}
+        {selections.length > 1
+          ? `${selections.length} nodes: ${document.modules
+              .filter((m) => selections.includes(m.id))
+              .map((m) => m.name)
+              .join(', ')}`
+          : context.name}
         <span>Selection and current draft included</span>
       </div>
       <div className="chat-log" aria-live="polite">
