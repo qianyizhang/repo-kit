@@ -64,6 +64,20 @@ zoom still scales the diagram; preserve zoom and Fit view controls.
   not cover navigation, Save or the canvas controls. Give each panel an explicit
   close action. Preserve text wrapping and visible state; avoid horizontal overflow.
 
+## Repository selection
+
+A new panel with no repository is a normal launch state. Show “Connecting to this
+chat’s repository…” while one message to the owning chat resolves a single-use
+binding. Explicit tool targets open directly. Manual selection cancels any pending
+binding; late answers cannot replace the selected repository. Do not guess a target
+from the plugin process directory or another panel's most recent repository.
+
+Keep registered repositories visible as named choices. Disclose manual path entry
+under “Choose another folder.” A standalone launcher uses the same registered list,
+without offering chat actions. Refresh the list while choosing, preserving targets
+already open. Show “Retry loading map” only after a selected repository fails to
+load; an empty selection is not an error and has no Retry button.
+
 ## Review and verification
 
 Capture the actual delivered UI before editing and compare matched states after:

@@ -11,10 +11,22 @@ import { download, request, type Session } from './api';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
 import { SideChat } from './SideChat';
-import { hosted, openRepository } from './host';
+import {
+  hosted,
+  openRepository,
+  prepareHost,
+  resolveRepositoryFromChat,
+  repositoryChoices,
+} from './host';
+import type { RegisteredRepository } from '../../../runtime/repositories';
 
 export function App() {
   const [repoPath, setRepoPath] = useState('');
+  const [needsRepository, setNeedsRepository] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [choices, setChoices] = useState<RegisteredRepository[]>([]);
+  const [catalogError, setCatalogError] = useState('');
+  const askedChat = useRef(false);
   const [session, setSession] = useState<Session | null>(null),
     [document, setDocument] = useState<Architecture | null>(null);
   const [scope, setScope] = useState('repo'),
@@ -35,7 +47,18 @@ export function App() {
   state.current = { dirty, revision: session?.revision };
   const load = useCallback(async (recover = false) => {
     try {
-      const data = await request<Session>('state');
+      if (hosted && !(await prepareHost())) {
+        setNeedsRepository(true);
+        setError('');
+        return;
+      }
+      const data = await request<Session & { needsRepository?: boolean }>('state');
+      if (data.needsRepository) {
+        setNeedsRepository(true);
+        setError('');
+        return;
+      }
+      setNeedsRepository(false);
       data.document = parseDocument(data.document);
       if (recover) {
         try {
@@ -95,6 +118,56 @@ export function App() {
     window.addEventListener('repo-canvas-target', selected);
     return () => window.removeEventListener('repo-canvas-target', selected);
   }, [load]);
+  const connectChat = useCallback(async () => {
+    setConnecting(true);
+    setError('');
+    try {
+      if (await resolveRepositoryFromChat()) await load(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setConnecting(false);
+    }
+  }, [load]);
+  useEffect(() => {
+    if (!needsRepository) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const entries = hosted
+          ? await repositoryChoices<RegisteredRepository[]>()
+          : await fetch('/api/repositories').then((response) => {
+              if (!response.ok) throw new Error('Cannot load registered repositories');
+              return response.json() as Promise<RegisteredRepository[]>;
+            });
+        if (active) {
+          setChoices(entries);
+          setCatalogError('');
+        }
+      } catch (error) {
+        if (active) setCatalogError(error instanceof Error ? error.message : String(error));
+      }
+    };
+    void refresh();
+    const timer = setInterval(() => void refresh(), 5000);
+    if (hosted && !askedChat.current) {
+      askedChat.current = true;
+      void connectChat();
+    }
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [needsRepository, connectChat]);
+  async function chooseRepository(path: string) {
+    setError('');
+    try {
+      await openRepository(path);
+      await load(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : String(error));
+    }
+  }
   useEffect(() => {
     if (!session || !document) return;
     try {
@@ -207,29 +280,78 @@ export function App() {
       <div className="loading">
         <div className="brand-mark">▧</div>
         <h1>Repo Canvas</h1>
-        <p>{error || 'Opening the repository…'}</p>
-        {hosted && (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              void openRepository(repoPath.trim())
-                .then(() => load(true))
-                .catch((error: unknown) => setError(String(error)));
-            }}
-          >
-            <label>
-              Repository path
-              <input
-                value={repoPath}
-                onChange={(event) => setRepoPath(event.target.value)}
-                placeholder="/absolute/path/to/repository"
-                required
-              />
-            </label>
-            <button type="submit">Open repository</button>
-          </form>
+        {needsRepository ? (
+          <>
+            <p>
+              {hosted
+                ? connecting
+                  ? 'Connecting to this chat’s repository…'
+                  : 'Choose a repository for this canvas.'
+                : 'Choose a registered repository.'}
+            </p>
+            {connecting && (
+              <p className="connection-hint">
+                This chat will supply the path. You can also choose a repository below.
+              </p>
+            )}
+            {error && <p role="alert">{error}</p>}
+            {hosted && !connecting && (
+              <button onClick={() => void connectChat()}>Use this chat’s repository</button>
+            )}
+            {choices.length > 0 && (
+              <div className="repository-choices" aria-label="Registered repositories">
+                {choices.map((entry) => (
+                  <button
+                    key={entry.id}
+                    disabled={!entry.available}
+                    onClick={() =>
+                      hosted
+                        ? void chooseRepository(entry.path)
+                        : location.assign(`/canvas/${entry.id}/`)
+                    }
+                  >
+                    <strong>{entry.name}</strong>
+                    <code>{entry.path}</code>
+                    {!entry.available && <span>Unavailable</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {catalogError && <p role="alert">{catalogError}</p>}
+            {hosted ? (
+              <details>
+                <summary>Choose another folder</summary>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void chooseRepository(repoPath.trim());
+                  }}
+                >
+                  <label>
+                    Repository path
+                    <input
+                      value={repoPath}
+                      onChange={(event) => setRepoPath(event.target.value)}
+                      placeholder="/absolute/path/to/repository"
+                      required
+                    />
+                  </label>
+                  <button type="submit">Open repository</button>
+                </form>
+              </details>
+            ) : (
+              <p>
+                Register a folder with <code>repo-workbench repos add /path/to/repo</code>. This
+                list updates automatically.
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <p role={error ? 'alert' : undefined}>{error || 'Opening the repository…'}</p>
+            {error && <button onClick={() => void load()}>Retry loading map</button>}
+          </>
         )}
-        {error && <button onClick={() => void load()}>Retry</button>}
       </div>
     );
   const current = document.modules.find((m) => m.id === scope) ?? rootOf(document);

@@ -76,7 +76,7 @@ if (hosted)
 let initialization: Promise<Initialization> | undefined;
 export function initializeHost() {
   initialization ??= rpc<Initialization>('ui/initialize', {
-    appInfo: { name: 'Repo Canvas', version: '0.1.0' },
+    appInfo: { name: 'Repo Canvas', version: '0.1.1' },
     appCapabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
     protocolVersion: '2026-01-26',
   }).then((result) => {
@@ -112,6 +112,7 @@ export async function sendToChat(text: string) {
 }
 
 export async function openRepository(repo: string) {
+  await cancelRepositoryRequest();
   await initializeHost();
   const result = await rpc<ToolResult>('tools/call', {
     name: 'canvas_app',
@@ -124,4 +125,68 @@ export async function openRepository(repo: string) {
   const value = result.structuredContent?.value as { contextId?: string } | undefined;
   if (!value?.contextId) throw new Error('Missing repository context');
   contextId = value.contextId;
+}
+
+async function connectionTool<T>(action: string, args: object = {}): Promise<T> {
+  await initializeHost();
+  const result = await rpc<ToolResult>('tools/call', {
+    name: 'canvas_app',
+    arguments: { action, ...args },
+  });
+  if (result.isError)
+    throw new Error(
+      result.content?.find((c) => c.type === 'text')?.text ?? 'Cannot connect canvas',
+    );
+  return result.structuredContent?.value as T;
+}
+export async function prepareHost(): Promise<boolean> {
+  await initializeHost();
+  if (!contextId) {
+    const target = await connectionTool<{ contextId: string } | null>('bootstrap');
+    if (target) contextId = target.contextId;
+  }
+  return !!contextId;
+}
+let generation = 0;
+let pendingBinding: string | undefined;
+export async function cancelRepositoryRequest() {
+  generation++;
+  const id = pendingBinding;
+  pendingBinding = undefined;
+  if (id) await connectionTool('binding_cancel', { bindingId: id }).catch(() => {});
+}
+export async function resolveRepositoryFromChat(): Promise<boolean> {
+  await requireMessaging();
+  const current = ++generation;
+  const { bindingId } = await connectionTool<{ bindingId: string }>('binding_create');
+  if (current !== generation) {
+    await connectionTool('binding_cancel', { bindingId });
+    return false;
+  }
+  pendingBinding = bindingId;
+  try {
+    await sendToChat(
+      `Repo Canvas is waiting for this chat's repository. Call canvas_bind with bindingId ${bindingId} and the absolute current working directory from this chat's trusted environment, unless I explicitly requested another repository. This connects the existing waiting panel; do not open another canvas. If the repository is ambiguous, ask me here.`,
+    );
+    while (current === generation) {
+      const target = await connectionTool<{ contextId: string } | null>('binding_read', {
+        bindingId,
+      });
+      if (current !== generation) return false;
+      if (target) {
+        contextId = target.contextId;
+        await cancelRepositoryRequest();
+        return true;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    return false;
+  } catch (error) {
+    if (current !== generation) return false;
+    await cancelRepositoryRequest();
+    throw error;
+  }
+}
+export async function repositoryChoices<T>(): Promise<T> {
+  return connectionTool<T>('catalog');
 }

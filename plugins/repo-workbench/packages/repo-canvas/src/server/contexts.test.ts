@@ -94,3 +94,60 @@ test('two repositories and two canvases in the same repository keep targets, dra
     roots.forEach((root) => rmSync(root, { recursive: true, force: true }));
   }
 });
+
+test('repository handoffs bind one waiting panel and reject cancelled or repeated replies', async () => {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'canvas-bind-')));
+  execFileSync('git', ['init', '-q', root]);
+  writeFileSync(join(root, 'README.md'), 'handoff');
+  const server = canvasMcp(),
+    client = new Client({ name: 'handoff-test', version: '1' });
+  const [a, b] = InMemoryTransport.createLinkedPair();
+  await server.connect(a);
+  await client.connect(b);
+  const action = (action: string, args: object = {}) =>
+    client.callTool({ name: 'canvas_app', arguments: { action, ...args } });
+  try {
+    const first = (await action('binding_create')).structuredContent as {
+      value: { bindingId: string };
+    };
+    const second = (await action('binding_create')).structuredContent as {
+      value: { bindingId: string };
+    };
+    const bind = await client.callTool({
+      name: 'canvas_bind',
+      arguments: { bindingId: first.value.bindingId, repo: root },
+    });
+    expect(bind.isError).not.toBe(true);
+    const selected = (await action('binding_read', first.value)).structuredContent as {
+      value: { contextId: string; repo: string };
+    };
+    expect(selected.value.repo).toBe(root);
+    expect((await action('binding_read', second.value)).structuredContent).toMatchObject({
+      value: null,
+    });
+    expect(
+      (
+        await client.callTool({
+          name: 'canvas_bind',
+          arguments: { bindingId: first.value.bindingId, repo: root },
+        })
+      ).isError,
+    ).toBe(true);
+    await action('binding_cancel', second.value);
+    expect(
+      (
+        await client.callTool({
+          name: 'canvas_bind',
+          arguments: { bindingId: second.value.bindingId, repo: root },
+        })
+      ).isError,
+    ).toBe(true);
+    expect(
+      (await action('state', { contextId: selected.value.contextId })).structuredContent,
+    ).toMatchObject({ value: { repo: root } });
+  } finally {
+    await client.close();
+    await server.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});

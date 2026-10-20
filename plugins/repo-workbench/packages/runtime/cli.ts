@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+import {
+  registeredRepositories,
+  registerRepository,
+  unregisterRepository,
+  registryFile,
+} from './repositories.ts';
+import { canvasServer } from './canvas-server.ts';
 import { setup } from './setup.ts';
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
@@ -12,7 +19,48 @@ try {
   if (command === 'setup') console.log(JSON.stringify(await setup(args), null, 2));
   else if (command === 'usage') await usage(args);
   else if (command === 'trace') await trace(args);
-  else if (command === 'canvas') {
+  else if (command === 'repos') {
+    const [action = 'list', path, ...extra] = args;
+    if (action === 'list' && !path)
+      console.log(
+        JSON.stringify(
+          { file: registryFile(), repositories: await registeredRepositories() },
+          null,
+          2,
+        ),
+      );
+    else if (
+      action === 'add' &&
+      path &&
+      (!extra.length || (extra.length === 2 && extra[0] === '--name'))
+    ) {
+      console.log(
+        JSON.stringify({ path: await registerRepository(path, extra[1]), file: registryFile() }),
+      );
+    } else if (action === 'remove' && path && !extra.length) {
+      await unregisterRepository(path);
+      console.log('Repository registration removed; repository files are unchanged.');
+    } else throw new Error('Use repos list | repos add PATH [--name NAME] | repos remove PATH');
+  } else if (command === 'serve') {
+    if (args.length && (args.length !== 2 || args[0] !== '--port'))
+      throw new Error('Use serve [--port N]');
+    const port = args.length ? Number(args[1]) : 4317;
+    if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port');
+    const server = await canvasServer();
+    server.on('error', (error) => {
+      console.error(error.message);
+      process.exitCode = 1;
+    });
+    server.listen(port, '127.0.0.1', () => {
+      const address = server.address();
+      if (address && typeof address === 'object')
+        console.log(
+          JSON.stringify({ url: `http://127.0.0.1:${address.port}/`, registry: registryFile() }),
+        );
+    });
+    process.once('SIGINT', () => server.close());
+    process.once('SIGTERM', () => server.close());
+  } else if (command === 'canvas') {
     let root = process.cwd(),
       port = 4317,
       validate = false;
@@ -38,7 +86,10 @@ try {
             return;
           }
           res
-            .writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-store' })
+            .writeHead(200, {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-store',
+            })
             .end(html);
         }),
       );
@@ -52,7 +103,7 @@ try {
     }
   } else if (!command || command === '--help')
     console.log(
-      'repo-workbench canvas [--repo DIR] [--port N] [--validate]\nrepo-workbench usage [--root LOG_DIR ...] [--out NEW_DIR] [--cache DIR] [--serve]\nrepo-workbench trace --repo DIR --input DIR --case FILE [--out NEW_DIR]\nrepo-workbench setup --scope user|repo [--repo DIR]',
+      'repo-workbench repos list | add PATH [--name NAME] | remove PATH\nrepo-workbench serve [--port N]\nrepo-workbench canvas [--repo DIR] [--port N] [--validate]\nrepo-workbench usage [--root LOG_DIR ...] [--out NEW_DIR] [--cache DIR] [--serve]\nrepo-workbench trace --repo DIR --input DIR --case FILE [--out NEW_DIR]\nrepo-workbench setup --scope user|repo [--repo DIR]',
     );
   else throw new Error(`Unknown command: ${command}`);
 } catch (error) {

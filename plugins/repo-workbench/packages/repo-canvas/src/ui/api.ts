@@ -12,7 +12,10 @@ export async function request<T>(
   const query = new URLSearchParams();
   if (method === 'GET')
     for (const [key, value] of Object.entries(args)) query.set(key, String(value));
-  const response = await fetch(`/api/${path}${query.size ? `?${query}` : ''}`, {
+  const base = location.pathname.startsWith('/canvas/')
+    ? location.pathname.replace(/\/?$/, '/')
+    : '/';
+  const response = await fetch(`${base}api/${path}${query.size ? `?${query}` : ''}`, {
     method,
     headers: {
       'Content-Type': 'application/json',

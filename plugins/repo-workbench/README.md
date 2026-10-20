@@ -17,7 +17,7 @@ The tarball includes all runtime code and UI assets, with no production dependen
 ### User-wide
 
 ```sh
-npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.0.tgz --ignore-scripts
+npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.1.tgz --ignore-scripts
 "$HOME/.local/share/repo-workbench/node_modules/.bin/repo-workbench" setup --scope user
 ```
 
@@ -28,7 +28,7 @@ Setup merges one entry into `~/.agents/plugins/marketplace.json`, preserving oth
 From the target repository:
 
 ```sh
-npm install --save-dev /absolute/repo-kit-workbench-0.1.0.tgz --ignore-scripts
+npm install --save-dev /absolute/repo-kit-workbench-0.1.1.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
@@ -55,9 +55,22 @@ After installation or an update, open a fresh Codex chat; restart the app if it 
 | Generated usage report   | Fresh OS temporary directory; override `--out` for retained output                            |
 | Generated curated review | `{repo}/.cache/repo-workbench/reviews`; override `--out` for retained output                  |
 
-Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its draft and discussion mailbox. Two repositories or chats never share a mutable global target. Opening from the app menu without a target displays a repository picker. No global repository registry is required. The canonical path stays visible in the canvas.
+Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its draft and discussion mailbox. Two repositories or chats never share a mutable global target. Opening from the app menu without a target asks the owning chat for its working directory once, then connects that same panel through `canvas_bind`. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
 
 The schema and location of existing saved maps are preserved. Source previews remain restricted to Git-visible repository files. Proposals require Apply to draft, then Save; stale revisions are rejected. A plugin installation location is never used as the repository default. The standalone CLI alone defaults `--repo` to the invoking working directory.
+
+## Registered repositories and standalone server
+
+```sh
+repo-workbench repos add /absolute/repo --name "My project"
+repo-workbench repos list
+repo-workbench serve --port 4317
+repo-workbench repos remove /absolute/repo
+```
+
+The registry lives at `$XDG_CONFIG_HOME/repo-workbench/repositories.json`, defaulting to `~/.config/repo-workbench/repositories.json`. Registration resolves the Git checkout root and deduplicates canonical paths. Removing an entry leaves repository files untouched. The hosted picker and the standalone launch page reload the list every five seconds. Missing folders stay visible as unavailable; active canvases never switch when the list changes.
+
+`serve` starts a loopback-only, headless-capable process without opening a browser or model. Visit its printed URL to select a registered repository. Each repository route keeps its own state and source access, and browser drafts remain tab-local. Removing a registration hides it from new selections; existing server routes remain usable until that server restarts. This is a local trusted-user tool, not an authenticated remote service.
 
 ## Use without Codex
 
