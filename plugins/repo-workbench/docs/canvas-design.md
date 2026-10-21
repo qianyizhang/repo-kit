@@ -21,7 +21,7 @@ no private application content or configuration is copied here.
 
 This is a scoped adaptation of the public roles and principles, not a synchronized
 installation of Saul's generator kit. Repo Canvas keeps its existing React/CSS
-implementation and dark appearance. No sibling checkout, token generator, new
+implementation and semantic color roles. Hosted panels follow the host light/dark theme without a theme control; standalone previews follow the OS. No sibling checkout, token generator, new
 package or native application is required. Future updates should review the pinned
 source and this mapping together rather than silently claiming upstream parity.
 
@@ -68,21 +68,32 @@ zoom still scales the diagram; preserve zoom and Fit view controls.
   not cover navigation, Save or the canvas controls. Give each panel an explicit
   close action. Preserve text wrapping and visible state; avoid horizontal overflow.
 
+## Minimal action controls
+
+Prefer conventional symbols for familiar actions such as information, copy,
+refresh, download, undo and close. Use a consistent stroke style, a quiet
+14–16 px glyph and at least a 28 px control target. Every icon-only control needs
+an accessible name, a hover tooltip and a visible keyboard focus indicator.
+Keep explanatory labels for unfamiliar or consequential actions. Put connection
+copy, refresh and log export together beside the disclosure title. Report copy
+success honestly; if the host blocks clipboard access, expose selectable text.
+
 ## Repository selection
 
-A new panel with no repository is a normal launch state. Show “Connecting to this
-chat’s repository…” while one message to the owning chat resolves a single-use
-binding. Explicit tool targets open directly. Manual selection cancels any pending
-binding; late answers cannot replace the selected repository. Do not guess a target
-from the plugin process directory or another panel's most recent repository.
-
-Show an accessible status with a reduced-motion-aware spinner while awaiting the chat. A live panel renews its 30-minute request lease, and missing message acknowledgment does not cancel delivery or trigger another message.
+A new panel resolves its repository from the calling chat's native metadata and
+saved workspace, without sending a message to the agent. When Codex provides a
+chat ID before making its workspace available (including an empty new chat),
+explain the missing context and show the picker. Recheck every five seconds while
+the picker is visible; pause checks in hidden documents. Retry shows progress and
+the time of the completed check. Manual selection wins over an in-flight lookup
+and remains selected if workspace metadata appears later. Never guess from the
+plugin directory, another panel, or the last-used repository.
 
 Keep registered repositories visible as named choices. Disclose manual path entry
 under “Add another repository.” Successful opens remember the canonical repository; empty lists explain how to add the first entry. Search filters names and paths. A standalone launcher uses the same registered list,
 without offering chat actions. Refresh the list while choosing, preserving targets
 already open. Show “Retry loading map” only after a selected repository fails to
-load; an empty selection is not an error and has no Retry button.
+load; an empty selection is not an error. The separate automatic-connection retry checks only host context.
 
 ## Review and verification
 

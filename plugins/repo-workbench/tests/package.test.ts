@@ -96,11 +96,16 @@ void test('packed npm installation runs independently with scripts disabled and 
       command: process.execPath,
       args: [resolve(installed, 'dist/canvas-server.mjs')],
       cwd: consumer,
+      env: { ...process.env, XDG_CACHE_HOME: resolve(temporary, 'cache') },
     }),
   );
   let lastContext: string | undefined;
   try {
-    const resources = await client.readResource({ uri: 'ui://repo-canvas/workbench-v2.html' });
+    const resources = await client.readResource({
+      uri: (await client.listResources()).resources.find(
+        (resource) => resource.name === 'Repo Canvas workbench',
+      )!.uri,
+    });
     assert.ok(
       resources.contents.some(
         (resource) => 'text' in resource && resource.text.includes('repo-canvas-mcp-app'),
@@ -112,7 +117,7 @@ void test('packed npm installation runs independently with scripts disabled and 
       lastContext = contextId;
       const result = await client.callTool({
         name: 'canvas_app',
-        arguments: { contextId, action: 'state' },
+        arguments: { contextId, request: { action: 'state', args: {} } },
       });
       const state = (result.structuredContent as { value: Snapshot }).value;
       assert.equal(state.repo, repo);
@@ -120,9 +125,10 @@ void test('packed npm installation runs independently with scripts disabled and 
         name: 'canvas_app',
         arguments: {
           contextId,
-          action: 'save',
-          revision: state.revision,
-          document: { ...state.document, title: repo },
+          request: {
+            action: 'save',
+            args: { revision: state.revision, document: { ...state.document, title: repo } },
+          },
         },
       });
       assert.notEqual(saved.isError, true);
@@ -214,12 +220,13 @@ void test('packed npm installation runs independently with scripts disabled and 
       command: process.execPath,
       args: [resolve(installed, 'dist/canvas-server.mjs')],
       cwd: consumer,
+      env: { ...process.env, XDG_CACHE_HOME: resolve(temporary, 'cache') },
     }),
   );
   try {
     const stale = await restarted.callTool({
       name: 'canvas_app',
-      arguments: { contextId: lastContext, action: 'state' },
+      arguments: { contextId: lastContext, request: { action: 'state', args: {} } },
     });
     assert.equal(stale.isError, true);
     for (const [index, repo] of repos.entries()) {
@@ -227,7 +234,7 @@ void test('packed npm installation runs independently with scripts disabled and 
       const { contextId } = opened.structuredContent as { contextId: string };
       const state = await restarted.callTool({
         name: 'canvas_app',
-        arguments: { contextId, action: 'state' },
+        arguments: { contextId, request: { action: 'state', args: {} } },
       });
       assert.equal((state.structuredContent as { value: Snapshot }).value.document.title, repo);
       assert.deepEqual(

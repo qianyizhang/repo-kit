@@ -1,29 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ancestors,
-  parseDocument,
-  rootOf,
-  type Architecture,
-  type Module,
-  type Snapshot,
-} from '../model/document';
-import { download, request, type Session } from './api';
+import { ancestors, parseDocument, rootOf, type Module } from '../model/document';
+import { download } from './api';
+import { useCanvasDocument } from './useCanvasDocument';
+import { RepositoryPicker } from './RepositoryPicker';
 import { useCanvasAgent } from './useCanvasAgent';
 import type { Viewport } from '../model/layout';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
 import { SideChat, type ChatActions } from './SideChat';
-import {
-  hosted,
-  openRepository,
-  prepareHost,
-  resolveRepositoryFromChat,
-  repositoryChoices,
-  rememberRepository,
-} from './host';
-import type { RegisteredRepository } from '../../../runtime/repositories';
+import { hosted } from './host';
+import { ConnectionInfo } from './ConnectionInfo';
 
 export function App() {
+  const {
+    session,
+    document,
+    scope,
+    setScope,
+    selection,
+    setSelection,
+    selections,
+    setSelections,
+    needsRepository,
+    lookupReason,
+    retryingConnection,
+    connectionCheckedAt,
+    retryConnection,
+    dirty,
+    conflict,
+    saving,
+    history,
+    setHistory,
+    error,
+    setError,
+    notice,
+    setNotice,
+    load,
+    edit,
+    replaceDraft,
+    save,
+  } = useCanvasDocument();
   const chatActions = useRef<ChatActions>(null);
   const inspectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -32,21 +48,7 @@ export function App() {
     },
     [],
   );
-  const [repoPath, setRepoPath] = useState('');
-  const [needsRepository, setNeedsRepository] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [choices, setChoices] = useState<RegisteredRepository[]>([]);
-  const [catalogError, setCatalogError] = useState('');
-  const [catalogLoading, setCatalogLoading] = useState(true);
-  const [repositoryFilter, setRepositoryFilter] = useState('');
-  const [deliveryWarning, setDeliveryWarning] = useState('');
-  const askedChat = useRef(false);
-  const [session, setSession] = useState<Session | null>(null),
-    [document, setDocument] = useState<Architecture | null>(null);
-  const [scope, setScope] = useState('repo'),
-    [selection, setSelection] = useState<string | null>(null),
-    [query, setQuery] = useState('');
-  const [selections, setSelections] = useState<string[]>([]);
+  const [query, setQuery] = useState('');
   const [multiSelect, setMultiSelect] = useState(false);
   const [navigation, setNavigation] = useState<boolean | null>(null);
   const [compact, setCompact] = useState(() => window.innerWidth < 1100);
@@ -63,271 +65,9 @@ export function App() {
     media.addEventListener('change', change);
     return () => media.removeEventListener('change', change);
   }, []);
-  const [panel, setPanel] = useState<'inspect' | 'chat' | null>(hosted ? 'chat' : null),
-    [error, setError] = useState(''),
-    [notice, setNotice] = useState('');
-  const [dirty, setDirty] = useState(false),
-    [conflict, setConflict] = useState(false),
-    [saving, setSaving] = useState(false);
+  const [panel, setPanel] = useState<'inspect' | 'chat' | null>(hosted ? 'chat' : null);
   const [adding, setAdding] = useState(false),
     [newName, setNewName] = useState('');
-  const [history, setHistory] = useState<Architecture[]>([]);
-  const documentRef = useRef(document);
-  documentRef.current = document;
-  const state = useRef({ dirty, revision: session?.revision });
-  state.current = { dirty, revision: session?.revision };
-  const load = useCallback(async (recover = false) => {
-    try {
-      if (hosted && !(await prepareHost())) {
-        setNeedsRepository(true);
-        setError('');
-        return;
-      }
-      const data = await request<Session & { needsRepository?: boolean }>('state');
-      if (data.needsRepository) {
-        setNeedsRepository(true);
-        setError('');
-        return;
-      }
-      setNeedsRepository(false);
-      data.document = parseDocument(data.document);
-      if (hosted)
-        void rememberRepository().catch(() => {
-          setNotice('Opened this repository, but could not remember it on this device.');
-        });
-      if (recover) {
-        try {
-          const transferred = hosted ? await request<unknown>('draft_read', data.token) : null;
-          const raw = transferred
-            ? JSON.stringify(transferred)
-            : sessionStorage.getItem(`repo-canvas:draft:${data.repo}`);
-          if (raw) {
-            const draft = JSON.parse(raw) as {
-              document: unknown;
-              revision: string;
-              scope: string;
-              selection: string | null;
-              selections?: string[];
-            };
-            const restored = parseDocument(draft.document);
-            if (
-              typeof draft.revision === 'string' &&
-              JSON.stringify(restored) !== JSON.stringify(data.document)
-            ) {
-              setSession({ ...data, revision: draft.revision });
-              setDocument(restored);
-              setScope(
-                restored.modules.some((m) => m.id === draft.scope)
-                  ? draft.scope
-                  : rootOf(restored).id,
-              );
-              setSelection(
-                restored.modules.some((m) => m.id === draft.selection) ? draft.selection : null,
-              );
-              setSelections(
-                (draft.selections ?? (draft.selection ? [draft.selection] : [])).filter((id) =>
-                  restored.modules.some((m) => m.id === id),
-                ),
-              );
-              setDirty(true);
-              setConflict(data.revision !== draft.revision);
-              setNotice('Restored your unsaved draft in this tab.');
-              return;
-            }
-          }
-        } catch {
-          /* A corrupt cache must not prevent loading the authoritative map. */
-        }
-      }
-      setSession(data);
-      setDocument(data.document);
-      setScope(rootOf(data.document).id);
-      setSelection(null);
-      setSelections([]);
-      setDirty(false);
-      setConflict(false);
-      setHistory([]);
-      setError('');
-    } catch (error) {
-      setError(String(error));
-    }
-  }, []);
-  useEffect(() => {
-    void load(true);
-    const selected = () => {
-      void load(true);
-    };
-    window.addEventListener('repo-canvas-target', selected);
-    return () => window.removeEventListener('repo-canvas-target', selected);
-  }, [load]);
-  const connectChat = useCallback(async () => {
-    setConnecting(true);
-    setError('');
-    setDeliveryWarning('');
-    try {
-      if (await resolveRepositoryFromChat(setDeliveryWarning)) await load(true);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setConnecting(false);
-    }
-  }, [load]);
-  useEffect(() => {
-    if (!needsRepository) return;
-    let active = true;
-    const refresh = async () => {
-      try {
-        const entries = hosted
-          ? await repositoryChoices<RegisteredRepository[]>()
-          : await fetch('/api/repositories').then((response) => {
-              if (!response.ok) throw new Error('Cannot load registered repositories');
-              return response.json() as Promise<RegisteredRepository[]>;
-            });
-        if (active) {
-          setChoices(entries);
-          setCatalogError('');
-        }
-      } catch (error) {
-        if (active) setCatalogError(error instanceof Error ? error.message : String(error));
-      } finally {
-        if (active) setCatalogLoading(false);
-      }
-    };
-    void refresh();
-    const timer = setInterval(() => void refresh(), 5000);
-    if (hosted && !askedChat.current) {
-      askedChat.current = true;
-      void connectChat();
-    }
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
-  }, [needsRepository, connectChat]);
-  async function chooseRepository(path: string) {
-    setError('');
-    try {
-      if (!hosted) {
-        const response = await fetch('/api/repositories', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path }),
-        });
-        const entry = (await response.json()) as RegisteredRepository & { error?: string };
-        if (!response.ok) throw new Error(entry.error ?? 'Cannot add repository');
-        location.assign(`/canvas/${entry.id}/`);
-        return;
-      }
-      await openRepository(path);
-      await load(true);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : String(error));
-    }
-  }
-  useEffect(() => {
-    if (!session || !document) return;
-    try {
-      const key = `repo-canvas:draft:${session.repo}`;
-      if (dirty)
-        sessionStorage.setItem(
-          key,
-          JSON.stringify({ document, revision: session.revision, scope, selection, selections }),
-        );
-      else sessionStorage.removeItem(key);
-    } catch {
-      /* Persistence still works when browser storage is unavailable. */
-    }
-  }, [session, document, dirty, scope, selection, selections]);
-  useEffect(() => {
-    if (!session || !document) return;
-    const timer = setTimeout(
-      () => {
-        void request('draft_write', session.token, {
-          draft: dirty
-            ? { document, revision: session.revision, scope, selection, selections }
-            : null,
-        }).catch(() => {
-          /* Local draft remains intact if the bridge disconnects. */
-        });
-      },
-      dirty ? 350 : 0,
-    );
-    return () => clearTimeout(timer);
-  }, [session, document, dirty, scope, selection, selections]);
-  useEffect(() => {
-    const warn = (event: BeforeUnloadEvent) => {
-      if (state.current.dirty) event.preventDefault();
-    };
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, []);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const revision = state.current.revision;
-      if (!revision) return;
-      void request<Session>('state')
-        .then((data) => {
-          setSession((previous) =>
-            previous && previous.token !== data.token
-              ? { ...previous, token: data.token, plugin: data.plugin }
-              : previous,
-          );
-          if (revision !== state.current.revision) return;
-          if (!state.current.revision || data.revision === state.current.revision) return;
-          if (state.current.dirty) {
-            setConflict(true);
-            return;
-          }
-          data.document = parseDocument(data.document);
-          setSession(data);
-          setDocument(data.document);
-          setHistory([]);
-          setConflict(false);
-          setScope((id) =>
-            data.document.modules.some((m) => m.id === id) ? id : rootOf(data.document).id,
-          );
-          setSelection((id) => (data.document.modules.some((m) => m.id === id) ? id : null));
-          setNotice('Updated from the shared repo document.');
-        })
-        .catch((error: unknown) => setError(String(error)));
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
-  function replaceDraft(next: Architecture) {
-    setDocument(next);
-    setScope((id) => (next.modules.some((m) => m.id === id) ? id : rootOf(next).id));
-    setSelection((id) => (next.modules.some((m) => m.id === id) ? id : null));
-    setDirty(true);
-  }
-  function edit(next: Architecture) {
-    if (!document) return;
-    setHistory((h) => [...h.slice(-39), document]);
-    replaceDraft(next);
-    setNotice('');
-  }
-  async function save() {
-    if (!session || !document) return;
-    setSaving(true);
-    setError('');
-    try {
-      const snapshot = await request<Snapshot>('save', session.token, {
-        document: parseDocument(document),
-        revision: session.revision,
-      });
-      state.current.revision = snapshot.revision;
-      setSession({ ...session, ...snapshot });
-      if (documentRef.current === document) {
-        setDocument(snapshot.document);
-        setDirty(false);
-      }
-      setConflict(false);
-      setNotice('Saved to .repo-canvas/architecture.json');
-    } catch (error) {
-      setError(String(error));
-    } finally {
-      setSaving(false);
-    }
-  }
   function enter(id: string) {
     if (inspectTimer.current) clearTimeout(inspectTimer.current);
     setScope(id);
@@ -409,110 +149,16 @@ export function App() {
   const file = useRef<HTMLInputElement>(null);
   if (!session || !document)
     return (
-      <div className="loading">
-        <div className="brand-mark">▧</div>
-        <h1>Repo Canvas</h1>
-        {needsRepository ? (
-          <>
-            <p className="connection-status" role="status">
-              {connecting && <span className="connection-spinner" aria-hidden="true" />}
-              {hosted
-                ? connecting
-                  ? 'Connecting to this chat’s repository…'
-                  : 'Choose a repository for this canvas.'
-                : 'Choose a registered repository.'}
-            </p>
-            {connecting && (
-              <p className="connection-hint">
-                {deliveryWarning ||
-                  'Waiting for this chat to supply the path. You can also choose a repository below.'}
-              </p>
-            )}
-            {error && <p role="alert">{error}</p>}
-            {hosted && !connecting && (
-              <button onClick={() => void connectChat()}>Use this chat’s repository</button>
-            )}
-            <h2 className="repository-heading">Saved repositories</h2>
-            <p className="connection-hint">Repositories you open are remembered on this device.</p>
-            {catalogLoading && <p role="status">Loading saved repositories…</p>}
-            {!catalogLoading && !catalogError && choices.length === 0 && (
-              <p>No saved repositories yet. Open a folder below to add the first one.</p>
-            )}
-            {choices.length > 0 && (
-              <label>
-                Find a repository
-                <input
-                  type="search"
-                  value={repositoryFilter}
-                  onChange={(event) => setRepositoryFilter(event.target.value)}
-                  placeholder="Name or path"
-                />
-              </label>
-            )}
-            {choices.length > 0 && (
-              <div className="repository-choices" aria-label="Registered repositories">
-                {choices
-                  .filter((entry) =>
-                    `${entry.name} ${entry.path}`
-                      .toLowerCase()
-                      .includes(repositoryFilter.toLowerCase()),
-                  )
-                  .map((entry) => (
-                    <button
-                      key={entry.id}
-                      disabled={!entry.available}
-                      onClick={() =>
-                        hosted
-                          ? void chooseRepository(entry.path)
-                          : location.assign(`/canvas/${entry.id}/`)
-                      }
-                    >
-                      <strong>{entry.name}</strong>
-                      <code>{entry.path}</code>
-                      {!entry.available && <span>Unavailable</span>}
-                    </button>
-                  ))}
-              </div>
-            )}
-            {choices.length > 0 &&
-              !choices.some((entry) =>
-                `${entry.name} ${entry.path}`
-                  .toLowerCase()
-                  .includes(repositoryFilter.toLowerCase()),
-              ) && <p>No repositories match your search.</p>}
-            {catalogError && <p role="alert">{catalogError}</p>}
-            <details>
-              <summary>Add another repository</summary>
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void chooseRepository(repoPath.trim());
-                }}
-              >
-                <label>
-                  Repository path
-                  <input
-                    value={repoPath}
-                    onChange={(event) => setRepoPath(event.target.value)}
-                    placeholder="/absolute/path/to/repository"
-                    required
-                  />
-                </label>
-                <button type="submit">Open and remember</button>
-              </form>
-            </details>
-            <p className="connection-hint">
-              This list updates automatically. You can also manage it with{' '}
-              <code>repo-workbench repos</code>.
-            </p>
-          </>
-        ) : (
-          <>
-            <p role={error ? 'alert' : undefined}>{error || 'Opening the repository…'}</p>
-            {error && <button onClick={() => void load()}>Retry loading map</button>}
-          </>
-        )}
-      </div>
+      <RepositoryPicker
+        needsRepository={needsRepository}
+        lookupReason={lookupReason}
+        retryingConnection={retryingConnection}
+        connectionCheckedAt={connectionCheckedAt}
+        retryConnection={retryConnection}
+        load={load}
+        error={error}
+        setError={setError}
+      />
     );
   const current = document.modules.find((m) => m.id === scope) ?? rootOf(document);
   const inspected = document.modules.find((m) => m.id === selection) ?? current;
@@ -551,6 +197,7 @@ export function App() {
       <header className="app-header">
         <div className="brand">
           <strong>Repo Canvas</strong>
+          <ConnectionInfo />
         </div>
         <div className="repo-name">
           <code className="checkout-path" title={session.repo}>

@@ -13,7 +13,7 @@ This guide records the Repo Canvas and Saul integration lessons verified on 2026
 
 For local tools, prefer stdio unless a persistent HTTP service is already managed. Pin a compatible runtime and explicit repository argument; the desktop may have a different PATH and working directory from a shell. A process started by a development terminal can disappear when that terminal or app exits. Exit when the host closes stdin. Keep diagnostic logs on stderr.
 
-Keep initialization inexpensive. Repo Canvas builds its UI lazily, caches it per process and builds in memory so multiple chats cannot race over a shared output directory. A long-lived process retains old code/resources until reconnected; changing a resource URI alone cannot refresh its executable or tool catalog.
+Keep initialization inexpensive. Repo Canvas loads its prebuilt, self-contained HTML lazily and caches it per process. Consumers need no compiler or build dependencies. A long-lived process retains old code/resources until reconnected; changing a resource URI alone cannot refresh its executable or tool catalog.
 
 ## Separate discovery, rendering and data
 
@@ -23,12 +23,12 @@ The Repo Canvas entrypoint uses:
 
 ```ts
 _meta: {
-  ui: { resourceUri: 'ui://repo-canvas/workbench-v2.html' },
+  ui: { resourceUri: APP_URI },
   'openai/ui': { entrypoints: [{ type: 'thread' }] },
 }
 ```
 
-The resource returns the exact matching URI, `mimeType: 'text/html;profile=mcp-app'`, and complete HTML. Repo Canvas embeds its compiled JS/CSS and declares empty resource/connect domain lists. It therefore needs no localhost fetches from the iframe. OpenAI entrypoint/display metadata is host-specific; feature-detect capabilities rather than assuming every MCP client implements it.
+`APP_URI` includes the packaged build fingerprint. The resource returns the exact matching URI, `mimeType: 'text/html;profile=mcp-app'`, and complete HTML. Repo Canvas embeds its compiled JS/CSS and declares empty resource/connect domain lists. It therefore needs no localhost fetches from the iframe. OpenAI entrypoint/display metadata is host-specific; feature-detect capabilities rather than assuming every MCP client implements it.
 
 App-only tools use `_meta.ui.visibility: ['app']`. This controls host exposure, not authorization against another local process. Validate data, source paths and write preconditions on the server regardless of caller.
 
@@ -42,9 +42,9 @@ Codex  -- canvas_reply --> server stores answer and optional proposal
 Canvas -- tools/call --> shows answer; person reviews, applies and saves
 ```
 
-Initialize the standard bridge with `ui/initialize`, then notify `ui/notifications/initialized`. Send messages only after checking the host's message capability. `ui/message` contains `role: 'user'` and text content; it is a user action routed by the host, not a server-side LLM call.
+Repo Canvas uses `App` from `@modelcontextprotocol/ext-apps` for protocol negotiation, request correlation, notifications, sizing and teardown. Register handlers before connecting. Keep repository selection and reconnect policy outside the SDK adapter. Check the host message capability before sending `role: 'user'` text through `sendMessage`; this is a user action routed by the host, not a server-side model call.
 
-Use the MCP Apps SDK where practical. A custom bridge must correlate response IDs, accept messages only from its parent frame, distinguish incoming requests from responses, handle teardown and bound pending calls. Sandboxed iframes can have an opaque origin: do not rely on localStorage/sessionStorage being available. Keep a storage-independent path.
+Both transports use the same operation schemas. Validate results before applying them to UI state. The SDK host fixture exercises the delivered HTML under an opaque iframe origin with network access blocked by CSP. It supplies host theme changes and enforces the actual protocol schema. Runtime validation and strict TypeScript serve different boundaries; keep both.
 
 A timeout means delivery is uncertain. Do not automatically resend a message: it may already have started a turn. Show an actionable error and let the person inspect the main chat. Closing an app request only closes its local mailbox; it does not cancel the native conversation. Treat map text and source content as data, never privileged instructions.
 
@@ -78,7 +78,7 @@ On macOS, desktop logs are under `~/Library/Logs/com.openai.codex/YYYY/MM/DD`. I
 2. **Isolated browser host:** render the delivered HTML under an opaque iframe origin; forward real tool calls; exercise messages, errors, proposals, conflicts and save/reload. Use the repository's disposable-profile harness.
 3. **Actual desktop conversation:** open the app, send a small message, read its captured request in that same chat, return a reply, and confirm delivery. A fresh SDK probe or browser harness alone cannot establish this.
 
-All three layers were exercised for Repo Canvas. The native round trip was confirmed when an app-origin “ok” arrived in the existing chat and `canvas_reply` reported delivery. Two earlier failures were distinct: a stale chat registration while the HTTP server was healthy, and a later stopped development server. Stdio fixed the lifetime dependency; the revised registration then supported the native round trip. This does not isolate the desktop's internal stale-registry cause. The [consolidated upstream report](https://github.com/openai/codex/issues/20605#issuecomment-6146903975) preserves that distinction.
+Historical Repo Canvas acceptance exercised all three layers; each new release still needs its own installed-host check. The native round trip was confirmed when an app-origin “ok” arrived in the existing chat and `canvas_reply` reported delivery. Two earlier failures were distinct: a stale chat registration while the HTTP server was healthy, and a later stopped development server. Stdio fixed the lifetime dependency; the revised registration then supported the native round trip. This does not isolate the desktop's internal stale-registry cause. The [consolidated upstream report](https://github.com/openai/codex/issues/20605#issuecomment-6146903975) preserves that distinction.
 
 ## References
 

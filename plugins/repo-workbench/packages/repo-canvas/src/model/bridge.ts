@@ -1,9 +1,3 @@
-import type { ChatReply, ChatRequest } from './document';
-
-export interface CanvasExchange {
-  id: string;
-  canvasId: string;
-  context: ChatRequest;
-  status: 'pending' | 'answered' | 'cancelled';
-  response: ChatReply | null;
-}
+import type { z } from 'zod';
+import type { exchangeSchema } from './contracts';
+export type CanvasExchange = z.output<typeof exchangeSchema>;

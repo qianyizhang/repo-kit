@@ -84,9 +84,16 @@ test('standalone picker hot-loads registrations and preserves already-open repos
     });
     expect(deniedWrite.status()).toBe(403);
   } finally {
+    // Stop browser polling before waiting for the launcher's graceful HTTP shutdown.
+    await Promise.all(context.pages().map((page) => page.close()));
     lines.close();
     child.kill('SIGTERM');
-    await closed;
+    const deadline = setTimeout(() => child.kill('SIGKILL'), 5000);
+    try {
+      await closed;
+    } finally {
+      clearTimeout(deadline);
+    }
     await rm(temporary, { recursive: true, force: true });
   }
 });

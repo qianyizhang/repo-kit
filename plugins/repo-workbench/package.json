@@ -1,6 +1,6 @@
 {
   "name": "@repo-kit/workbench",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Repository architecture and recorded-session workbench for Codex",
   "type": "module",
   "bin": {
@@ -33,6 +33,7 @@
   "packageManager": "npm@11.19.0",
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@playwright/test": "1.63.0",
     "@types/node": "24.19.2",

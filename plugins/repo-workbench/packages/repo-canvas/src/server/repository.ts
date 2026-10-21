@@ -60,19 +60,34 @@ export function discover(root: string): Architecture {
     (a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b),
   );
   const selected = ordered.slice(0, 480);
+  // Filesystem names are not document identifiers (e.g. Astro's [project]).
+  // Preserve existing valid IDs; reserve them before allocating stable opaque IDs.
+  const validId = (path: string) =>
+    path !== 'repo' && path.length <= 180 && /^[a-zA-Z0-9_./-]+$/.test(path);
+  const used = new Set(['repo', ...selected.filter(validId)]);
+  const directoryIds = new Map(
+    selected.map((path) => {
+      if (validId(path)) return [path, path];
+      const base = `dir-${digest(path)}`;
+      let identifier = base;
+      for (let suffix = 1; used.has(identifier); suffix++) identifier = `${base}-${suffix}`;
+      used.add(identifier);
+      return [path, identifier];
+    }),
+  );
   if (dirs.size > selected.length)
     modules[0].summary += ` Showing ${selected.length} of ${dirs.size} directories (up to four levels); use search or curate a semantic map.`;
   for (const path of selected) {
     const parentPath = dirname(path);
-    const parent = parentPath === '.' ? 'repo' : parentPath;
+    const parent = parentPath === '.' ? 'repo' : directoryIds.get(parentPath)!;
     if (!modules.some((m) => m.id === parent)) continue;
     const index = modules.filter((m) => m.parent === parent).length;
     const matches = files.filter((f) => f.startsWith(`${path}/`));
     modules.push({
-      id: path,
+      id: directoryIds.get(path)!,
       parent,
       name: basename(path),
-      kind: parent === 'packages' ? 'package' : path === 'docs' ? 'data' : 'module',
+      kind: parentPath === 'packages' ? 'package' : path === 'docs' ? 'data' : 'module',
       summary: `Directory grouping · ${matches.length} Git-visible text files. Responsibilities have not yet been interpreted.`,
       sources: matches.slice(0, 12),
       x: 70 + (index % 3) * 300,

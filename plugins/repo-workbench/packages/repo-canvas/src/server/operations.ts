@@ -1,4 +1,5 @@
 import { parseChat } from '../model/document.ts';
+import { contracts } from '../model/contracts.ts';
 import type { Operation } from '../model/operations.ts';
 import type { CanvasBridge } from './bridge.ts';
 import type { Repository } from './repository.ts';
@@ -10,6 +11,7 @@ export function operate(
   repository: Repository,
   bridge: CanvasBridge,
 ) {
+  args = contracts[action].input.parse(args);
   switch (action) {
     case 'view_write':
       return bridge.session.observe(args.view);

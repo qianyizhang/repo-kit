@@ -17,7 +17,7 @@ The tarball includes all runtime code and UI assets, with no production dependen
 ### User-wide
 
 ```sh
-npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.2.tgz --ignore-scripts
+npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.5.tgz --ignore-scripts
 "$HOME/.local/share/repo-workbench/node_modules/.bin/repo-workbench" setup --scope user
 ```
 
@@ -28,7 +28,7 @@ Setup merges one entry into `~/.agents/plugins/marketplace.json`, preserving oth
 From the target repository:
 
 ```sh
-npm install --save-dev /absolute/repo-kit-workbench-0.1.2.tgz --ignore-scripts
+npm install --save-dev /absolute/repo-kit-workbench-0.1.5.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
@@ -55,7 +55,7 @@ After installation or an update, open a fresh Codex chat; restart the app if it 
 | Generated usage report   | Fresh OS temporary directory; override `--out` for retained output                            |
 | Generated curated review | `{repo}/.cache/repo-workbench/reviews`; override `--out` for retained output                  |
 
-Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its draft and discussion mailbox. Two repositories or chats never share a mutable global target. Opening from the app menu without a target asks the owning chat for its working directory once, then connects that same panel through `canvas_bind`. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
+Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its draft and discussion mailbox. Two repositories or chats never share a mutable global target. Opening from the app menu without a target resolves the calling chat’s workspace from native request metadata and connects directly, without submitting a chat message. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
 
 The schema and location of existing saved maps are preserved. Source previews remain restricted to Git-visible repository files. Proposals require Apply to draft, then Save; stale revisions are rejected. A plugin installation location is never used as the repository default. The standalone CLI alone defaults `--repo` to the invoking working directory.
 
@@ -96,4 +96,54 @@ Build before tests because runtime renderers use the same prebuilt assets delive
 
 Source extracted from Card Workshop commit `2db3b0d` (2026-10-20 review). Project maps, authored case specifications, private session logs, retained evidence, and game policy review remain owned by their repositories. Repo-kit's existing shared skills and Copier governance delivery are independent products.
 
-Connection requests stay valid while the panel polls, with 30 minutes of inactivity grace. Delayed host message acknowledgments do not cancel or resend a request. A spinner indicates waiting; manual selection cancels that ticket so a late reply cannot retarget the panel. Requests remain server-local: a server restart requires a fresh request.
+Automatic connection uses the host-provided `_meta.threadId` (or matching `thread_id` alias),
+then an exact-ID, read-only lookup of `cwd` in the newest `state_N.sqlite` under
+`CODEX_HOME` (default `~/.codex`). This is a Codex-specific adapter, not a portable
+MCP guarantee. Missing metadata, unknown database schemas, missing workspaces and
+non-Git tasks fall back to the picker. It never scans conversation bodies or
+chooses the last-used repository. The desktop-bundled Codex 0.163.0-alpha.10.2
+was probed through `mcpServer/tool/call`: it provided `threadId` and no workspace
+path. Empty new chats can have an ID before their workspace is persisted. The picker explains this gap, retries automatically every five seconds while visible, and reports the outcome of manual retry. Choosing a repository explicitly works immediately and is not overridden when the chat is later persisted. The plugin cannot read the project selector when Codex does not supply it. Repeat the isolated, model-free probe with
+`REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node tests/probe-metadata.ts`.
+
+Each mounted panel has its own identity. After a server restart, a confirmed
+missing-context response reconnects to that panel’s selected repository and
+restores its in-memory draft/view. A transport timeout does not replay mutations.
+Closing/recreating a panel has a different recovery boundary: browser storage may
+be unavailable, so export unsaved drafts before replacing the whole panel.
+Connection uses the typed `connect` operation. Panels never send automatic chat messages.
+After upgrading from an earlier app protocol, reopen the panel after refreshing the server.
+
+## Connection diagnostics
+
+The **ⓘ Connection information** control beside the header shows panel/server versions and build fingerprints, server start time and process/instance IDs, repository, caller chat, context, and local log path. It warns when builds differ. Its compact symbol controls copy details, refresh status, and download the connection log; tooltips and accessible names identify each action. The JSON report
+includes the last 200 browser bridge events and server connection events, versions,
+server identity, caller metadata key names and thread ID, panel/context IDs, errors, and timings. If the host is unavailable,
+the download still includes the browser history after a five-second collection timeout.
+Initialization failures can be retried without reloading the panel.
+
+The stdio MCP server also keeps local JSONL logs at
+`$XDG_CACHE_HOME/repo-workbench/canvas/connection.jsonl` (default
+`~/.cache/repo-workbench/canvas/connection.jsonl`; an explicit `XDG_CONFIG_HOME` is
+used as the fallback for isolated installations/tests). Rotation retains the current
+file and one previous `.1` file, approximately 512 KiB each. New files are private
+(mode 0600). Logging failure does not block opening; it appears in the report.
+`canvas_diagnostics` lets the owning chat read recent server events and the log path.
+Logs include repository paths and operational errors, but no source bodies, map/draft
+payloads, or chat messages. Review paths before sharing a downloaded report.
+
+A repository-load error and a missing binding are different failures. Manual selection
+cancels a pending chat binding; a later response to that ticket is deliberately rejected.
+Server IDs help distinguish those cancellations from a server restart. Directory
+discovery supports filesystem names such as Astro/Next dynamic routes, Unicode, spaces,
+and long paths without treating them as document IDs; saved maps keep their existing IDs.
+
+## Maintained application contracts
+
+Author `.ts`/`.tsx` and CSS; `dist/` is generated, Git-ignored, and explicitly included in the npm package. `prepack` rebuilds it. The authored ESLint `.mjs` configuration stays tracked.
+
+`model/contracts.ts` owns operation inputs and results for HTTP and MCP. The client infers results from the action and validates external JSON; saved-map semantic validation remains in `model/document.ts`. The MCP app tool carries `{contextId?, request: {action, args}}`. Removed binding-ticket routes have no compatibility layer.
+
+The UI uses the official MCP Apps SDK through `ui/host-client.ts`; `ui/host.ts` owns repository selection and restart recovery. `useCanvasDocument` owns drafts, revision conflicts, history and saves; `RepositoryPicker` owns selection UI. Codex is the acceptance target. Later Pi/DeepSeek harness experiments should adapt host capabilities, not duplicate application semantics or assume Codex's SQLite layout.
+
+MCP Apps SDK 1.7.5 is pinned to stay compatible with MCP SDK 1.x. SDK 2.x requires a separate coordinated server migration. The packaged UI URI includes the build fingerprint, which covers source, static assets, build configuration and the dependency lockfile. Both server and UI report the same identity; this does not refresh an already running server process.

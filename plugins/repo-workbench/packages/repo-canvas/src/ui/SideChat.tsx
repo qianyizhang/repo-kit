@@ -48,7 +48,7 @@ export function SideChat({
     let active = true;
     async function refresh() {
       try {
-        const result = await request<CanvasExchange | null>('chat', token, { canvasId });
+        const result = await request('chat', token, { canvasId });
         if (active) setExchange(result);
       } catch (error) {
         if (active) setError(String(error));
@@ -89,13 +89,13 @@ export function SideChat({
     setError('');
     try {
       await requireMessaging();
-      const next = await request<CanvasExchange>('send', token, {
+      const next = await request('send', token, {
         canvasId,
         document,
         scope,
         selection,
         selections,
-        messages: [...messages, { role: 'user', text: text.trim() }].slice(-30),
+        messages: [...messages, { role: 'user' as const, text: text.trim() }].slice(-30),
       });
       setExchange(next);
       setInput('');
@@ -177,7 +177,7 @@ export function SideChat({
           </p>
           <button
             onClick={() => {
-              void request<CanvasExchange>('cancel', token, {
+              void request('cancel', token, {
                 canvasId,
                 id: exchange.id,
               })

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { AgentInbox, CanvasCommand, CanvasView, CanvasProposal } from '../model/session';
+import type { CanvasCommand, CanvasView, CanvasProposal } from '../model/session';
 import { parseDocument } from '../model/document';
 import { request } from './api';
 
@@ -26,7 +26,7 @@ export function useCanvasAgent(
       busy = true;
       try {
         // Read commands before publishing a newer UI state: reject work based on an old view.
-        const inbox = await request<AgentInbox>('agent_read', token);
+        const inbox = await request('agent_read', token);
         if (!active) return;
         setProposal(inbox.proposal);
         const queued = inbox.command;
@@ -57,7 +57,7 @@ export function useCanvasAgent(
         if (!next) return;
         const sent = JSON.stringify(next);
         if (published === sent && Date.now() - lastPublished < 5000) return;
-        const result = await request<{ revision: string }>('view_write', token, {
+        const result = await request('view_write', token, {
           view: { ...next, document: parseDocument(next.document) },
         });
         published = sent;

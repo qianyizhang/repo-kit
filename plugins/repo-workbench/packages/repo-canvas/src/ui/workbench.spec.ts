@@ -1,3 +1,4 @@
+import { hostDocument } from '../../../../tests/browser/host-fixture';
 import { expect, test } from '@playwright/test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -40,7 +41,10 @@ test('standalone edits and temporary requests share operation semantics with MCP
     expect(state.document.modules.find((m) => m.id === 'src/core')!.summary).toBe(
       'Saved through standalone HTTP',
     );
-    const hosted = await client.callTool({ name: 'canvas_app', arguments: { action: 'state' } });
+    const hosted = await client.callTool({
+      name: 'canvas_app',
+      arguments: { request: { action: 'state', args: {} } },
+    });
     expect(hosted.structuredContent).toMatchObject({
       value: { revision: state.revision, document: state.document, token: 'mcp-app' },
     });
@@ -62,29 +66,35 @@ test('standalone edits and temporary requests share operation semantics with MCP
     };
     expect((await request.put('/api/draft', { headers, data: { draft } })).ok()).toBe(true);
     expect(
-      (await client.callTool({ name: 'canvas_app', arguments: { action: 'draft_read' } }))
-        .structuredContent,
+      (
+        await client.callTool({
+          name: 'canvas_app',
+          arguments: { request: { action: 'draft_read', args: {} } },
+        })
+      ).structuredContent,
     ).toEqual({ value: draft });
     await client.callTool({
       name: 'canvas_app',
-      arguments: { action: 'draft_write', draft: null },
+      arguments: { request: { action: 'draft_write', args: { draft: null } } },
     });
     expect(await (await request.get('/api/draft', { headers })).json()).toBeNull();
     const sent = await request.post('/api/chat', {
       headers,
       data: {
         canvasId: 'http-parity',
-        ...draft,
+        document: draft.document,
+        scope: draft.scope,
+        selection: draft.selection,
         messages: [{ role: 'user', text: 'Inspect this draft' }],
       },
     });
-    expect(sent.ok()).toBe(true);
+    expect(sent.ok(), await sent.text()).toBe(true);
     const exchange = (await sent.json()) as CanvasExchange;
     expect(
       (
         await client.callTool({
           name: 'canvas_app',
-          arguments: { action: 'chat', canvasId: 'http-parity' },
+          arguments: { request: { action: 'chat', args: { canvasId: 'http-parity' } } },
         })
       ).structuredContent,
     ).toMatchObject({ value: { id: exchange.id, status: 'pending' } });
@@ -100,7 +110,7 @@ test('standalone edits and temporary requests share operation semantics with MCP
       (
         await client.callTool({
           name: 'canvas_app',
-          arguments: { action: 'chat', canvasId: 'http-parity' },
+          arguments: { request: { action: 'chat', args: { canvasId: 'http-parity' } } },
         })
       ).structuredContent,
     ).toMatchObject({ value: { id: exchange.id, status: 'cancelled' } });
@@ -144,26 +154,9 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
       throw new Error('Codex did not accept the message. ' + 'Delivery details. '.repeat(50));
     return {};
   });
+  const hostHtml = await hostDocument(html);
   await page.route('**/mcp-host', (route) =>
-    route.fulfill({
-      contentType: 'text/html',
-      body: `<!doctype html><meta charset="UTF-8"><style>body{margin:0}iframe{width:100vw;height:100vh;border:0}</style><iframe title="Repo Canvas" sandbox="allow-scripts allow-forms allow-modals allow-downloads"></iframe><script>
-  window.addEventListener('message', async event => {
-    const frame = document.querySelector('iframe');
-    if (event.source !== frame.contentWindow || event.data?.jsonrpc !== '2.0') return;
-    const message = event.data;
-    if (message.id === undefined) return;
-    try {
-      let result = {};
-      if (message.method === 'ui/initialize') result = { hostCapabilities: { message: {} } };
-      else if (message.method === 'tools/call') result = await window.canvasTool(message.params);
-      else if (message.method === 'ui/message') result = await window.canvasMessage(message.params);
-      frame.contentWindow.postMessage({jsonrpc:'2.0',id:message.id,result},'*');
-    } catch(error) { frame.contentWindow.postMessage({jsonrpc:'2.0',id:message.id,error:{message:error.message}},'*'); }
-  });
-  document.querySelector('iframe').srcdoc = ${JSON.stringify(html).replace(/</g, '\\u003c')};
-  </script>`,
-    }),
+    route.fulfill({ contentType: 'text/html', body: hostHtml }),
   );
   const ui = page.frameLocator('iframe');
   const errors: string[] = [];
@@ -281,7 +274,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     .poll(async () => {
       const result = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'draft_read' },
+        arguments: { request: { action: 'draft_read', args: {} } },
       });
       return JSON.stringify(result.structuredContent);
     })
@@ -297,7 +290,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     .poll(async () => {
       const result = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'draft_read' },
+        arguments: { request: { action: 'draft_read', args: {} } },
       });
       return (result.structuredContent as { value: unknown }).value;
     })
@@ -437,7 +430,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     .poll(async () => {
       const result = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'draft_read' },
+        arguments: { request: { action: 'draft_read', args: {} } },
       });
       return JSON.stringify(result.structuredContent);
     })
@@ -449,7 +442,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     .poll(async () => {
       const result = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'draft_read' },
+        arguments: { request: { action: 'draft_read', args: {} } },
       });
       return (result.structuredContent as { value: unknown }).value;
     })

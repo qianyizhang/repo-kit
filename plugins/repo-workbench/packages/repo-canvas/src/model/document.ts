@@ -86,7 +86,10 @@ function text(value: unknown, limit = 12000): string {
 }
 function id(value: unknown): string {
   const result = text(value, 180);
-  if (!/^[a-zA-Z0-9_./-]+$/.test(result)) throw new Error('Invalid identifier');
+  if (!/^[a-zA-Z0-9_./-]+$/.test(result))
+    throw new Error(
+      `Invalid identifier ${JSON.stringify(result)}: use letters, digits, underscores, dots, slashes, or hyphens`,
+    );
   return result;
 }
 function list(value: unknown, limit: number): unknown[] {

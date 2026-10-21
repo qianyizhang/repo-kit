@@ -48,13 +48,14 @@ describe('current-chat MCP bridge', () => {
         new StdioClientTransport({
           command: process.execPath,
           args: [fileURLToPath(new URL('./stdio.ts', import.meta.url)), '--repo', root],
+          env: { ...process.env, XDG_CACHE_HOME: join(root, 'cache') },
         }),
       );
       const opened = await client.callTool({ name: 'canvas_open', arguments: {} });
       expect(opened.isError).not.toBe(true);
       const sent = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'send', canvasId: 'hosted', ...context },
+        arguments: { request: { action: 'send', args: { canvasId: 'hosted', ...context } } },
       });
       const exchange = (sent.structuredContent as { value: { id: string } }).value;
       expect(exchange.id).toBeTruthy();
@@ -70,7 +71,7 @@ describe('current-chat MCP bridge', () => {
       expect(replied.isError).not.toBe(true);
       const received = await client.callTool({
         name: 'canvas_app',
-        arguments: { action: 'chat', canvasId: 'hosted' },
+        arguments: { request: { action: 'chat', args: { canvasId: 'hosted' } } },
       });
       expect((received.structuredContent as { value: unknown }).value).toMatchObject({
         status: 'answered',
@@ -152,7 +153,7 @@ it('keeps a fixed server target usable across stateless MCP connections', async 
         } else {
           const state = await client.callTool({
             name: 'canvas_app',
-            arguments: { contextId, action: 'state' },
+            arguments: { contextId, request: { action: 'state', args: {} } },
           });
           expect(state.isError).not.toBe(true);
           expect((state.structuredContent as { value: { repo: string } }).value.repo).toBe(

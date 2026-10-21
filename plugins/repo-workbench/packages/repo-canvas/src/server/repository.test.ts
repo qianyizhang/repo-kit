@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
 import { Repository, documentName } from './repository';
+import { createHash } from 'node:crypto';
 const roots: string[] = [];
 function setup() {
   const root = mkdtempSync(join(tmpdir(), 'repo-canvas-test-'));
@@ -15,6 +16,40 @@ function setup() {
   return { root, repo: new Repository(root) };
 }
 afterEach(() => roots.splice(0).forEach((root) => rmSync(root, { recursive: true, force: true })));
+it('discovers dynamic routes, Unicode, spaces, long paths and root-name collisions with stable IDs', () => {
+  const { root, repo } = setup();
+  const paths = [
+    'src/pages/exhibits/[project]',
+    '中文/child',
+    'with space/child',
+    'repo/child',
+    'x'.repeat(181),
+  ];
+  // A literal directory can look like one of our generated identifiers.
+  paths.push(`dir-${createHash('sha256').update('中文').digest('hex')}`);
+  for (const path of paths) {
+    mkdirSync(join(root, path), { recursive: true });
+    writeFileSync(join(root, path, 'index.ts'), 'export const value = 1;');
+  }
+  const first = repo.snapshot();
+  expect(repo.snapshot()).toEqual(first);
+  for (const path of paths) {
+    const module = first.document.modules.find(
+      (m) => m.name === path.split('/').at(-1) && m.sources.includes(`${path}/index.ts`),
+    );
+    expect(module?.sources).toContain(`${path}/index.ts`);
+    expect(repo.source(`${path}/index.ts`).content).toContain('value');
+  }
+  const unicode = first.document.modules.find((m) => m.name === '中文')!;
+  expect(
+    first.document.modules.find(
+      (m) => m.sources.includes('中文/child/index.ts') && m.name === 'child',
+    )?.parent,
+  ).toBe(unicode.id);
+  const saved = repo.save(first.document, first.revision);
+  expect(repo.snapshot()).toEqual(saved);
+  expect(new Set(saved.document.modules.map((m) => m.id)).size).toBe(saved.document.modules.length);
+});
 it('saves annotations, reloads agent edits and rejects a stale user draft without overwriting them', () => {
   const { root, repo } = setup(),
     first = repo.snapshot();

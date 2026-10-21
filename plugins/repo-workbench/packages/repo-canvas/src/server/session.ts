@@ -1,32 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { z } from 'zod';
 import { parseDocument } from '../model/document.ts';
 import type { CanvasView, CanvasCommand, QueuedCommand, CanvasProposal } from '../model/session.ts';
-const finite = z.number().finite();
-const viewSchema = z.object({
-  document: z.unknown(),
-  baseRevision: z.string().max(100),
-  scope: z.string().max(180),
-  selections: z.array(z.string().max(180)).max(500),
-  panel: z.enum(['inspect', 'chat']).nullable(),
-  navigation: z.boolean(),
-  viewport: z.object({
-    x: finite,
-    y: finite,
-    zoom: finite.positive().max(10),
-    width: finite.nonnegative(),
-    height: finite.nonnegative(),
-  }),
-  dirty: z.boolean(),
-  conflict: z.boolean(),
-});
-export const commandSchema = z.discriminatedUnion('action', [
-  z.object({ action: z.literal('focus'), target: z.string().max(180) }),
-  z.object({ action: z.literal('select'), targets: z.array(z.string().max(180)).max(500) }),
-  z.object({ action: z.enum(['fit', 'read', 'fit_selection']) }),
-  z.object({ action: z.literal('panel'), panel: z.enum(['inspect', 'chat']).nullable() }),
-  z.object({ action: z.literal('navigation'), open: z.boolean() }),
-]);
+import { viewSchema, commandSchema } from '../model/contracts.ts';
+export { commandSchema } from '../model/contracts.ts';
 /** Per-context observation and bounded commands. Never saves or executes source. */
 export class CanvasSession {
   private state: { view: CanvasView; revision: string; observedAt: string } | null = null;

@@ -22,13 +22,16 @@ test('two repositories and two canvases in the same repository keep targets, dra
   async function app(contextId: string, action: string, args: Record<string, unknown> = {}) {
     const result = await client.callTool({
       name: 'canvas_app',
-      arguments: { contextId, action, ...args },
+      arguments: { contextId, request: { action, args: { ...args } } },
     });
     expect(result.isError).not.toBe(true);
     return (result.structuredContent as { value: unknown }).value;
   }
   try {
-    const unbound = await client.callTool({ name: 'canvas_app', arguments: { action: 'state' } });
+    const unbound = await client.callTool({
+      name: 'canvas_app',
+      arguments: { request: { action: 'state', args: {} } },
+    });
     expect(unbound.isError).toBe(true);
     const ids: string[] = [];
     for (const repo of [...roots, roots[0]]) {
@@ -84,7 +87,7 @@ test('two repositories and two canvases in the same repository keep targets, dra
       (
         await client.callTool({
           name: 'canvas_app',
-          arguments: { contextId: 'missing', action: 'state' },
+          arguments: { contextId: 'missing', request: { action: 'state', args: {} } },
         })
       ).isError,
     ).toBe(true);
@@ -93,74 +96,5 @@ test('two repositories and two canvases in the same repository keep targets, dra
     await client.close();
     await server.close();
     roots.forEach((root) => rmSync(root, { recursive: true, force: true }));
-  }
-});
-
-test('repository handoffs bind one waiting panel and reject cancelled or repeated replies', async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'canvas-bind-')));
-  execFileSync('git', ['init', '-q', root]);
-  writeFileSync(join(root, 'README.md'), 'handoff');
-  const server = canvasMcp(),
-    client = new Client({ name: 'handoff-test', version: '1' });
-  const [a, b] = InMemoryTransport.createLinkedPair();
-  await server.connect(a);
-  await client.connect(b);
-  const action = (action: string, args: object = {}) =>
-    client.callTool({ name: 'canvas_app', arguments: { action, ...args } });
-  try {
-    const first = (await action('binding_create')).structuredContent as {
-      value: { bindingId: string };
-    };
-    const second = (await action('binding_create')).structuredContent as {
-      value: { bindingId: string };
-    };
-    const now = Date.now();
-    const time = vi.spyOn(Date, 'now').mockReturnValue(now + 6 * 60_000);
-    expect((await action('binding_read', first.value)).isError).not.toBe(true);
-    // A visible panel keeps a lease through long agent work, rather than a fixed TTL.
-    time.mockReturnValue(now + 34 * 60_000);
-    expect((await action('binding_read', first.value)).isError).not.toBe(true);
-    expect((await action('binding_read', second.value)).isError).toBe(true);
-    time.mockRestore();
-    const bind = await client.callTool({
-      name: 'canvas_bind',
-      arguments: { bindingId: first.value.bindingId, repo: root },
-    });
-    expect(bind.isError).not.toBe(true);
-    const selected = (await action('binding_read', first.value)).structuredContent as {
-      value: { contextId: string; repo: string };
-    };
-    expect(selected.value.repo).toBe(root);
-    const third = (await action('binding_create')).structuredContent as {
-      value: { bindingId: string };
-    };
-    expect((await action('binding_read', third.value)).structuredContent).toMatchObject({
-      value: null,
-    });
-    expect(
-      (
-        await client.callTool({
-          name: 'canvas_bind',
-          arguments: { bindingId: first.value.bindingId, repo: root },
-        })
-      ).isError,
-    ).toBe(true);
-    await action('binding_cancel', third.value);
-    expect(
-      (
-        await client.callTool({
-          name: 'canvas_bind',
-          arguments: { bindingId: third.value.bindingId, repo: root },
-        })
-      ).isError,
-    ).toBe(true);
-    expect(
-      (await action('state', { contextId: selected.value.contextId })).structuredContent,
-    ).toMatchObject({ value: { repo: root } });
-  } finally {
-    vi.restoreAllMocks();
-    await client.close();
-    await server.close();
-    rmSync(root, { recursive: true, force: true });
   }
 });

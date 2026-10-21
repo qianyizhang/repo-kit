@@ -2,7 +2,9 @@ import { build as vite } from 'vite';
 import { build as bundle } from 'rolldown';
 import { mkdir, writeFile, readFile, chmod, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { buildFingerprint } from './fingerprint.ts';
 const root = resolve(import.meta.dirname, '..');
+const buildId = await buildFingerprint(root);
 const assets = resolve(root, 'dist/assets');
 await rm(resolve(root, 'dist'), { recursive: true, force: true });
 await mkdir(assets, { recursive: true });
@@ -17,6 +19,7 @@ const canvas = await outputs({
   root: resolve(root, 'packages/repo-canvas'),
   configFile: resolve(root, 'packages/repo-canvas/vite.config.ts'),
   logLevel: 'warn',
+  define: { WORKBENCH_BUILD: JSON.stringify(buildId) },
   build: { write: false },
 });
 const files = new Map(
@@ -87,7 +90,7 @@ await bundle({
   },
   platform: 'node',
   external: [/^node:/],
-  transform: { define: { WORKBENCH_BUNDLED: 'true' } },
+  transform: { define: { WORKBENCH_BUNDLED: 'true', WORKBENCH_BUILD: JSON.stringify(buildId) } },
   output: {
     banner: `import {createRequire as workbenchRequire} from 'node:module'; import {fileURLToPath as workbenchFile} from 'node:url'; import {dirname as workbenchDirectory} from 'node:path'; const require=workbenchRequire(import.meta.url); const __filename=workbenchFile(import.meta.url); const __dirname=workbenchDirectory(__filename);`,
     dir: resolve(root, 'dist'),
