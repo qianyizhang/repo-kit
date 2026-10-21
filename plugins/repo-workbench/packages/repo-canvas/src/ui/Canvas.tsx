@@ -12,10 +12,20 @@ import {
   type Architecture,
   type Module,
   type Connection,
+  type Target,
+  sameTarget,
 } from '../model/document';
 import { fitView, arrangeNodes, connectionPath, placeLabels, type Viewport } from '../model/layout';
 import { RelationshipDialog } from './RelationshipDialog';
 interface Props {
+  token: string;
+  pinned: string | null;
+  focusMembers: string[] | null;
+  hideOthers: boolean;
+  comment: (target: Target) => void;
+  contextMenu: (event: React.MouseEvent, target?: Target) => void;
+  notes: (id: string) => void;
+  addChild: (id: string) => void;
   document: Architecture;
   scope: string;
   selection: string | null;
@@ -29,6 +39,14 @@ interface Props {
   edit: (document: Architecture) => void;
 }
 export function Canvas({
+  token,
+  pinned,
+  focusMembers,
+  hideOthers,
+  comment,
+  contextMenu,
+  notes: openNotes,
+  addChild,
   document,
   scope,
   selection,
@@ -48,6 +66,17 @@ export function Canvas({
   const automaticFit = useRef(true);
   const clickMoved = useRef(false);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [hoverEdges, setHoverEdges] = useState<Connection[]>([]);
+  function leaveHover() {
+    hoverTimer.current = setTimeout(() => {
+      setHover(null);
+      setHoverEdges([]);
+    }, 180);
+  }
+  function keepHover() {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+  }
   const [hover, setHover] = useState<string | null>(null);
   const [position, setPosition] = useState<{ id: string; x: number; y: number } | null>(null);
   const [link, setLink] = useState<{
@@ -91,7 +120,15 @@ export function Canvas({
   const viewport = useRef<HTMLDivElement>(null);
   const coords = (m: Module) => (position?.id === m.id ? position : m);
   const projected = visibleConnections(document, scope);
+  function exactEdges(connection: Connection) {
+    const project = (id: string) => ancestors(document, id).find((m) => m.parent === scope)?.id;
+    return document.connections.filter(
+      (edge) => project(edge.from) === connection.from && project(edge.to) === connection.to,
+    );
+  }
   function explain(connection: Connection) {
+    setHoverEdges([]);
+    setHover(null);
     const project = (id: string) => ancestors(document, id).find((m) => m.parent === scope)?.id;
     setRelationships(
       document.connections.filter(
@@ -111,7 +148,9 @@ export function Canvas({
     modules.map(coords),
   );
   const hoverModule = document.modules.find((m) => m.id === hover);
-  function showHover(id: string, target: HTMLElement) {
+  function showHover(id: string, target: Element) {
+    keepHover();
+    setHoverEdges([]);
     const parent = viewport.current?.getBoundingClientRect(),
       rect = target.getBoundingClientRect();
     if (!parent) return;
@@ -251,6 +290,28 @@ export function Canvas({
     <div
       className="canvas"
       ref={viewport}
+      tabIndex={0}
+      onContextMenu={(e) => {
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        contextMenu(e);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          setHover(null);
+          setHoverEdges([]);
+        }
+        if (e.shiftKey && e.key === 'F10') {
+          e.preventDefault();
+          const rect = e.currentTarget.getBoundingClientRect();
+          contextMenu({
+            clientX: rect.left + 30,
+            clientY: rect.top + 30,
+            preventDefault: () => {},
+            stopPropagation: () => {},
+          } as React.MouseEvent);
+        }
+      }}
       onPointerDown={(e) => start(e)}
       onPointerMove={onMove}
       onPointerUp={end}
@@ -305,10 +366,31 @@ export function Canvas({
             return (
               <g
                 key={c.id}
+                style={{
+                  opacity:
+                    focusMembers && (!focusMembers.includes(c.from) || !focusMembers.includes(c.to))
+                      ? hideOthers
+                        ? 0
+                        : 0.12
+                      : undefined,
+                  pointerEvents:
+                    focusMembers &&
+                    hideOthers &&
+                    (!focusMembers.includes(c.from) || !focusMembers.includes(c.to))
+                      ? 'none'
+                      : undefined,
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const exact = exactEdges(c);
+                  if (exact.length === 1) contextMenu(e, { kind: 'connection', id: exact[0].id });
+                  else explain(c);
+                }}
                 className={`${selections.includes(c.from) || selections.includes(c.to) ? 'related' : ''} edge-kind-${c.kind ?? 'dependency'}`}
               >
                 <path className="edge-line" d={geometry.path} markerEnd="url(#arrow)">
-                  <title>{c.label} · Click to explain</title>
+                  <title>{c.label}</title>
                 </path>
                 <path
                   className="edge-hit"
@@ -316,12 +398,34 @@ export function Canvas({
                   tabIndex={0}
                   aria-label={`Explain relationship: ${c.label}`}
                   d={geometry.path}
+                  onMouseEnter={(e) => {
+                    showHover('', e.currentTarget);
+                    setHoverEdges(exactEdges(c));
+                  }}
+                  onMouseLeave={leaveHover}
+                  onFocus={(e) => {
+                    showHover('', e.currentTarget);
+                    setHoverEdges(exactEdges(c));
+                  }}
+                  onBlur={leaveHover}
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     explain(c);
                   }}
                   onKeyDown={(e) => {
+                    if (e.shiftKey && e.key === 'F10') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const exact = exactEdges(c);
+                      if (exact.length === 1) {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        contextMenu(
+                          { clientX: rect.x + 30, clientY: rect.y + 30 } as React.MouseEvent,
+                          { kind: 'connection', id: exact[0].id },
+                        );
+                      } else explain(c);
+                    }
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       explain(c);
@@ -345,7 +449,11 @@ export function Canvas({
                     >
                       <div
                         className="edge-label"
-                        title={c.label}
+                        onMouseEnter={(e) => {
+                          showHover('', e.currentTarget);
+                          setHoverEdges(exactEdges(c));
+                        }}
+                        onMouseLeave={leaveHover}
                         onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => explain(c)}
                       >
@@ -371,13 +479,38 @@ export function Canvas({
         </svg>
         {modules.map((m, index) => {
           const children = document.modules.filter((n) => n.parent === m.id).length,
-            notes = document.annotations.filter((a) => a.target === m.id).length;
+            notes = document.annotations.filter((a) =>
+              sameTarget(a.target, { kind: 'node', id: m.id }),
+            ).length;
+          const type = document.nodeTypes?.find((t) => t.id === m.typeId);
+          const severity = document.annotations
+            .filter((a) => sameTarget(a.target, { kind: 'node', id: m.id }))
+            .some((a) => a.severity === 'risk')
+            ? 'risk'
+            : document.annotations.some(
+                  (a) =>
+                    sameTarget(a.target, { kind: 'node', id: m.id }) && a.severity === 'warning',
+                )
+              ? 'warning'
+              : 'info';
           const p = coords(m);
           return (
             <div
               key={m.id}
               className={`module-wrap ${selections.includes(m.id) || selection === m.id ? 'selected' : ''}`}
-              style={{ left: p.x, top: p.y }}
+              style={{
+                left: p.x,
+                top: p.y,
+                opacity: focusMembers && !focusMembers.includes(m.id) ? 0.15 : undefined,
+                display:
+                  focusMembers && hideOthers && !focusMembers.includes(m.id) ? 'none' : undefined,
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setHover(null);
+                contextMenu(e, { kind: 'node', id: m.id });
+              }}
             >
               <button
                 className={`module-card kind-${m.kind}`}
@@ -390,10 +523,20 @@ export function Canvas({
                 }}
                 aria-pressed={selections.includes(m.id)}
                 onMouseEnter={(e) => showHover(m.id, e.currentTarget)}
-                onMouseLeave={() => setHover(null)}
+                onMouseLeave={leaveHover}
                 onFocus={(e) => showHover(m.id, e.currentTarget)}
-                onBlur={() => setHover(null)}
+                onBlur={leaveHover}
                 onKeyDown={(e) => {
+                  if (e.shiftKey && e.key === 'F10') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setHover(null);
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    contextMenu(
+                      { clientX: rect.x + 30, clientY: rect.y + 30 } as React.MouseEvent,
+                      { kind: 'node', id: m.id },
+                    );
+                  }
                   if (e.key === 'ArrowRight') {
                     e.preventDefault();
                     enter(m.id);
@@ -403,29 +546,50 @@ export function Canvas({
                 aria-label={`Inspect ${m.name}`}
                 aria-describedby={hover === m.id ? `tip-${index}` : undefined}
               >
-                <span className="module-type">
-                  {m.kind}
-                  {notes > 0 && (
-                    <span className="note-badge">
-                      {' '}
-                      · {notes}{' '}
-                      {document.annotations.find((a) => a.target === m.id)?.kind ?? 'note'}
-                    </span>
-                  )}
-                </span>
+                <span className="module-type">{type?.label ?? m.kind}</span>
                 <strong>{m.name}</strong>
-                <span className="module-summary">{m.summary}</span>
-                <span className="module-footer">
-                  <span>
-                    {children
-                      ? `${children} internal modules`
-                      : `${m.sources.length} source references`}
-                  </span>
-                  <span>
-                    {notes ? `${notes} ${notes === 1 ? 'note' : 'notes'}` : children ? '↳' : '·'}
-                  </span>
-                </span>
+                {type?.fields
+                  .filter((f) => f.surface === 'card')
+                  .map(
+                    (f) =>
+                      m.fields?.[f.id] !== undefined && (
+                        <span className="card-field" key={f.id}>
+                          <small>{f.label}</small> {String(m.fields[f.id])}
+                        </span>
+                      ),
+                  )}
               </button>
+              <div className="node-actions" onPointerDown={(e) => e.stopPropagation()}>
+                {notes > 0 && (
+                  <button
+                    className={`note-badge ${severity}`}
+                    onClick={() => {
+                      setHover(null);
+                      openNotes(m.id);
+                    }}
+                  >
+                    {notes} {severity === 'info' ? 'note' + (notes > 1 ? 's' : '') : severity}
+                  </button>
+                )}
+                <button
+                  className="node-enter"
+                  aria-label={children ? `Enter ${m.name}` : `Add child to ${m.name}`}
+                  onClick={() => (children ? enter(m.id) : addChild(m.id))}
+                >
+                  {children ? `${children} inside →` : '+'}
+                </button>
+                <button
+                  className="node-overflow"
+                  aria-label={`Actions for ${m.name}`}
+                  onClick={(e) => {
+                    setHover(null);
+                    contextMenu(e, { kind: 'node', id: m.id });
+                  }}
+                >
+                  ⋯
+                </button>
+              </div>
+
               <button
                 className={`port in ${link?.target === m.id ? 'snap-target' : ''}`}
                 aria-label={`Connect to ${m.name}`}
@@ -457,16 +621,45 @@ export function Canvas({
           );
         })}
       </div>
-      {hoverModule && !drag.current && (
+      {hoverModule && pinned !== hoverModule.id && !relationships && !drag.current && (
         <div
           id={`tip-${modules.findIndex((m) => m.id === hover)}`}
           className="canvas-tooltip"
           role="tooltip"
+          onMouseEnter={keepHover}
+          onMouseLeave={leaveHover}
+          onPointerDown={(e) => e.stopPropagation()}
           style={{ left: hoverPoint.x, top: hoverPoint.y }}
         >
-          <strong>{hoverModule.name}</strong>
           <p>{hoverModule.summary}</p>
-          <code>{hoverModule.sources[0] ?? 'No source attached'}</code>
+          {document.nodeTypes
+            ?.find((t) => t.id === hoverModule.typeId)
+            ?.fields.filter((f) => f.surface === 'peek')
+            .map(
+              (f) =>
+                hoverModule.fields?.[f.id] !== undefined && (
+                  <p key={f.id}>
+                    <b>{f.label}</b> {String(hoverModule.fields[f.id])}
+                  </p>
+                ),
+            )}
+        </div>
+      )}
+      {hoverEdges.length > 0 && !relationships && !drag.current && (
+        <div
+          className="canvas-tooltip"
+          role="tooltip"
+          style={{ left: hoverPoint.x, top: hoverPoint.y }}
+          onMouseEnter={keepHover}
+          onMouseLeave={leaveHover}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {hoverEdges.map((c) => (
+            <section key={c.id}>
+              <strong>{c.label}</strong>
+              <p>{c.description || 'No explanation recorded.'}</p>
+            </section>
+          ))}
         </div>
       )}
       {link && (
@@ -479,6 +672,11 @@ export function Canvas({
       {relationships && (
         <div onPointerDown={(e) => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
           <RelationshipDialog
+            token={token}
+            comment={(target) => {
+              setRelationships(null);
+              comment(target);
+            }}
             document={document}
             connections={relationships}
             edit={edit}

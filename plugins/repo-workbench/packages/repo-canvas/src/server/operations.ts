@@ -25,6 +25,19 @@ export function operate(
       return repository.snapshot();
     case 'source':
       return repository.source(args.path);
+    case 'source_save':
+      return repository.saveSource(
+        String(args.reference),
+        String(args.revision),
+        String(args.content),
+        args.document,
+      );
+    case 'discussion_read':
+      return bridge.discussion.read();
+    case 'discussion_write':
+      return bridge.discussion.write(Number(args.revision), String(args.composer), args.comments);
+    case 'discussion_clear':
+      return bridge.discussion.clear(Number(args.revision));
     case 'save':
       return repository.save(args.document, String(args.revision));
     case 'send':

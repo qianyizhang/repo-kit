@@ -46,18 +46,19 @@ After installation or an update, open a fresh Codex chat; restart the app if it 
 
 ## Repository identity and storage
 
-| Material                 | Location and authority                                                                        |
-| ------------------------ | --------------------------------------------------------------------------------------------- |
-| Saved architecture       | `{repo}/.repo-canvas/architecture.json`; durable, optionally Git-tracked                      |
-| Unsaved canvas draft     | Browser-tab recovery plus the opened canvas's in-memory context                               |
-| Source logs              | Existing Codex session locations or explicit `--root`; read-only                              |
-| Rebuildable usage index  | `$XDG_CACHE_HOME/repo-workbench/usage` or `~/.cache/repo-workbench/usage`; override `--cache` |
-| Generated usage report   | Fresh OS temporary directory; override `--out` for retained output                            |
-| Generated curated review | `{repo}/.cache/repo-workbench/reviews`; override `--out` for retained output                  |
+| Material                 | Location and authority                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Saved architecture       | `{repo}/.repo-canvas/architecture.json`; durable, optionally Git-tracked                                                                        |
+| Unsaved canvas draft     | Browser-tab recovery plus the opened canvas's in-memory context                                                                                 |
+| Canvas discussion        | Private state under `$XDG_STATE_HOME/repo-workbench/discussions` or `~/.local/state/repo-workbench/discussions`; partitioned by repository/chat |
+| Source logs              | Existing Codex session locations or explicit `--root`; read-only                                                                                |
+| Rebuildable usage index  | `$XDG_CACHE_HOME/repo-workbench/usage` or `~/.cache/repo-workbench/usage`; override `--cache`                                                   |
+| Generated usage report   | Fresh OS temporary directory; override `--out` for retained output                                                                              |
+| Generated curated review | `{repo}/.cache/repo-workbench/reviews`; override `--out` for retained output                                                                    |
 
-Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its draft and discussion mailbox. Two repositories or chats never share a mutable global target. Opening from the app menu without a target resolves the calling chat’s workspace from native request metadata and connects directly, without submitting a chat message. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
+Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its map draft. Panels in the same repository/chat share durable discussion history; different repositories/chats have separate mailboxes. Two repositories or chats never share a mutable global target. Opening from the app menu without a target resolves the calling chat’s workspace from native request metadata and connects directly, without submitting a chat message. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
 
-The schema and location of existing saved maps are preserved. Source previews remain restricted to Git-visible repository files. Proposals require Apply to draft, then Save; stale revisions are rejected. A plugin installation location is never used as the repository default. The standalone CLI alone defaults `--repo` to the invoking working directory.
+Saved maps use v3 only; old/invalid files require offline repair or a new draft, then explicit Save. Source blocks use `path#L10-L25`; editing existing Git-visible text requires diff review and a revision-checked source-file save, separate from map Save. Proposals require Apply to draft, then Save; stale revisions are rejected. A plugin installation location is never used as the repository default. The standalone CLI alone defaults `--repo` to the invoking working directory.
 
 ## Registered repositories and standalone server
 

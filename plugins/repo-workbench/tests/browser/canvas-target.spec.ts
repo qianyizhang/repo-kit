@@ -46,6 +46,7 @@ test('native metadata binds without messages; picker and restart preserve select
           CODEX_HOME: home,
           XDG_CONFIG_HOME: resolve(temporary, 'config'),
           XDG_CACHE_HOME: resolve(temporary, 'cache'),
+          XDG_STATE_HOME: resolve(temporary, 'state'),
         },
       }),
     );
@@ -102,9 +103,11 @@ test('native metadata binds without messages; picker and restart preserve select
     await expect(picker.locator('.checkout-path')).toHaveText(repos[0]);
     await second.getByRole('button', { name: 'Inspect src', exact: true }).click();
     await second.getByRole('button', { name: 'Inspect', exact: true }).click();
+    await second.getByRole('button', { name: 'Edit', exact: true }).click();
     await second
       .getByRole('textbox', { name: 'Module responsibility' })
       .fill('Unsaved responsibility survives reconnect');
+    await second.getByRole('button', { name: 'Apply edits', exact: true }).click();
     await second.locator('summary[aria-label="Connection information"]').click();
     await expect(second.getByText('UI and server builds match.')).toBeVisible();
     await expect(second.getByText(ids[1], { exact: true })).toBeVisible();
@@ -138,7 +141,7 @@ test('native metadata binds without messages; picker and restart preserve select
       )
       .toBe(4);
     await second.getByRole('button', { name: 'Refresh status', exact: true }).click();
-    await expect(second.getByRole('textbox', { name: 'Module responsibility' })).toHaveValue(
+    await expect(second.locator('.responsibility')).toHaveText(
       'Unsaved responsibility survives reconnect',
     );
     await expect(second.locator('.checkout-path')).toHaveText(repos[1]);

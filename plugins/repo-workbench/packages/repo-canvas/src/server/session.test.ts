@@ -3,7 +3,7 @@ import { CanvasSession } from './session';
 import type { CanvasView } from '../model/session';
 const view: CanvasView = {
   document: {
-    version: 1,
+    version: 3,
     title: 'Test',
     modules: [
       {

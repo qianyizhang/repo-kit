@@ -17,7 +17,7 @@ const module = (id: string, parent: string | null) => ({
   y: 0,
 });
 const map: Architecture = {
-  version: 1,
+  version: 3,
   title: 'Test',
   modules: [
     module('repo', null),
@@ -59,7 +59,9 @@ describe('shared architecture document', () => {
     expect(() =>
       parseDocument({
         ...map,
-        annotations: [{ id: 'note', target: 'missing', text: 'hello', author: 'human' }],
+        annotations: [
+          { id: 'note', target: { kind: 'node', id: 'missing' }, text: 'hello', author: 'human' },
+        ],
       }),
     ).toThrow('annotation');
     expect(() =>
@@ -73,16 +75,23 @@ describe('shared architecture document', () => {
     ).toThrow('position');
   });
 });
-it('round-trips semantic kinds, relationship evidence and review notes without changing legacy maps', () => {
+it('round-trips semantic kinds, relationship evidence and review notes in the v3 format', () => {
   const enhanced = {
     ...map,
     modules: map.modules.map((m) => (m.id === 'app' ? { ...m, kind: 'process' } : m)),
     connections: [{ ...map.connections[0], kind: 'evidence', sources: ['src/evidence.py'] }],
     annotations: [
-      { id: 'risk', target: 'app', author: 'agent', kind: 'risk', text: 'Reference under review' },
+      {
+        id: 'risk',
+        target: { kind: 'node', id: 'app' },
+        author: 'agent',
+        kind: 'note',
+        severity: 'risk',
+        text: 'Reference under review',
+      },
     ],
   };
-  expect(parseDocument(enhanced)).toEqual({ ...enhanced, version: 2 });
+  expect(parseDocument(enhanced)).toEqual({ ...enhanced, version: 3 });
   expect(parseDocument(map)).toEqual(map);
   expect(() =>
     parseDocument({ ...enhanced, connections: [{ ...enhanced.connections[0], kind: 'invented' }] }),
@@ -99,4 +108,39 @@ it('keeps multi-selection in requests and rejects unknown or repeated selections
   expect(parseChat(request).selections).toEqual(['app', 'store']);
   expect(() => parseChat({ ...request, selections: ['unknown'] })).toThrow('selections');
   expect(() => parseChat({ ...request, selections: ['app', 'app'] })).toThrow('selections');
+});
+it('accepts declarative surfaces and overlapping sibling groups but rejects legacy maps and incompatible values', () => {
+  for (const version of [1, 2])
+    expect(() => parseDocument({ ...map, version })).toThrow('requires v3');
+  const extended = {
+    ...map,
+    nodeTypes: [
+      {
+        id: 'owner',
+        label: 'Owner',
+        description: 'Boundary',
+        baseKind: 'module',
+        fields: [{ id: 'count', label: 'Count', kind: 'number', surface: 'card' }],
+      },
+    ],
+    modules: map.modules.map((m) =>
+      m.id === 'app' ? { ...m, typeId: 'owner', fields: { count: 2, retained: 'unknown' } } : m,
+    ),
+    groups: [
+      { id: 'one', scope: 'repo', name: 'One', description: '', members: ['app', 'store'] },
+      { id: 'two', scope: 'repo', name: 'Two', description: '', members: ['app'] },
+    ],
+  };
+  expect(parseDocument(extended)).toEqual(extended);
+  expect(() =>
+    parseDocument({ ...extended, groups: [{ ...extended.groups[0], members: ['app', 'ui'] }] }),
+  ).toThrow('siblings');
+  expect(() =>
+    parseDocument({
+      ...extended,
+      modules: extended.modules.map((m) =>
+        m.id === 'app' ? { ...m, fields: { count: 'two' } } : m,
+      ),
+    }),
+  ).toThrow('migration');
 });

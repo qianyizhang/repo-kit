@@ -1,6 +1,6 @@
 {
   "name": "@repo-kit/workbench",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Repository architecture and recorded-session workbench for Codex",
   "type": "module",
   "bin": {

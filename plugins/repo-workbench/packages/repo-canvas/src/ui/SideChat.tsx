@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef, useImperativeHandle, type Ref } from 'react';
-import { parseDocument, type Architecture, type ChatMessage } from '../model/document';
-import type { CanvasExchange } from '../model/bridge';
+import { parseDocument, type Architecture, type ContextComment } from '../model/document';
+import { typeChanges } from '../model/type-changes';
+import type { Output } from '../model/contracts';
 import { request } from './api';
 import { initializationPrompt } from '../model/initialization';
 import { hosted, requireMessaging, sendToChat } from './host';
-
 export interface ChatActions {
   initialize: () => void;
+  addComment: (comment: ContextComment) => boolean;
 }
 interface Props {
   actions?: Ref<ChatActions>;
@@ -28,30 +29,29 @@ export function SideChat({
   close,
   actions,
 }: Props) {
-  const [canvasId] = useState(() => {
-    const key = 'repo-canvas:chat-tab';
-    try {
-      const id = sessionStorage.getItem(key) ?? crypto.randomUUID();
-      sessionStorage.setItem(key, id);
-      return id;
-    } catch {
-      return crypto.randomUUID();
-    }
-  });
-  const [exchange, setExchange] = useState<CanvasExchange | null>(null),
-    [input, setInput] = useState(''),
-    [busy, setBusy] = useState(false),
+  const [data, setData] = useState<Output<'discussion_read'> | null>(null),
     [error, setError] = useState(''),
-    [dismissed, setDismissed] = useState('');
-  const context = document.modules.find((m) => m.id === (selection ?? scope))!;
+    [busy, setBusy] = useState(false),
+    [dismissed, setDismissed] = useState(''),
+    [accepted, setAccepted] = useState<string | null>(null);
+  const current = useRef(data);
+  current.current = data;
+  const dirty = useRef(false),
+    queue = useRef<Promise<void>>(Promise.resolve()),
+    sending = useRef(false);
+  const context = document.modules.find((m) => m.id === (selection ?? scope));
   useEffect(() => {
     let active = true;
     async function refresh() {
+      if (dirty.current || sending.current) return;
       try {
-        const result = await request('chat', token, { canvasId });
-        if (active) setExchange(result);
-      } catch (error) {
-        if (active) setError(String(error));
+        const next = await request('discussion_read', token);
+        if (active && !dirty.current && !sending.current) {
+          current.current = next;
+          setData(next);
+        }
+      } catch (e) {
+        if (active) setError(String(e));
       }
     }
     void refresh();
@@ -60,50 +60,78 @@ export function SideChat({
       active = false;
       clearInterval(timer);
     };
-  }, [canvasId, token]);
-  const messages: ChatMessage[] = exchange
-    ? [
-        ...exchange.context.messages,
-        ...(exchange.response
-          ? [{ role: 'assistant' as const, text: exchange.response.reply }]
-          : []),
-      ]
-    : [];
-  const pending = exchange?.status === 'pending';
-  const proposal = exchange?.response?.proposal;
-  let stale = false;
-  if (exchange) {
-    try {
-      // Compare validated values in schema order, not UI object insertion order.
-      stale = JSON.stringify(exchange.context.document) !== JSON.stringify(parseDocument(document));
-    } catch {
-      // An incomplete source-path edit must still block applying an older proposal.
-      stale = true;
-    }
+  }, [token]);
+  function persist(composer: string, comments: ContextComment[]) {
+    if (!current.current) return;
+    dirty.current = true;
+    const optimistic = { ...current.current, composer, comments };
+    current.current = optimistic;
+    setData(optimistic);
+    queue.current = queue.current
+      .then(async () => {
+        const latest = current.current;
+        if (!latest) return;
+        try {
+          const saved = await request('discussion_write', token, {
+            revision: latest.revision,
+            composer,
+            comments,
+          });
+          const now = current.current!;
+          current.current = { ...saved, composer: now.composer, comments: now.comments };
+          setData(current.current);
+          if (
+            now.composer === composer &&
+            JSON.stringify(now.comments) === JSON.stringify(comments)
+          )
+            dirty.current = false;
+        } catch (e) {
+          setError(String(e));
+          throw e;
+        }
+      })
+      .catch(() => {});
   }
-  const sending = useRef(false);
-  async function send(text = input) {
-    if (!hosted || !text.trim() || sending.current || busy || pending) return;
+  const exchange = data?.history.at(-1),
+    pending = exchange?.status === 'pending',
+    proposal = exchange?.response?.proposal;
+  const impacts = proposal ? typeChanges(document, proposal) : [];
+  const stale = exchange
+    ? JSON.stringify(exchange.context.document) !== JSON.stringify(parseDocument(document))
+    : false;
+  async function send(text = data?.composer ?? '') {
+    if (!hosted || sending.current || !data || pending || (!text.trim() && !data.comments.length))
+      return;
     sending.current = true;
     setBusy(true);
     setError('');
     try {
+      await queue.current;
+      if (dirty.current) throw new Error('Save the local draft before sending.');
       await requireMessaging();
       const next = await request('send', token, {
-        canvasId,
+        canvasId: 'discussion',
         document,
         scope,
         selection,
         selections,
-        messages: [...messages, { role: 'user' as const, text: text.trim() }].slice(-30),
+        messages: [
+          { role: 'user', text: text.trim() || 'Please review the attached contextual comments.' },
+        ],
+        comments: current.current!.comments,
       });
-      setExchange(next);
-      setInput('');
+      const saved = await request('discussion_read', token);
+      current.current = saved;
+      setData(saved);
       await sendToChat(
-        `Use Repo Canvas in this conversation. Read request ${next.id} with canvas_read, then answer with canvas_reply, including any proposed map changes. Preserve unrelated notes and layout. My request: ${next.context.messages.at(-1)!.text}`,
+        `Use Repo Canvas in this conversation. Read request ${next.id} with canvas_read, including its frozen contextual comments. Answer with canvas_reply and any proposed map changes. Preserve unrelated notes and layout. My request: ${next.context.messages.at(-1)!.text}`,
       );
-    } catch (error) {
-      setError(String(error));
+      persist('', []);
+      await queue.current;
+    } catch (e) {
+      setError(
+        String(e) + ' The local draft is retained. Delivery is never retried automatically.',
+      );
     } finally {
       sending.current = false;
       setBusy(false);
@@ -111,99 +139,139 @@ export function SideChat({
   }
   useImperativeHandle(actions, () => ({
     initialize: () => {
-      void send(initializationPrompt);
+      if (current.current) {
+        persist(initializationPrompt, current.current.comments);
+        void send(initializationPrompt);
+      }
+    },
+    addComment: (comment) => {
+      if (!current.current) return false;
+      persist(current.current.composer, [...current.current.comments, comment]);
+      return true;
     },
   }));
+  async function reload() {
+    try {
+      const next = await request('discussion_read', token);
+      current.current = next;
+      setData(next);
+      dirty.current = false;
+      setError('');
+    } catch (e) {
+      setError(String(e));
+    }
+  }
   return (
     <aside className="side-chat">
       <div className="panel-heading">
-        <h2>Side chat</h2>
+        <h2>Discuss</h2>
         <button aria-label="Close side chat" onClick={close}>
           ×
         </button>
       </div>
-      <p className="muted">Discuss the selection. Review proposals before saving.</p>
       <div className="context-chip">
-        {selections.length > 1
-          ? `${selections.length} nodes: ${document.modules
-              .filter((m) => selections.includes(m.id))
-              .map((m) => m.name)
-              .join(', ')}`
-          : context.name}
-        <span>Selection and current draft included</span>
+        {selections.length > 1 ? `${selections.length} selected nodes` : context?.name}
+        <span>Current draft and selection included</span>
       </div>
+      {data && data.history.length > 1 && (
+        <details className="chat-history">
+          <summary>{data.history.length - 1} earlier exchanges</summary>
+          {data.history
+            .slice(0, -1)
+            .toReversed()
+            .map((e) => (
+              <details key={e.id}>
+                <summary>
+                  {e.context.messages.at(-1)?.text.slice(0, 100)} · {e.status}
+                </summary>
+                <p>{e.context.messages.at(-1)?.text}</p>
+                {e.context.comments?.map((c) => (
+                  <p key={c.id}>
+                    {c.label}: {c.instruction}
+                  </p>
+                ))}
+                <p>{e.response?.reply}</p>
+              </details>
+            ))}
+        </details>
+      )}
       <div className="chat-log" aria-live="polite">
-        {!exchange && (
-          <div className="chat-welcome">
-            <p>Ask about responsibilities, sources or a proposed change.</p>
-            <details className="discussion-prompts">
-              <summary>Suggested questions</summary>
-              <button
-                onClick={() =>
-                  setInput(
-                    'Explain the selected module using source evidence. Where does its responsibility begin and end?',
-                  )
-                }
-              >
-                Explain this module ↗
-              </button>
-              <button
-                onClick={() =>
-                  setInput(
-                    'Inspect this repository and propose a semantic architecture map with responsibilities and dependency relationships. Preserve existing notes and layout.',
-                  )
-                }
-              >
-                Propose an architecture map ↗
-              </button>
-            </details>
-          </div>
+        {exchange && (
+          <>
+            <article className="message user">
+              <b>CURRENT QUERY</b>
+              <p>{exchange.context.messages.at(-1)?.text}</p>
+              {exchange.context.comments?.map((c) => (
+                <details key={c.id}>
+                  <summary>{c.label}</summary>
+                  <p>{c.instruction}</p>
+                  <pre>{c.captured}</pre>
+                </details>
+              ))}
+            </article>
+            {exchange.response && (
+              <article className="message assistant">
+                <b>CODEX</b>
+                <p>{exchange.response.reply}</p>
+              </article>
+            )}
+            {exchange.status === 'cancelled' && <p>Request closed locally.</p>}
+          </>
         )}
-        {messages.map((m, i) => (
-          <article key={i} className={`message ${m.role}`}>
-            <b>{m.role === 'user' ? 'YOU' : 'CODEX · MCP REPLY'}</b>
-            <p>{m.text}</p>
-          </article>
-        ))}
-        {exchange?.status === 'cancelled' && <p className="muted">Request cancelled.</p>}
+        {!exchange && (
+          <p className="muted">
+            Ask about this map, or right-click a node, relationship or note to attach a contextual
+            comment.
+          </p>
+        )}
       </div>
       {pending && (
-        <div className="proposal">
-          <b>{error ? 'Message delivery needs attention' : 'Waiting for this conversation'}</b>
-          <p>
-            {error
-              ? 'Check the main chat before sending again. The request has not been retried.'
-              : 'The request is linked to the main chat. Closing it here does not stop the chat.'}
-          </p>
+        <section className="proposal">
+          <b>Awaiting the main chat</b>
+          <p>Check the main chat if delivery is uncertain. This request will not be resent.</p>
           <button
-            onClick={() => {
-              void request('cancel', token, {
-                canvasId,
-                id: exchange.id,
-              })
-                .then(setExchange)
-                .catch((e: unknown) => setError(String(e)));
-            }}
+            onClick={() =>
+              void queue.current
+                .then(() => {
+                  if (dirty.current)
+                    throw new Error('Save or reload the local draft before closing the request.');
+                  return request('cancel', token, { canvasId: exchange.canvasId, id: exchange.id });
+                })
+                .then(reload)
+                .catch((e) => setError(String(e)))
+            }
           >
             Close request
           </button>
-        </div>
+        </section>
       )}
-      {proposal && dismissed !== exchange.id && (
-        <div className="proposal">
+      {proposal && exchange && dismissed !== exchange.id && (
+        <section className="proposal">
           <b>Proposed map change</b>
-          <p>
-            {proposal.modules.length} modules · {proposal.connections.length} relationships ·{' '}
-            {proposal.annotations.length} notes
-          </p>
           <details>
             <summary>Review proposed document</summary>
             <pre>{JSON.stringify(proposal, null, 2)}</pre>
           </details>
-          {stale && <p>The map changed after this request. Ask again with the current map.</p>}
+          {impacts.length > 0 && (
+            <>
+              <ul>
+                {impacts.map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={accepted === exchange.id}
+                  onChange={(e) => setAccepted(e.target.checked ? exchange.id : null)}
+                />
+                Accept these type migrations
+              </label>
+            </>
+          )}
+          {stale && <p>The draft changed. Ask for a fresh proposal.</p>}
           <button
-            className="primary"
-            disabled={stale}
+            disabled={stale || (impacts.length > 0 && accepted !== exchange.id)}
             onClick={() => {
               apply(proposal);
               setDismissed(exchange.id);
@@ -212,45 +280,110 @@ export function SideChat({
             Apply to draft
           </button>
           <button onClick={() => setDismissed(exchange.id)}>Dismiss</button>
-        </div>
+        </section>
       )}
       {error && (
         <div className="chat-error" role="alert">
-          <p>{error.replace(/^Error: /, '').slice(0, 600)}</p>
-          <button onClick={() => setError('')}>Dismiss error</button>
+          <p>{error}</p>
+          <button
+            onClick={() => {
+              if (window.confirm('Reload the local discussion? Copy any unsaved text first.'))
+                void reload();
+            }}
+          >
+            Reload discussion
+          </button>
+          <button
+            onClick={() => {
+              const value = current.current;
+              if (value) persist(value.composer, value.comments);
+            }}
+          >
+            Retry local save
+          </button>
         </div>
       )}
+      {data && (
+        <form
+          className="chat-compose"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void send();
+          }}
+        >
+          {data.comments.map((c) => (
+            <details className="queued-comment" key={c.id}>
+              <summary>{c.label}</summary>
+              <p>{c.instruction}</p>
+              <small>
+                Frozen in {c.scope} · {c.documentRevision.slice(0, 10)}
+              </small>
+              <pre>{c.captured}</pre>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  persist(
+                    data.composer,
+                    data.comments.filter((n) => n.id !== c.id),
+                  )
+                }
+              >
+                Remove comment
+              </button>
+            </details>
+          ))}
+          <textarea
+            aria-label="Message Codex"
+            rows={3}
+            maxLength={12000}
+            disabled={busy}
+            placeholder={`Discuss ${context?.name ?? 'this map'}…`}
+            value={data.composer}
+            onChange={(e) => persist(e.target.value, data.comments)}
+          />
+          <footer>
+            <button
+              type="submit"
+              className="primary"
+              disabled={
+                !hosted || busy || pending || (!data.composer.trim() && !data.comments.length)
+              }
+            >
+              Send to chat ↑
+            </button>
+            <button
+              type="button"
+              disabled={pending || busy}
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Clear this repository/chat’s local discussion, draft and comment queue?',
+                  )
+                )
+                  void queue.current
+                    .then(() =>
+                      request('discussion_clear', token, { revision: current.current!.revision }),
+                    )
+                    .then((next) => {
+                      current.current = next;
+                      setData(next);
+                      dirty.current = false;
+                    })
+                    .catch((e) => setError(String(e)));
+              }}
+            >
+              Clear history
+            </button>
+          </footer>
+        </form>
+      )}
       {!hosted && (
-        <p className="muted" role="status">
-          Open Repo Canvas from Codex’s apps menu to use side chat. This browser preview only edits
-          the map.
+        <p className="muted">
+          Local draft saved on this device. Open this repository in Codex’s Repo Canvas app to send
+          to the main chat.
         </p>
       )}
-      <form
-        className="chat-compose"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void send();
-        }}
-      >
-        <textarea
-          aria-label="Message Codex"
-          maxLength={12000}
-          placeholder={`Discuss ${context.name}…`}
-          rows={3}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-        />
-        <footer>
-          <button
-            className="primary"
-            disabled={!hosted || !input.trim() || busy || pending}
-            type="submit"
-          >
-            Send to chat ↑
-          </button>
-        </footer>
-      </form>
     </aside>
   );
 }

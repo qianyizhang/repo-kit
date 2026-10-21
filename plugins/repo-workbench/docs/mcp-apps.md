@@ -53,7 +53,7 @@ A timeout means delivery is uncertain. Do not automatically resend a message: it
 - Keep one persistent authority: Repo Canvas uses the versioned architecture file. Save validates the schema, encoded size and base revision before replacement.
 - Distinguish saved data, an unsaved draft and a proposed change. Applying a proposal updates the draft; saving updates the repository. Reject a stale proposal rather than overwriting intervening edits.
 - Keep request IDs and captured context stable across the round trip. Reject duplicate or late replies to closed requests.
-- Temporary server state disappears on restart. Separate stdio processes share saved files, not in-memory conversations or drafts. Repo Canvas currently retains one latest recovery draft per server process; it is not a multi-editor draft store.
+- Map recovery drafts and semantic view state remain per-context memory. Discussion composer, frozen comments and request/reply history persist outside Git, keyed by canonical repository and trusted host chat identity. Reload them on reconnect without resending. Concurrent local updates use a lock and revision check; clear history only through the explicit action.
 - Clear recovery data after saving or discarding it. Validate navigation after undo/import/proposal replacement so a removed selection cannot break the UI.
 
 ## Diagnose the failing layer

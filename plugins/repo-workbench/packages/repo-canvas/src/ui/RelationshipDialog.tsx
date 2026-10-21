@@ -1,3 +1,6 @@
+import { Notes } from './Notes';
+import { SourceBlock } from './SourceBlock';
+import type { Target } from '../model/document';
 import { useEffect, useRef, useState } from 'react';
 import {
   connectionKinds,
@@ -10,11 +13,26 @@ interface Props {
   connections: Connection[];
   edit: (document: Architecture) => void;
   close: () => void;
+  token: string;
+  comment: (target: Target) => void;
 }
 /** Exact relationships remain inspectable even when an edge represents nested modules. */
-export function RelationshipDialog({ document, connections, edit, close }: Props) {
+export function RelationshipDialog({ document, connections, edit, close, token, comment }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const basis = useRef(
+    new Map(
+      connections.map((c) => [
+        c.id,
+        JSON.stringify(document.connections.find((edge) => edge.id === c.id)),
+      ]),
+    ),
+  );
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState(
+    !connections.every((c) => document.connections.some((edge) => edge.id === c.id)),
+  );
+  const [tab, setTab] = useState('details');
+  const [source, setSource] = useState<string | null>(null);
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -31,123 +49,228 @@ export function RelationshipDialog({ document, connections, edit, close }: Props
       <header>
         <div>
           <span className="eyebrow">MODULE CONNECTION</span>
-          <h2>Explain the relationship</h2>
+          <h2>Relationship</h2>
         </div>
         <button onClick={close} aria-label="Close relationship">
           ×
         </button>
       </header>
-      {connections.map((c) => (
-        <form
-          key={c.id}
-          onSubmit={(e) => {
-            e.preventDefault();
-            const fields = new FormData(e.currentTarget);
-            const label = fields.get('label'),
-              description = fields.get('description');
-            if (typeof label !== 'string' || typeof description !== 'string') return;
-            const kind = fields.get('kind'),
-              sources = fields.get('sources');
-            if (typeof kind !== 'string' || typeof sources !== 'string') return;
-            const next = {
-              ...c,
-              kind: kind as Connection['kind'],
-              sources: sources
-                .split('\n')
-                .map((s) => s.trim())
-                .filter(Boolean),
-              label: label.trim(),
-              description: description.trim(),
-            };
-            if (!next.label) return;
-            try {
-              edit(
-                parseDocument({
-                  ...document,
-                  connections: document.connections.some((edge) => edge.id === c.id)
-                    ? document.connections.map((edge) => (edge.id === c.id ? next : edge))
-                    : [...document.connections, next],
-                }),
-              );
-              close();
-            } catch (error) {
-              setError(error instanceof Error ? error.message : String(error));
-            }
-          }}
-        >
-          <p className="relationship-endpoints">
-            {document.modules.find((m) => m.id === c.from)?.name} <span>→</span>{' '}
-            {document.modules.find((m) => m.id === c.to)?.name}
-          </p>
-          <label>
-            Relationship type
-            <select
-              name="kind"
-              aria-label="Relationship type"
-              defaultValue={c.kind ?? 'dependency'}
-            >
-              {connectionKinds.map((kind) => (
-                <option key={kind}>{kind}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Relationship label
-            <input
-              name="label"
-              aria-label="Relationship label"
-              required
-              maxLength={200}
-              defaultValue={c.label}
-              autoFocus
-            />
-          </label>
-          <label>
-            Explanation
-            <textarea
-              name="description"
-              aria-label="Explanation"
-              maxLength={12000}
-              rows={4}
-              defaultValue={c.description ?? ''}
-              placeholder="What crosses this connection, and why does the dependency exist?"
-            />
-          </label>
-          <label>
-            Source evidence (repository paths, one per line)
-            <textarea
-              name="sources"
-              aria-label="Relationship sources"
-              rows={2}
-              defaultValue={c.sources?.join('\n') ?? ''}
-            />
-          </label>
-          <p className="muted">
-            Use a precise verb such as calls, reads, publishes, or shares geometry. Connections stay
-            attached as modules move.
-          </p>
-          {error && <p role="alert">{error}</p>}
-          <footer>
-            {document.connections.some((edge) => edge.id === c.id) && (
-              <button
-                type="button"
-                onClick={() => {
-                  edit({
-                    ...document,
-                    connections: document.connections.filter((edge) => edge.id !== c.id),
-                  });
-                  close();
-                }}
-              >
-                Remove connection
-              </button>
-            )}
-            <button className="primary" type="submit">
-              Save relationship
+      <button
+        onClick={() => {
+          basis.current = new Map(
+            connections.map((c) => [
+              c.id,
+              JSON.stringify(document.connections.find((edge) => edge.id === c.id)),
+            ]),
+          );
+          setError('');
+          setEditing(!editing);
+        }}
+      >
+        {editing ? 'Cancel edit' : 'Edit relationship'}
+      </button>
+      {!editing && (
+        <div className="detail-tabs">
+          {['details', 'notes', 'sources'].map((t) => (
+            <button key={t} aria-pressed={tab === t} onClick={() => setTab(t)}>
+              {t}
             </button>
-          </footer>
-        </form>
-      ))}
+          ))}
+        </div>
+      )}
+      {connections.map((original) => {
+        const c = document.connections.find((edge) => edge.id === original.id) ?? original;
+        return editing ? (
+          <form
+            key={c.id}
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (
+                JSON.stringify(document.connections.find((edge) => edge.id === c.id)) !==
+                basis.current.get(c.id)
+              ) {
+                setError(
+                  'This relationship changed while you were editing. Copy your edits and reopen it.',
+                );
+                return;
+              }
+              const fields = new FormData(e.currentTarget);
+              const label = fields.get('label'),
+                description = fields.get('description');
+              if (typeof label !== 'string' || typeof description !== 'string') return;
+              const kind = fields.get('kind'),
+                sources = fields.get('sources');
+              if (typeof kind !== 'string' || typeof sources !== 'string') return;
+              const next = {
+                ...c,
+                kind: kind as Connection['kind'],
+                sources: sources
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+                label: label.trim(),
+                description: description.trim(),
+              };
+              if (!next.label) return;
+              try {
+                edit(
+                  parseDocument({
+                    ...document,
+                    connections: document.connections.some((edge) => edge.id === c.id)
+                      ? document.connections.map((edge) => (edge.id === c.id ? next : edge))
+                      : [...document.connections, next],
+                  }),
+                );
+                close();
+              } catch (error) {
+                setError(error instanceof Error ? error.message : String(error));
+              }
+            }}
+          >
+            <p className="relationship-endpoints">
+              {document.modules.find((m) => m.id === c.from)?.name} <span>→</span>{' '}
+              {document.modules.find((m) => m.id === c.to)?.name}
+            </p>
+            <label>
+              Relationship type
+              <select
+                name="kind"
+                aria-label="Relationship type"
+                defaultValue={c.kind ?? 'dependency'}
+              >
+                {connectionKinds.map((kind) => (
+                  <option key={kind}>{kind}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Relationship label
+              <input
+                name="label"
+                aria-label="Relationship label"
+                required
+                maxLength={200}
+                defaultValue={c.label}
+                autoFocus
+              />
+            </label>
+            <label>
+              Explanation
+              <textarea
+                name="description"
+                aria-label="Explanation"
+                maxLength={12000}
+                rows={4}
+                defaultValue={c.description ?? ''}
+                placeholder="What crosses this connection, and why does the dependency exist?"
+              />
+            </label>
+            <label>
+              Source evidence (repository paths, one per line)
+              <textarea
+                name="sources"
+                aria-label="Relationship sources"
+                rows={2}
+                defaultValue={c.sources?.join('\n') ?? ''}
+              />
+            </label>
+            <p className="muted">
+              Use a precise verb such as calls, reads, publishes, or shares geometry. Connections
+              stay attached as modules move.
+            </p>
+            {error && <p role="alert">{error}</p>}
+            <footer>
+              {document.connections.some((edge) => edge.id === c.id) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    edit({
+                      ...document,
+                      connections: document.connections.filter((edge) => edge.id !== c.id),
+                      annotations: document.annotations.filter(
+                        (a) => a.target.kind !== 'connection' || a.target.id !== c.id,
+                      ),
+                    });
+                    close();
+                  }}
+                >
+                  Remove connection
+                </button>
+              )}
+              <button className="primary" type="submit">
+                Save relationship
+              </button>
+            </footer>
+          </form>
+        ) : (
+          <section
+            key={c.id}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              comment({ kind: 'connection', id: c.id });
+            }}
+          >
+            <header>
+              <h3>
+                {document.modules.find((m) => m.id === c.from)?.name} →{' '}
+                {document.modules.find((m) => m.id === c.to)?.name}
+              </h3>
+              <button
+                aria-label="Comment on relationship"
+                onClick={() => comment({ kind: 'connection', id: c.id })}
+              >
+                ⋯
+              </button>
+            </header>
+            {tab === 'details' && (
+              <>
+                <p>
+                  {c.label} · {c.kind ?? 'dependency'}
+                </p>
+                <p>{c.description || 'No explanation recorded.'}</p>
+              </>
+            )}
+            {tab === 'notes' && (
+              <Notes
+                document={document}
+                target={{ kind: 'connection', id: c.id }}
+                edit={edit}
+                comment={comment}
+              />
+            )}
+            {tab === 'sources' && (
+              <>
+                {c.sources?.map((ref) => (
+                  <button className="source-link" key={ref} onClick={() => setSource(ref)}>
+                    {ref}
+                  </button>
+                ))}
+                {source && c.sources?.includes(source) && (
+                  <SourceBlock
+                    reference={source}
+                    token={token}
+                    document={document}
+                    onReferenceChange={(next) => {
+                      edit({
+                        ...document,
+                        connections: document.connections.map((edge) =>
+                          edge.id === c.id
+                            ? {
+                                ...edge,
+                                sources: edge.sources?.map((ref) => (ref === source ? next : ref)),
+                              }
+                            : edge,
+                        ),
+                      });
+                      setSource(next);
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </section>
+        );
+      })}
     </dialog>
   );
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -13,7 +13,7 @@ import { Repository } from './repository';
 import type { ChatRequest } from '../model/document';
 const context: ChatRequest = {
   document: {
-    version: 1,
+    version: 3,
     title: 'Unsaved architecture',
     modules: [
       {
@@ -174,4 +174,26 @@ it('keeps a fixed server target usable across stateless MCP connections', async 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+it('does not let a racing cancel overwrite an arriving answer', () => {
+  const bridge = new CanvasBridge();
+  const exchange = bridge.enqueue('race', context);
+  const change = bridge.discussion.change.bind(bridge.discussion);
+  vi.spyOn(bridge.discussion, 'change').mockImplementationOnce((update) => {
+    change((value) => ({
+      ...value,
+      history: value.history.map((e) =>
+        e.id === exchange.id
+          ? { ...e, status: 'answered', response: { reply: 'Arrived', proposal: null } }
+          : e,
+      ),
+    }));
+    return change(update);
+  });
+  expect(() => bridge.cancel('race', exchange.id)).toThrow('no longer pending');
+  expect(bridge.read(exchange.id)).toMatchObject({
+    status: 'answered',
+    response: { reply: 'Arrived' },
+  });
 });

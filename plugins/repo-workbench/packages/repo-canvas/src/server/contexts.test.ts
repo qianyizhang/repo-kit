@@ -14,6 +14,7 @@ test('two repositories and two canvases in the same repository keep targets, dra
     writeFileSync(join(root, 'README.md'), name);
     return root;
   });
+  vi.stubEnv('XDG_STATE_HOME', roots[0] + '/.state');
   const server = canvasMcp(),
     client = new Client({ name: 'multi-repo-test', version: '1' });
   const [a, b] = InMemoryTransport.createLinkedPair();
@@ -63,7 +64,7 @@ test('two repositories and two canvases in the same repository keep targets, dra
     for (const [index, id] of ids.entries()) {
       expect(await app(id, 'draft_read')).toMatchObject({ document: { title: `Map ${index}` } });
       expect(await app(id, 'chat', { canvasId: 'same-tab-id' })).toMatchObject({
-        response: { reply: `Reply ${index}` },
+        response: { reply: `Reply ${index === 0 ? 2 : index}` },
       });
       expect(await app(id, 'source', { path: 'README.md' })).toMatchObject({
         content: index === 1 ? 'two' : 'one',
@@ -93,6 +94,7 @@ test('two repositories and two canvases in the same repository keep targets, dra
     ).toBe(true);
   } finally {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
     await client.close();
     await server.close();
     roots.forEach((root) => rmSync(root, { recursive: true, force: true }));

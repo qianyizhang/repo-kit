@@ -24,7 +24,16 @@ fit/reading scale, panel or navigation changes. Read the next snapshot and confi
 both the command receipt and resulting state. Refresh after a conflict; do not
 retarget another context. Use `canvas_propose` to offer a complete document outside
 a side-chat exchange. Read the draft first and preserve unrelated content; the user
-reviews, applies and saves. Version-2 semantic fields require the updated runtime.
+reviews, applies and saves. Only v3 documents are supported. Old or invalid saved
+maps need an explicit offline repair or a new draft; never silently migrate them.
+Preserve declarative `nodeTypes`, per-node `fields`, scope-local overlapping `groups`,
+and typed note targets. Notes use `target: {kind: "node" | "connection", id}`;
+severity (`info`, `warning`, `risk`) is separate from intent (`note`, `question`, `decision`).
+Source references may use `path#L10-L25`. Inspect frozen contextual comments in a
+request before responding: their target may have changed since capture. Type field
+removals/value-type changes require a visible affected-node migration review.
+Discussion history survives server restart; reconnect the selected repository/chat
+before reading old request IDs. Never automatically resend uncertain host messages.
 
 When the user chooses **Initialize architecture**, follow the captured authoring
 brief. Build an onboarding/discussion model, not an inventory. Use current code,

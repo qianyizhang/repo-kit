@@ -32,7 +32,7 @@ function json(res: ServerResponse, value: unknown, status = 200) {
 export function apiMiddleware(root: string) {
   const repository = new Repository(root),
     token = randomBytes(24).toString('hex');
-  const bridge = new CanvasBridge();
+  const bridge = new CanvasBridge({ repo: repository.root, chat: 'standalone' });
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (!req.url?.startsWith('/api/') && req.url !== '/mcp') {
       next();

@@ -8,6 +8,10 @@ onboarding and design discussion. Show core concepts, use cases and data flow.
 Prefer a small overview and selected nested concepts; supporting files and
 artifacts belong in source references, not separate nodes.
 
+For the reviewed reading, contextual authoring and grouping redesign, consult the
+[2026-10-21 annotated prototype](../../../docs/design/repo-canvas/2026-10-21/README.md).
+It is a preserved review reference; this contract records the implementation decisions.
+
 ## Source and provenance
 
 Adapted on 2026-10-15 from Qianyi Zhang's public
@@ -43,9 +47,7 @@ The CSS custom properties at the top of `styles.css` implement these roles. Use
 neutral module surfaces; category names remain text rather than unrelated blue,
 purple or brown bands. Spatial connections retain their functional emphasis.
 
-Use the upstream serif subject role for the current scope heading, at 22 px on
-wide screens and 20 px in compact layouts. Navigation, module names and controls
-stay system sans. Compact architecture controls use 13 px; captions use 12 px;
+Use the breadcrumb as the single scope identity. Navigation, module names and controls stay system sans. Compact architecture controls use 13 px; captions use 12 px;
 chat answers use the upstream 15 px reading size and 1.65 line height. These are
 intentional density adaptations from the upstream 24/15/14/12 px scale. Canvas
 zoom still scales the diagram; preserve zoom and Fit view controls.
@@ -57,11 +59,25 @@ zoom still scales the diagram; preserve zoom and Fit view controls.
   or `Standalone preview`; do not infer liveness from decorative indicators.
 - Give Inspect and Side chat direct toolbar access. Save remains in the header.
   Apply remains beside its reviewed proposal and never silently writes the map.
-- Group module creation, Undo, Export, Import and Reload under **Map actions**.
-  Use native disclosure semantics, keyboard activation and Escape-to-close with
-  focus returned to the summary. Keep each action's existing safety behavior.
-- Show source references directly. Put path editing under **Edit source paths**.
-  Suggested questions and storage explanation are optional disclosures.
+- Put creation, Undo, Export, Import and Reload in the canvas context menu. Right-click,
+  Shift+F10 and the compact overflow button expose the same actions. Object menus
+  attach comments to a stable node, original relationship or note ID.
+- Cards identify: type, name, at most two custom fields, a note badge and child count
+  or a leaf's add-child action. Do not repeat responsibility paragraphs on cards.
+- Hover/focus explains nodes and links. Click pins reading; suppress a node's hover
+  while its details are pinned. Details, Notes and Sources are separate tabs.
+  Explicit Edit replaces reading, with Apply edits and Cancel.
+- Risk, warning and info are red, yellow and neutral note severities, with text labels.
+  Decision/question are separate intents. Notes can be edited or removed; map Undo
+  restores them. Note badges open Notes directly.
+- Navigation hides leaves by default; Show leaf nodes and search reveal them. Adding
+  a child promotes the same existing node to a parent without changing its ID.
+- Groups reference existing sibling nodes in one scope. Membership may overlap.
+  The compact selector dims other nodes by default; Hide masks them without moving
+  any node. Spatial lanes are deferred.
+- Source references accept a file or `path#L10-L25`. Render syntax colors and original
+  line numbers. Inline editing requires a before/after diff and explicit Save source
+  file. File saves and map saves are independent; changed range bounds update the draft.
 - Remove repeated branding, ornamental module numbers and repeated network labels.
   Use spacing and type hierarchy rather than nested decorative cards.
 - At narrow widths, stack the active inspector/chat below the architecture. It must
@@ -118,13 +134,41 @@ first and disclose truncation so a large early subtree cannot hide root owners.
 A curated map should show responsibilities, source references, meaningful verbs,
 and boundaries. Keep detail inside scopes; avoid making a card for every file.
 
-Use typed nodes for systems, packages, modules, data, external systems, processes,
-interfaces and concepts. Connections have a precise label plus an optional type
-(dependency, data flow, control flow, evidence or ownership), explanation and source
-paths. Review notes distinguish notes, questions, risks and decisions. Keep actor
-attribution explicit. These additions use document version 2; existing version-1
-maps remain readable and unchanged until extended fields are used. Older clients
-must reject version 2 rather than silently erase its meaning.
+The only supported document format is **v3**. There is no automatic legacy import
+or migration layer. Invalid or older files retain their bytes; show offline agent
+repair guidance and Start new draft. Starting a draft never writes the saved map.
+An explicit Save still compares the raw disk revision before replacing it.
+
+Built-in node kinds identify systems, packages, modules, data, external owners,
+processes, interfaces and concepts. Repository-owned `nodeTypes` declare named
+fields (`text`, `number`, `boolean`, `enum`, `source`) and one primary surface
+(`card`, `peek`, `details`). Peek fields move to Details when pinned; card fields
+are not repeated there. No executable renderers. Preserve unknown types/fields as
+readable fallback data. Review affected nodes before deleting fields or changing
+value types; explicit migration acceptance is required before removing values.
+Agent proposals include the same migration review.
+
+Connections retain precise verbs, optional kind, explanation and source references.
+Saved annotations target `{kind:"node"|"connection",id}` and record severity and
+intent separately. Contextual comments may also target annotations. Capture the
+object, scope, source references and document hash when the comment is authored;
+keep that snapshot even if the live target changes. Comments queue for explicit
+Send to chat; they do not become saved map notes.
+
+Discussion drafts, frozen comments and up to 100 exchanges live outside Git in
+`$XDG_STATE_HOME/repo-workbench/discussions` (default `~/.local/state`). Partition
+by canonical repository and trusted host chat ID; standalone has its own namespace.
+Use private files, atomic writes and revision checks. Keep earlier exchanges folded;
+focus on the latest query. Preserve uncertain sends and never automatically resend.
+History is cleared only explicitly, after closing pending requests. Map recovery
+remains browser-tab/server-context state, separate from durable discussion state.
+
+Source writes are limited to explicitly referenced, existing Git-visible UTF-8
+files under 500 KB, blocks under 40,000 characters, without symlink components or
+hardlinks. No creation, deletion, rename, binary editing or whole-repository IDE.
+Compare the full-file content revision immediately before atomic replacement;
+retain surrounding lines, file mode and newline style. Reload and review again
+on conflict; never overwrite an external edit automatically.
 
 Fit centers complete card bounds inside the drawing pane with reserved control
 space. It is an overview, not a promise that all text stays readable. Offer 100%

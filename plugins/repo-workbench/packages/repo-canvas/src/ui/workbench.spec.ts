@@ -20,14 +20,15 @@ test('standalone edits and temporary requests share operation semantics with MCP
     await expect(page.getByText('Shared with Codex', { exact: true })).toHaveCount(0);
     await page.getByRole('button', { name: 'Inspect src', exact: true }).dblclick();
     await page.getByRole('button', { name: 'Inspect core', exact: true }).click();
-    await page.getByRole('button', { name: '↗ src/core/rules.ts', exact: true }).click();
-    await expect(page.getByRole('dialog', { name: 'Source preview' })).toContainText(
-      'domain owns rules',
-    );
-    await page.getByRole('button', { name: 'Close', exact: true }).click();
+    await page.getByRole('button', { name: /^Sources ·/ }).click();
+    await page.getByRole('button', { name: 'src/core/rules.ts', exact: true }).click();
+    await expect(page.locator('.source-block')).toContainText('domain owns rules');
+
+    await page.getByRole('button', { name: 'Edit', exact: true }).click();
     await page
       .getByRole('textbox', { name: 'Module responsibility' })
       .fill('Saved through standalone HTTP');
+    await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
     await page.getByRole('button', { name: 'Save map', exact: true }).click();
     await expect(page.getByText('✓ Shared document')).toBeVisible();
     const cleared = page.waitForResponse(
@@ -202,38 +203,41 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   ).toHaveCount(0);
   messages.length = 0;
   // Undoing a new, selected module must restore a valid scope and chat context.
-  await ui.getByText('Map actions', { exact: true }).click();
-  await ui.getByRole('button', { name: '+ Module', exact: true }).click();
+  await ui.getByRole('button', { name: 'Canvas context menu', exact: true }).click();
+  await ui.getByRole('menuitem', { name: 'Add node here', exact: true }).click();
   await ui.getByRole('textbox', { name: 'Module name', exact: true }).last().fill('Temporary');
   await ui.getByRole('button', { name: 'Create module', exact: true }).click();
-  await ui.getByRole('button', { name: 'Enter module' }).click();
-  await ui.getByText('Map actions', { exact: true }).click();
-  await ui.getByTitle('Undo last draft edit').click();
+  await ui.getByRole('button', { name: 'Inspect Temporary', exact: true }).dblclick();
+  await ui.getByRole('button', { name: 'Canvas context menu', exact: true }).click();
+  await ui.getByRole('menuitem', { name: 'Undo', exact: true }).click();
   await expect(ui.getByRole('button', { name: 'Inspect src', exact: true })).toBeVisible();
   await ui.getByRole('button', { name: 'Side chat' }).click();
   await ui.getByRole('button', { name: 'Inspect src', exact: true }).hover();
   await expect(ui.getByRole('tooltip')).toContainText('Directory grouping');
   await ui.getByRole('button', { name: 'Inspect src', exact: true }).dblclick();
-  await expect(ui.getByRole('heading', { name: /^src/, level: 1 })).toBeVisible();
+  await expect(
+    ui.locator('.breadcrumbs').getByRole('button', { name: 'src', exact: true }),
+  ).toBeVisible();
   await ui.getByRole('button', { name: 'Inspect core', exact: true }).click();
   await ui.getByRole('button', { name: 'Inspect', exact: true }).click();
-  await ui.getByRole('button', { name: '↗ src/core/rules.ts', exact: true }).click();
-  await expect(ui.getByRole('dialog', { name: 'Source preview' })).toContainText(
-    'domain owns rules',
-  );
-  await ui.getByRole('button', { name: 'Close', exact: true }).click();
+  await ui.getByRole('button', { name: /^Sources ·/ }).click();
+  await ui.getByRole('button', { name: 'src/core/rules.ts', exact: true }).click();
+  await expect(ui.locator('.source-block')).toContainText('domain owns rules');
+
+  await ui.getByRole('button', { name: /^Notes ·/ }).click();
+  await ui.getByRole('button', { name: 'Add note', exact: true }).click();
   await ui
-    .getByRole('textbox', { name: 'Annotation', exact: true })
+    .getByRole('textbox', { name: 'Note text', exact: true })
     .fill('Keep rules independent from UI.');
-  await ui.getByRole('button', { name: 'Add annotation' }).click();
+  await ui.getByRole('button', { name: 'Apply note' }).click();
   const card = ui.getByRole('button', { name: 'Inspect core', exact: true });
   const box = (await card.boundingBox())!;
   await page.mouse.move(box.x + 80, box.y + 60);
   await page.mouse.down();
   await page.mouse.move(box.x + 160, box.y + 110, { steps: 5 });
   await page.mouse.up();
-  await ui.getByText('Map actions', { exact: true }).click();
-  await ui.getByRole('button', { name: '+ Module', exact: true }).click();
+  await ui.getByRole('button', { name: 'Canvas context menu', exact: true }).click();
+  await ui.getByRole('menuitem', { name: 'Add node here', exact: true }).click();
   await ui.getByRole('textbox', { name: 'Module name', exact: true }).last().fill('Adapters');
   await ui.getByRole('button', { name: 'Create module', exact: true }).click();
   const output = (await ui
@@ -266,7 +270,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   ).toBeVisible();
   await ui.getByRole('button', { name: 'Explain relationship: calls' }).focus();
   await page.keyboard.press('Enter');
-  await expect(ui.getByLabel('Explanation', { exact: true })).toHaveValue(
+  await expect(ui.getByRole('dialog', { name: 'Relationship', exact: true })).toContainText(
     'Adapters call domain rules without owning their state.',
   );
   await ui.getByRole('button', { name: 'Close relationship' }).click();
@@ -300,17 +304,18 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await expect(ui.getByRole('button', { name: 'Inspect Adapters', exact: true })).toBeVisible();
   await ui.getByRole('button', { name: 'Inspect core', exact: true }).click();
   await ui.getByRole('button', { name: 'Inspect', exact: true }).click();
+  await ui.getByRole('button', { name: /^Notes ·/ }).click();
   await expect(ui.getByText('Keep rules independent from UI.', { exact: true })).toBeVisible();
   // A newly created, unsaved module must not look stale after server normalization.
-  await ui.getByText('Map actions', { exact: true }).click();
-  await ui.getByRole('button', { name: '+ Module', exact: true }).click();
+  await ui.getByRole('button', { name: 'Canvas context menu', exact: true }).click();
+  await ui.getByRole('menuitem', { name: 'Add node here', exact: true }).click();
   await ui.getByRole('textbox', { name: 'Module name', exact: true }).last().fill('Unsaved helper');
   await ui.getByRole('button', { name: 'Create module', exact: true }).click();
   await ui.getByRole('button', { name: 'Inspect core', exact: true }).click();
   await ui.getByRole('button', { name: 'Side chat' }).click();
   await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Annotate this module');
   await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
-  await expect(ui.getByText('Waiting for this conversation')).toBeVisible();
+  await expect(ui.getByText('Awaiting the main chat')).toBeVisible();
   await expect.poll(() => messages.length).toBe(1);
   expect(messages[0].role).toBe('user');
   expect(messages[0].content[0].text).toContain('Annotate this module');
@@ -334,7 +339,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
             ...exchange.context.document.annotations,
             {
               id: crypto.randomUUID(),
-              target: 'src/core',
+              target: { kind: 'node', id: 'src/core' },
               text: 'Keep domain rules independent.',
               author: 'agent',
             },
@@ -355,9 +360,11 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
   await answer(2);
   await ui.getByRole('button', { name: 'Inspect', exact: true }).click();
+  await ui.getByRole('button', { name: 'Edit', exact: true }).click();
   await ui
     .getByRole('textbox', { name: 'Module responsibility' })
     .fill('Changed during discussion');
+  await ui.getByRole('button', { name: 'Apply edits', exact: true }).click();
   await ui.getByRole('button', { name: 'Side chat' }).click();
   await expect(ui.getByRole('button', { name: 'Apply to draft' })).toBeDisabled();
   await ui.getByRole('button', { name: 'Save map', exact: true }).click();
@@ -374,7 +381,9 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     ui.getByRole('button', { name: 'Inspect Core from agent', exact: true }),
   ).toBeVisible({ timeout: 7000 });
   await ui.getByRole('button', { name: 'Inspect', exact: true }).click();
+  await ui.getByRole('button', { name: 'Edit', exact: true }).click();
   await ui.getByRole('textbox', { name: 'Module responsibility' }).fill('Unsaved local draft');
+  await ui.getByRole('button', { name: 'Apply edits', exact: true }).click();
   updated.title = 'Concurrent agent edit';
   writeFileSync(path, JSON.stringify(updated));
   await expect(
@@ -418,12 +427,12 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   const sideChat = ui.locator('.side-chat');
   await sideChat.hover({ position: { x: 5, y: 5 } });
   await page.mouse.wheel(0, 1500);
-  await expect(ui.getByRole('button', { name: 'Dismiss error' })).toBeInViewport();
+  await expect(ui.getByRole('button', { name: 'Retry local save' })).toBeVisible();
   await expect(ui.getByRole('button', { name: 'Send to chat ↑' })).toBeInViewport();
   await page.screenshot({ path: 'test-results/repo-canvas/pending-error-mobile.png' });
-  await ui.getByRole('button', { name: 'Dismiss error' }).click();
+
   await ui.getByRole('button', { name: 'Close request' }).click();
-  await expect(ui.getByText('Request cancelled.')).toBeVisible();
+  await expect(ui.getByText('Request closed locally.')).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   // Explicitly discarding a cached draft must survive an iframe reload.
   await expect
@@ -436,8 +445,8 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
     })
     .toContain('Unsaved local draft');
   page.once('dialog', (dialog) => void dialog.accept());
-  await ui.getByText('Map actions', { exact: true }).click();
-  await ui.getByRole('button', { name: 'Reload', exact: true }).click();
+  await ui.getByRole('button', { name: 'Canvas context menu', exact: true }).click();
+  await ui.getByRole('menuitem', { name: 'Reload', exact: true }).click();
   await expect
     .poll(async () => {
       const result = await client.callTool({
@@ -463,46 +472,46 @@ test('compact panels preserve keyboard actions, source editing and visible check
   page,
 }) => {
   await page.goto('/');
-  const actions = page.getByText('Map actions', { exact: true });
-  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeHidden();
+  const actions = page.getByRole('button', { name: 'Canvas context menu', exact: true });
+  await expect(page.getByRole('menuitem', { name: 'Export', exact: true })).toBeHidden();
   await actions.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Export', exact: true })).toBeVisible();
   await page.keyboard.press('Escape');
-  await expect(actions).toBeFocused();
-  await expect(page.getByRole('button', { name: 'Export', exact: true })).toBeHidden();
+  await expect(page.getByRole('menu', { name: 'Canvas actions' })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: 'Export', exact: true })).toBeHidden();
   await actions.click();
-  await page.getByRole('button', { name: '+ Module', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Add node here', exact: true }).click();
   await page
     .getByRole('textbox', { name: 'Module name', exact: true })
     .last()
     .fill('Disclosure test');
   await page.getByRole('button', { name: 'Create module', exact: true }).click();
   await expect(page.getByText('● Draft changes')).toBeVisible();
-  await expect(page.getByLabel('Source paths, one per line')).toBeHidden();
-  await page.getByText('Edit source paths', { exact: true }).click();
-  await page.getByLabel('Source paths, one per line').fill('src/core/rules.ts');
-  await page.getByRole('button', { name: '↗ src/core/rules.ts', exact: true }).click();
-  await expect(page.getByRole('dialog', { name: 'Source preview' })).toContainText(
-    'domain owns rules',
-  );
-  await page.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByLabel('Source references', { exact: true })).toBeHidden();
+  await page.getByRole('button', { name: 'Edit', exact: true }).click();
+  await page.getByLabel('Source references', { exact: true }).fill('src/core/rules.ts');
+  await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
+  await page.getByRole('button', { name: /^Sources ·/ }).click();
+  await page.getByRole('button', { name: 'src/core/rules.ts', exact: true }).click();
+  await expect(page.locator('.source-block')).toContainText('domain owns rules');
+
   await actions.click();
   const downloadEvent = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Export', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Export', exact: true }).click();
   const download = await downloadEvent;
   const path = await download.path();
   const exported = parseDocument(JSON.parse(readFileSync(path, 'utf8')) as unknown);
   expect(exported.modules.some((m) => m.name === 'Disclosure test')).toBe(true);
   await actions.click();
   const chooserEvent = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Import', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Import', exact: true }).click();
   await (await chooserEvent).setFiles(path);
   await expect(
     page.getByRole('button', { name: 'Inspect Disclosure test', exact: true }),
   ).toBeVisible();
   await actions.click();
-  await page.getByTitle('Undo last draft edit').click();
+  await page.getByRole('menuitem', { name: 'Undo', exact: true }).click();
   for (const width of [740, 390]) {
     await page.setViewportSize({ width, height: 950 });
     await expect(page.locator('.checkout-path')).toBeVisible();
@@ -523,7 +532,7 @@ test('compact panels preserve keyboard actions, source editing and visible check
   }
   page.once('dialog', (dialog) => void dialog.accept());
   await actions.click();
-  await page.getByRole('button', { name: 'Reload', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Reload', exact: true }).click();
   await expect(page.getByText('✓ Shared document')).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Inspect Disclosure test', exact: true }),
@@ -558,7 +567,7 @@ test('narrow canvas supports readable arrangement, multi-selection and revision-
   const original = (await (await request.get('/api/state')).json()) as Snapshot & { token: string };
   const headers = { 'X-Repo-Canvas-Token': original.token };
   const document = parseDocument({
-    version: 1,
+    version: 3,
     title: 'Viewport study',
     modules: [
       {
@@ -621,7 +630,9 @@ test('narrow canvas supports readable arrangement, multi-selection and revision-
     await expect(page.getByRole('navigation')).toBeVisible();
     await page.getByRole('button', { name: 'Hide navigation' }).click();
     await page.getByRole('button', { name: 'Inspect Owner 3', exact: true }).dblclick();
-    await expect(page.getByRole('heading', { name: /^Owner 3/, level: 1 })).toBeVisible();
+    await expect(
+      page.locator('.breadcrumbs').getByRole('button', { name: 'Owner 3', exact: true }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Viewport study', exact: true }).click();
     await page.getByRole('button', { name: 'Side chat', exact: true }).click();
     await page.getByRole('button', { name: 'Arrange', exact: true }).click();
@@ -670,7 +681,7 @@ test('narrow canvas supports readable arrangement, multi-selection and revision-
     await page.getByRole('button', { name: 'Select several', exact: true }).click();
     await page.getByRole('button', { name: 'Inspect Owner 0', exact: true }).click();
     await page.getByRole('button', { name: 'Inspect Owner 1', exact: true }).click();
-    await expect(page.locator('.context-chip')).toContainText('2 nodes: Owner 0, Owner 1');
+    await expect(page.locator('.context-chip')).toContainText('2 selected nodes');
     await expect.poll(async () => (await snapshot()).selections).toEqual(['node-0', 'node-1']);
     const live = await snapshot();
     expect(

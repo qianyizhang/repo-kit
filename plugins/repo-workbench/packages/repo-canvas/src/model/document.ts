@@ -18,7 +18,55 @@ export const connectionKinds = [
   'ownership',
 ] as const;
 export type ConnectionKind = (typeof connectionKinds)[number];
-export const annotationKinds = ['note', 'question', 'risk', 'decision'] as const;
+export const annotationKinds = ['note', 'question', 'decision'] as const;
+export const severities = ['info', 'warning', 'risk'] as const;
+export const fieldKinds = ['text', 'number', 'boolean', 'enum', 'source'] as const;
+export const surfaces = ['card', 'peek', 'details'] as const;
+export interface FieldDefinition {
+  id: string;
+  label: string;
+  kind: (typeof fieldKinds)[number];
+  surface: (typeof surfaces)[number];
+  options?: string[];
+}
+export interface NodeType {
+  id: string;
+  label: string;
+  description: string;
+  baseKind: ModuleKind;
+  fields: FieldDefinition[];
+}
+export interface Group {
+  id: string;
+  scope: string;
+  name: string;
+  description: string;
+  members: string[];
+}
+export interface Target {
+  kind: 'node' | 'connection' | 'annotation';
+  id: string;
+}
+export interface ContextComment {
+  id: string;
+  instruction: string;
+  target: Target;
+  label: string;
+  scope: string;
+  documentRevision: string;
+  captured: string;
+  sources: string[];
+}
+export const kindDescriptions: Record<ModuleKind, string> = {
+  system: 'A whole system and its enclosing scope.',
+  package: 'An independently delivered code product.',
+  module: 'An implementation responsibility.',
+  data: 'Stored or exchanged information.',
+  external: 'An owner or dependency outside this system.',
+  process: 'An ordered transformation or workflow.',
+  interface: 'A surface through which actors interact.',
+  concept: 'Domain meaning, policy or an invariant.',
+};
 export interface Module {
   id: string;
   parent: string | null;
@@ -26,6 +74,8 @@ export interface Module {
   kind: ModuleKind;
   summary: string;
   sources: string[];
+  typeId?: string;
+  fields?: Record<string, string | number | boolean>;
   x: number;
   y: number;
 }
@@ -40,13 +90,16 @@ export interface Connection {
 }
 export interface Annotation {
   id: string;
-  target: string;
+  target: Target;
+  severity?: (typeof severities)[number];
   text: string;
   author: 'human' | 'agent';
   kind?: (typeof annotationKinds)[number];
 }
 export interface Architecture {
-  version: 1 | 2;
+  version: 3;
+  nodeTypes?: NodeType[];
+  groups?: Group[];
   title: string;
   modules: Module[];
   connections: Connection[];
@@ -57,6 +110,7 @@ export interface Snapshot {
   revision: string;
   repo: string;
   saved: boolean;
+  problem?: string;
 }
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -68,6 +122,7 @@ export interface ChatRequest {
   selection: string | null;
   selections?: string[];
   messages: ChatMessage[];
+  comments?: ContextComment[];
 }
 export interface ChatReply {
   reply: string;
@@ -109,7 +164,24 @@ export function sourcePath(value: unknown): string {
 }
 export function parseDocument(value: unknown): Architecture {
   const data = object(value);
-  if (data.version !== 1 && data.version !== 2) throw new Error('Unsupported architecture version');
+  if (data.version !== 3)
+    throw new Error(
+      'Unsupported architecture version. This app requires v3. Ask the agent to repair .repo-canvas/architecture.json offline, or start a new draft.',
+    );
+  const nodeTypes = data.nodeTypes === undefined ? undefined : parseNodeTypes(data.nodeTypes);
+  const groups =
+    data.groups === undefined
+      ? undefined
+      : list(data.groups, 100).map((entry): Group => {
+          const g = object(entry);
+          return {
+            id: id(g.id),
+            scope: id(g.scope),
+            name: text(g.name, 200),
+            description: text(g.description),
+            members: list(g.members, 500).map(id),
+          };
+        });
   const modules = list(data.modules, 500).map((entry): Module => {
     const m = object(entry);
     if (!(moduleKinds as readonly string[]).includes(String(m.kind)))
@@ -129,7 +201,9 @@ export function parseDocument(value: unknown): Architecture {
       name: text(m.name, 200),
       kind: m.kind as ModuleKind,
       summary: text(m.summary),
-      sources: list(m.sources, 100).map(sourcePath),
+      sources: list(m.sources, 100).map(sourceReference),
+      ...(m.typeId === undefined ? {} : { typeId: id(m.typeId) }),
+      ...(m.fields === undefined ? {} : { fields: parseFields(m.fields) }),
       x: m.x,
       y: m.y,
     };
@@ -158,7 +232,7 @@ export function parseDocument(value: unknown): Architecture {
       throw new Error('Unknown relationship kind');
     return {
       ...(c.kind === undefined ? {} : { kind: c.kind as ConnectionKind }),
-      ...(c.sources === undefined ? {} : { sources: list(c.sources, 100).map(sourcePath) }),
+      ...(c.sources === undefined ? {} : { sources: list(c.sources, 100).map(sourceReference) }),
       id: id(c.id),
       from,
       to,
@@ -168,14 +242,22 @@ export function parseDocument(value: unknown): Architecture {
   });
   const annotations = list(data.annotations, 1000).map((entry): Annotation => {
     const a = object(entry);
-    if (!ids.has(String(a.target)) || !['human', 'agent'].includes(String(a.author)))
+    const target = parseTarget(a.target);
+    if (
+      target.kind === 'annotation' ||
+      !(target.kind === 'node'
+        ? ids.has(target.id)
+        : connections.some((c) => c.id === target.id)) ||
+      !['human', 'agent'].includes(String(a.author))
+    )
       throw new Error('Invalid annotation target or author');
     if (a.kind !== undefined && !(annotationKinds as readonly string[]).includes(text(a.kind)))
       throw new Error('Unknown annotation kind');
     return {
       ...(a.kind === undefined ? {} : { kind: a.kind as Annotation['kind'] }),
       id: id(a.id),
-      target: id(a.target),
+      target,
+      ...(a.severity === undefined ? {} : { severity: oneOf(a.severity, severities) }),
       text: text(a.text),
       author: a.author as Annotation['author'],
     };
@@ -183,18 +265,156 @@ export function parseDocument(value: unknown): Architecture {
   for (const entries of [connections, annotations])
     if (new Set(entries.map((e) => e.id)).size !== entries.length)
       throw new Error('Duplicate identifier');
-  const extended =
-    modules.some((m) => ['process', 'interface', 'concept'].includes(m.kind)) ||
-    connections.some((c) => c.kind || c.sources) ||
-    annotations.some((a) => a.kind);
+  for (const entries of [nodeTypes ?? [], groups ?? []])
+    if (new Set(entries.map((e) => e.id)).size !== entries.length)
+      throw new Error('Duplicate definition ID');
+  for (const g of groups ?? []) {
+    if (
+      !ids.has(g.scope) ||
+      !g.members.length ||
+      new Set(g.members).size !== g.members.length ||
+      g.members.some((key) => byId.get(key)?.parent !== g.scope)
+    )
+      throw new Error('Group members must be unique existing siblings in its scope');
+  }
+  for (const m of modules) {
+    const type = nodeTypes?.find((t) => t.id === m.typeId);
+    if (type && type.baseKind !== m.kind)
+      throw new Error(`Node ${m.name} does not match its type base kind`);
+    for (const f of type?.fields ?? []) {
+      const value = m.fields?.[f.id];
+      if (value !== undefined && !fieldAccepts(f, value))
+        throw new Error(`Field ${m.name}.${f.id} requires an explicit value migration`);
+    }
+  }
   return {
-    version: data.version === 2 || extended ? 2 : 1,
+    version: 3,
     title: text(data.title, 200),
     modules,
     connections,
     annotations,
+    ...(nodeTypes === undefined ? {} : { nodeTypes }),
+    ...(groups === undefined ? {} : { groups }),
   };
 }
+export function parseTarget(value: unknown): Target {
+  const t = object(value);
+  return { kind: oneOf(t.kind, ['node', 'connection', 'annotation'] as const), id: id(t.id) };
+}
+function oneOf<T extends string>(value: unknown, allowed: readonly T[]): T {
+  if (!allowed.includes(value as T)) throw new Error('Unknown value: ' + String(value));
+  return value as T;
+}
+function parseFields(value: unknown): Record<string, string | number | boolean> {
+  const fields = object(value);
+  if (Object.keys(fields).length > 100) throw new Error('Too many fields');
+  return Object.fromEntries(
+    Object.entries(fields).map(([key, v]) => {
+      id(key);
+      if (
+        !['string', 'number', 'boolean'].includes(typeof v) ||
+        (typeof v === 'number' && !Number.isFinite(v))
+      )
+        throw new Error('Invalid field value');
+      if (typeof v === 'string') text(v);
+      return [key, v as string | number | boolean];
+    }),
+  );
+}
+export function parseNodeTypes(value: unknown): NodeType[] {
+  return list(value, 100).map((entry) => {
+    const t = object(entry);
+    const fields = list(t.fields, 40).map((entry) => {
+      const f = object(entry);
+      return {
+        id: id(f.id),
+        label: text(f.label, 100),
+        kind: oneOf(f.kind, fieldKinds),
+        surface: oneOf(f.surface, surfaces),
+        ...(f.options === undefined
+          ? {}
+          : { options: list(f.options, 100).map((v) => text(v, 200)) }),
+      };
+    });
+    if (new Set(fields.map((f) => f.id)).size !== fields.length)
+      throw new Error('Duplicate field ID');
+    if (
+      fields.some(
+        (f) =>
+          f.kind === 'enum' && (!f.options?.length || new Set(f.options).size !== f.options.length),
+      )
+    )
+      throw new Error('Enum fields need unique options');
+    if (fields.filter((f) => f.surface === 'card').length > 2)
+      throw new Error('Cards support at most two short fields');
+    return {
+      id: id(t.id),
+      label: text(t.label, 100),
+      description: text(t.description),
+      baseKind: oneOf(t.baseKind, moduleKinds),
+      fields,
+    };
+  });
+}
+export function fieldAccepts(field: FieldDefinition, value: unknown): boolean {
+  if (field.kind === 'number') return typeof value === 'number' && Number.isFinite(value);
+  if (field.kind === 'boolean') return typeof value === 'boolean';
+  if (typeof value !== 'string') return false;
+  if (field.kind === 'enum') return field.options!.includes(value);
+  if (field.kind === 'source') {
+    try {
+      sourceReference(value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+export function sourceReference(value: unknown): string {
+  const result = text(value, 550);
+  parseSourceReference(result);
+  return result;
+}
+export function parseSourceReference(value: string): {
+  path: string;
+  startLine?: number;
+  endLine?: number;
+} {
+  const match = /^(.*)#L([1-9]\d*)(?:-L?([1-9]\d*))?$/.exec(value);
+  if (!match) return { path: sourcePath(value) };
+  const startLine = Number(match[2]),
+    endLine = Number(match[3] ?? match[2]);
+  if (!Number.isSafeInteger(startLine) || !Number.isSafeInteger(endLine) || endLine < startLine)
+    throw new Error('Invalid source line range');
+  return { path: sourcePath(match[1]), startLine, endLine };
+}
+export function parseComments(value: unknown): ContextComment[] {
+  return list(value, 50).map((entry) => {
+    const c = object(entry);
+    return {
+      id: id(c.id),
+      instruction: text(c.instruction),
+      target: parseTarget(c.target),
+      label: text(c.label, 200),
+      scope: id(c.scope),
+      documentRevision: text(c.documentRevision, 100),
+      captured: text(c.captured, 50000),
+      sources: list(c.sources, 100).map(sourceReference),
+    };
+  });
+}
+export function targetValue(document: Architecture, target: Target) {
+  return target.kind === 'node'
+    ? document.modules.find((m) => m.id === target.id)
+    : target.kind === 'connection'
+      ? document.connections.find((c) => c.id === target.id)
+      : document.annotations.find((a) => a.id === target.id);
+}
+export function sameTarget(a: Target, b: Target) {
+  return a.kind === b.kind && a.id === b.id;
+}
+
 export function parseChat(value: unknown): ChatRequest {
   const data = object(value);
   const document = parseDocument(data.document);
@@ -219,7 +439,14 @@ export function parseChat(value: unknown): ChatRequest {
     (selections && new Set(selections).size !== selections.length)
   )
     throw new Error('Invalid selections');
-  return { document, scope, selection, ...(selections ? { selections } : {}), messages };
+  return {
+    document,
+    scope,
+    selection,
+    ...(selections ? { selections } : {}),
+    messages,
+    ...(data.comments === undefined ? {} : { comments: parseComments(data.comments) }),
+  };
 }
 export function parseReply(value: unknown): ChatReply {
   const data = object(value);

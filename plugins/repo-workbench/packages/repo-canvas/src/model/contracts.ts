@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { parseDocument, parseChat, parseReply } from './document.ts';
+import { parseDocument, parseChat, parseReply, parseComments } from './document.ts';
 
 /** Existing semantic parsers remain authoritative for saved documents and source fidelity. */
 function parsed<T>(parse: (value: unknown) => T) {
@@ -82,6 +82,7 @@ const snapshotSchema = z.object({
   revision,
   repo: z.string(),
   saved: z.boolean(),
+  problem: z.string().optional(),
 });
 export const sessionSchema = snapshotSchema.extend({ token: z.string(), plugin: z.string() });
 export type Session = z.output<typeof sessionSchema>;
@@ -126,7 +127,15 @@ const connectionSchema = z.object({
   reason: z.enum(['workspace-unavailable', 'missing-chat-metadata']).nullable().optional(),
 });
 export type ConnectionState = z.output<typeof connectionSchema>;
+export const commentsSchema = parsed(parseComments);
+export const discussionSchema = z.object({
+  revision: z.number().int(),
+  composer: z.string().max(12000),
+  comments: commentsSchema,
+  history: z.array(exchangeSchema).max(100),
+});
 const chatFields = {
+  comments: commentsSchema.optional(),
   document: documentSchema,
   scope: id,
   selection: id.nullable(),
@@ -141,8 +150,39 @@ export const contracts = {
     output: z.union([sessionSchema, z.object({ needsRepository: z.literal(true) })]),
   },
   source: {
-    input: z.strictObject({ path: z.string().min(1).max(500) }),
-    output: z.object({ path: z.string(), content: z.string(), truncated: z.boolean() }),
+    input: z.strictObject({ path: z.string().min(1).max(550) }),
+    output: z.object({
+      path: z.string(),
+      reference: z.string(),
+      content: z.string(),
+      truncated: z.boolean(),
+      startLine: z.number(),
+      endLine: z.number(),
+      totalLines: z.number(),
+      revision,
+    }),
+  },
+  source_save: {
+    input: z.strictObject({
+      reference: z.string().max(550),
+      revision,
+      content: z.string().max(40000),
+      document: documentSchema,
+    }),
+    output: z.object({ revision, reference: z.string() }),
+  },
+  discussion_read: { input: empty, output: discussionSchema },
+  discussion_write: {
+    input: z.strictObject({
+      revision: z.number().int(),
+      composer: z.string().max(12000),
+      comments: commentsSchema,
+    }),
+    output: discussionSchema,
+  },
+  discussion_clear: {
+    input: z.strictObject({ revision: z.number().int() }),
+    output: discussionSchema,
   },
   save: { input: z.strictObject({ document: documentSchema, revision }), output: snapshotSchema },
   send: { input: z.strictObject({ canvasId: id, ...chatFields }), output: exchangeSchema },
@@ -183,6 +223,10 @@ function requestSchema<K extends Action>(action: K) {
 export const appRequestSchema = z.discriminatedUnion('action', [
   requestSchema('state'),
   requestSchema('source'),
+  requestSchema('source_save'),
+  requestSchema('discussion_read'),
+  requestSchema('discussion_write'),
+  requestSchema('discussion_clear'),
   requestSchema('save'),
   requestSchema('send'),
   requestSchema('chat'),

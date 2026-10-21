@@ -50,7 +50,12 @@ export function canvasMcp(
           `Cannot load the map for ${repository.root}: ${error instanceof Error ? error.message : String(error)}`,
         );
       }
-      const context = { repository, bridge: new CanvasBridge(), id: randomUUID(), threadId };
+      const context = {
+        repository,
+        bridge: new CanvasBridge({ repo: repository.root, chat: threadId ?? 'standalone' }),
+        id: randomUUID(),
+        threadId,
+      };
       contexts.set(context.id, context);
       diagnostics.record('repository.open.succeeded', {
         repo: repository.root,
@@ -284,7 +289,12 @@ export function canvasMcp(
       const snapshot = repository.snapshot();
       const data = requestId
         ? { repo: snapshot.repo, request: bridge.read(requestId) }
-        : { repo: snapshot.repo, requests: bridge.list(), savedMap: snapshot.document };
+        : {
+            repo: snapshot.repo,
+            requests: bridge.list(),
+            savedMap: snapshot.problem ? null : snapshot.document,
+            ...(snapshot.problem ? { problem: snapshot.problem } : {}),
+          };
       return { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
     },
   );
@@ -367,7 +377,7 @@ export function canvasMcp(
           .record(z.string(), z.unknown())
           .optional()
           .describe(
-            'Optional complete version-1 or version-2 architecture document with title, modules, connections and annotations. Read the request first to preserve its layout and notes.',
+            'Optional complete version-3 architecture document with title, modules, connections and annotations. Read the request first to preserve its layout and notes.',
           ),
       },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },

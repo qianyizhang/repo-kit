@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+  chmodSync,
+  statSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, it } from 'vitest';
@@ -56,7 +65,9 @@ it('saves annotations, reloads agent edits and rejects a stale user draft withou
   const saved = repo.save(
     {
       ...first.document,
-      annotations: [{ id: 'one', target: 'src', text: 'Who owns this?', author: 'human' }],
+      annotations: [
+        { id: 'one', target: { kind: 'node', id: 'src' }, text: 'Who owns this?', author: 'human' },
+      ],
     },
     first.revision,
   );
@@ -86,7 +97,7 @@ it('rejects an oversized encoded document before replacing a readable save', () 
     ...saved.document,
     annotations: Array.from({ length: 100 }, (_, i) => ({
       id: `note-${i}`,
-      target: 'repo',
+      target: { kind: 'node', id: 'repo' },
       author: 'human' as const,
       text: '界'.repeat(12000),
     })),
@@ -127,4 +138,49 @@ it('keeps later top-level owners visible when early directories exhaust discover
   ]);
   expect(map.modules[0].summary).toContain('Showing 480 of 524');
   expect(map.modules.length).toBeLessThanOrEqual(500);
+});
+it('returns repair metadata for old or malformed maps and replaces only on explicit revision-checked save', () => {
+  const { root, repo } = setup();
+  mkdirSync(join(root, '.repo-canvas'));
+  const path = join(root, documentName);
+  writeFileSync(path, '{"version":2,"keep":"authored"}');
+  const old = readFileSync(path, 'utf8');
+  const state = repo.snapshot();
+  expect(state.problem).toContain('requires v3');
+  expect(state.document.version).toBe(3);
+  expect(readFileSync(path, 'utf8')).toBe(old);
+  writeFileSync(path, 'broken external revision');
+  expect(() => repo.save(state.document, state.revision)).toThrow('Conflict');
+  const broken = repo.snapshot();
+  expect(broken.problem).toBeTruthy();
+  const saved = repo.save(broken.document, broken.revision);
+  expect(saved.problem).toBeUndefined();
+  expect(saved.saved).toBe(true);
+});
+it('edits only referenced line blocks, preserves surrounding CRLF text, and rejects stale or unsafe writes', () => {
+  const { root, repo } = setup();
+  const path = join(root, 'src/main.ts');
+  writeFileSync(path, '// before\r\nconst value = 1;\r\n// after\r\n');
+  chmodSync(path, 0o664);
+  const reference = 'src/main.ts#L2-L2';
+  const state = repo.snapshot();
+  const document = {
+    ...state.document,
+    modules: state.document.modules.map((m) => ({ ...m, sources: [reference] })),
+  };
+  const block = repo.source(reference);
+  expect(block.content).toBe('const value = 1;\r\n');
+  expect(block.startLine).toBe(2);
+  expect(() =>
+    repo.saveSource(reference, block.revision, 'const value = 2;\n', state.document),
+  ).toThrow('explicitly referenced');
+  repo.saveSource(reference, block.revision, 'const value = 2;\n', document);
+  expect(statSync(path).mode & 0o777).toBe(0o664);
+  expect(readFileSync(path, 'utf8')).toBe('// before\r\nconst value = 2;\r\n// after\r\n');
+  expect(() => repo.saveSource(reference, block.revision, 'bad\n', document)).toThrow('Conflict');
+  expect(() => repo.source('src/main.ts#L99-L100')).toThrow('outside');
+  symlinkSync(path, join(root, 'src/link.ts'));
+  expect(() => repo.source('src/link.ts')).toThrow('symlink');
+  writeFileSync(join(root, 'src/binary.ts'), Buffer.from([0xff, 0]));
+  expect(() => repo.source('src/binary.ts')).toThrow();
 });

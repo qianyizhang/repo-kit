@@ -7,12 +7,15 @@ import {
   realpathSync,
   renameSync,
   statSync,
+  lstatSync,
+  chmodSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, resolve, sep } from 'node:path';
 import {
   parseDocument,
-  sourcePath,
+  parseSourceReference,
   type Architecture,
   type Module,
   type Snapshot,
@@ -95,7 +98,7 @@ export function discover(root: string): Architecture {
     });
   }
   return parseDocument({
-    version: 1,
+    version: 3,
     title: basename(root),
     modules,
     connections: [],
@@ -122,12 +125,12 @@ export class Repository {
     if (saved && statSync(path).size > 2_000_000)
       throw new Error('Architecture document exceeds 2 MB');
     const raw = saved ? readFileSync(path, 'utf8') : JSON.stringify(discover(this.root));
-    return {
-      document: parseDocument(JSON.parse(raw) as unknown),
-      revision: digest(raw),
-      repo: this.root,
-      saved,
-    };
+    const metadata = { revision: digest(raw), repo: this.root, saved };
+    try {
+      return { ...metadata, document: parseDocument(JSON.parse(raw) as unknown) };
+    } catch (error) {
+      return { ...metadata, document: discover(this.root), problem: String(error) };
+    }
   }
   save(value: unknown, revision: string): Snapshot {
     const document = parseDocument(value);
@@ -145,16 +148,97 @@ export class Repository {
     renameSync(temporary, path);
     return this.snapshot();
   }
-  source(value: unknown): { path: string; content: string; truncated: boolean } {
-    const path = sourcePath(value);
-    if (!repositoryFiles(this.root).includes(path))
-      throw new Error('Source preview is limited to Git-visible files (tracked or non-ignored)');
-    const absolute = realpathSync(resolve(this.root, path));
+  private readSource(reference: string) {
+    const { path, startLine, endLine } = parseSourceReference(reference);
+    if (
+      path.startsWith('.git/') ||
+      path === documentName ||
+      !repositoryFiles(this.root).includes(path)
+    )
+      throw new Error('Source access is limited to existing Git-visible repository text files');
+    const absolute = resolve(this.root, path);
+    let part = this.root;
+    for (const segment of path.split('/')) {
+      part = resolve(part, segment);
+      if (lstatSync(part).isSymbolicLink())
+        throw new Error('Source paths must not contain symlinks');
+    }
     if (!absolute.startsWith(this.root + sep))
       throw new Error('Source resolves outside the repository');
-    if (statSync(absolute).size > 500_000) throw new Error('Source preview is limited to 500 KB');
-    const content = readFileSync(absolute, 'utf8');
-    if (content.includes('\0')) throw new Error('Binary source cannot be previewed');
-    return { path, content: content.slice(0, 40000), truncated: content.length > 40000 };
+    const stat = statSync(absolute);
+    if (!stat.isFile() || stat.nlink !== 1 || stat.size > 500_000)
+      throw new Error('Source must be a regular text file under 500 KB');
+    const bytes = readFileSync(absolute);
+    const raw = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+    if (raw.includes('\0')) throw new Error('Binary source cannot be previewed');
+    const lines = raw.split(/(?<=\n)/);
+    if (lines.at(-1) === '') lines.pop();
+    const first = startLine ?? 1,
+      last = endLine ?? Math.max(1, lines.length);
+    if (first > Math.max(1, lines.length) || last > Math.max(1, lines.length))
+      throw new Error('Source line range is outside the current file');
+    return { path, absolute, stat, raw, lines, first, last, revision: digest(raw) };
+  }
+  source(value: unknown) {
+    if (typeof value !== 'string') throw new Error('Invalid source reference');
+    const file = this.readSource(value);
+    const content = file.lines.slice(file.first - 1, file.last).join('');
+    return {
+      path: file.path,
+      reference: value,
+      content: content.slice(0, 40000),
+      truncated: content.length > 40000,
+      startLine: file.first,
+      endLine: file.last,
+      totalLines: Math.max(1, file.lines.length),
+      revision: file.revision,
+    };
+  }
+  saveSource(reference: string, revision: string, content: string, value: unknown) {
+    const document = parseDocument(value);
+    const references = [
+      ...document.modules.flatMap((m) => [
+        ...m.sources,
+        ...(document.nodeTypes
+          ?.find((t) => t.id === m.typeId)
+          ?.fields.filter((f) => f.kind === 'source')
+          .map((f) => String(m.fields?.[f.id] ?? '')) ?? []),
+      ]),
+      ...document.connections.flatMap((c) => c.sources ?? []),
+    ];
+    if (!references.includes(reference))
+      throw new Error('Only an explicitly referenced source block can be saved');
+    const file = this.readSource(reference);
+    if (file.revision !== revision)
+      throw new Error('Conflict: Source changed on disk. Reload and review a fresh diff.');
+    if (content.includes('\0') || content.length > 40000)
+      throw new Error('Source block must be text under 40,000 characters');
+    const replacement = file.raw.includes('\r\n')
+      ? content.replace(/\r?\n/g, '\r\n')
+      : content.replace(/\r\n/g, '\n');
+    if (file.last < file.lines.length && replacement && !replacement.endsWith('\n'))
+      throw new Error('A block before following lines must end with a newline');
+    const next =
+      file.lines.slice(0, file.first - 1).join('') +
+      replacement +
+      file.lines.slice(file.last).join('');
+    const temporary = file.absolute + '.' + randomUUID() + '.tmp';
+    try {
+      writeFileSync(temporary, next, { flag: 'wx', mode: file.stat.mode });
+      chmodSync(temporary, file.stat.mode); // Creation umask must not change the source permissions.
+      const current = this.readSource(reference);
+      if (current.revision !== revision || current.stat.ino !== file.stat.ino)
+        throw new Error('Conflict: Source changed during save');
+      renameSync(temporary, file.absolute);
+    } finally {
+      if (existsSync(temporary)) unlinkSync(temporary);
+    }
+    // A block can change its length; return its new bounds without silently changing the map.
+    const count = replacement ? replacement.split(/(?<=\n)/).filter(Boolean).length : 0;
+    const updated =
+      count === 0 || parseSourceReference(reference).startLine === undefined
+        ? file.path
+        : `${file.path}#L${file.first}-L${file.first + Math.max(1, count) - 1}`;
+    return { revision: digest(next), reference: updated };
   }
 }

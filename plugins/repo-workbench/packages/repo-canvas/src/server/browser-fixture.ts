@@ -9,6 +9,7 @@ import react from '@vitejs/plugin-react';
 import { apiPlugin } from './api.ts';
 import { Repository } from './repository.ts';
 const root = mkdtempSync(join(tmpdir(), 'canvas-browser-'));
+process.env.XDG_STATE_HOME = join(root, '.test-state');
 process.env.XDG_CONFIG_HOME = join(root, '.test-config');
 execFileSync('git', ['init', '-q', root]);
 mkdirSync(join(root, 'src/core'), { recursive: true });

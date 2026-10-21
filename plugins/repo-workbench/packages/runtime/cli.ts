@@ -74,8 +74,11 @@ try {
       if (args[i] === '--repo') root = resolve(args[++i]);
       else port = Number(args[++i]);
     }
-    if (validate) console.log(JSON.stringify(new Repository(root).snapshot()));
-    else {
+    if (validate) {
+      const snapshot = new Repository(root).snapshot();
+      if (snapshot.problem) throw new Error(snapshot.problem);
+      console.log(JSON.stringify(snapshot));
+    } else {
       if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Invalid port');
       const html = await asset('canvas.html'),
         middleware = apiMiddleware(root);

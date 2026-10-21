@@ -1,3 +1,4 @@
+import { DiscussionStore } from './discussion.ts';
 import { CanvasSession } from './session.ts';
 import { randomUUID } from 'node:crypto';
 import { parseReply, parseDocument, type ChatRequest } from '../model/document.ts';
@@ -12,6 +13,10 @@ function canvasKey(value: unknown): string {
 /** A bounded local mailbox. Only the connected agent supplies answers; no model runs here. */
 export class CanvasBridge {
   readonly session = new CanvasSession();
+  readonly discussion: DiscussionStore;
+  constructor(identity?: { repo: string; chat: string; directory?: string }) {
+    this.discussion = new DiscussionStore(identity);
+  }
   private recovery: {
     document: ChatRequest['document'];
     revision: string;
@@ -57,18 +62,15 @@ export class CanvasBridge {
     };
     return { stored: true };
   }
-  private exchanges = new Map<string, CanvasExchange>();
 
   current(canvasId: unknown): CanvasExchange | null {
-    return this.exchanges.get(canvasKey(canvasId)) ?? null;
+    return (
+      this.discussion.read().history.findLast((e) => e.canvasId === canvasKey(canvasId)) ?? null
+    );
   }
 
   enqueue(canvasId: unknown, context: ChatRequest): CanvasExchange {
     const key = canvasKey(canvasId);
-    if (this.current(key)?.status === 'pending')
-      throw new Error('Conflict: This tab already has a pending request');
-    if (!this.exchanges.has(key) && this.exchanges.size >= 20)
-      throw new Error('Canvas tab limit reached. Restart the local server to clear old requests.');
     const exchange: CanvasExchange = {
       id: randomUUID(),
       canvasId: key,
@@ -76,12 +78,18 @@ export class CanvasBridge {
       status: 'pending',
       response: null,
     };
-    this.exchanges.set(key, exchange);
+    this.discussion.change((value) => {
+      if (value.history.some((e) => e.canvasId === key && e.status === 'pending'))
+        throw new Error('Conflict: Request is already pending');
+      if (value.history.length >= 100)
+        throw new Error('Local history is full. Clear it explicitly before sending more requests.');
+      return { ...value, history: [...value.history, exchange] };
+    });
     return exchange;
   }
 
   list() {
-    return [...this.exchanges.values()].map(({ id, status, context }) => ({
+    return this.discussion.read().history.map(({ id, status, context }) => ({
       id,
       status,
       scope: context.scope,
@@ -92,7 +100,7 @@ export class CanvasBridge {
   }
 
   read(id: string): CanvasExchange {
-    const exchange = [...this.exchanges.values()].find((entry) => entry.id === id);
+    const exchange = this.discussion.read().history.find((entry) => entry.id === id);
     if (!exchange)
       throw new Error('Request not found. It may have been replaced or the server restarted.');
     return exchange;
@@ -103,7 +111,11 @@ export class CanvasBridge {
     if (exchange.status !== 'pending') throw new Error('Conflict: Request is no longer pending');
     const response = parseReply(value);
     const updated: CanvasExchange = { ...exchange, status: 'answered', response };
-    this.exchanges.set(exchange.canvasId, updated);
+    this.discussion.change((value) => {
+      if (value.history.find((e) => e.id === id)?.status !== 'pending')
+        throw new Error('Conflict: Request is no longer pending');
+      return { ...value, history: value.history.map((e) => (e.id === id ? updated : e)) };
+    });
     return updated;
   }
 
@@ -112,7 +124,11 @@ export class CanvasBridge {
     if (!current || current.id !== id || current.status !== 'pending')
       throw new Error('Conflict: Request is no longer pending');
     const updated: CanvasExchange = { ...current, status: 'cancelled' };
-    this.exchanges.set(current.canvasId, updated);
+    this.discussion.change((value) => {
+      if (value.history.find((e) => e.id === id)?.status !== 'pending')
+        throw new Error('Conflict: Request is no longer pending');
+      return { ...value, history: value.history.map((e) => (e.id === id ? updated : e)) };
+    });
     return updated;
   }
 }

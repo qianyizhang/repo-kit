@@ -44,7 +44,7 @@ export function useCanvasDocument() {
         void rememberRepository().catch(() => {
           setNotice('Opened this repository, but could not remember it on this device.');
         });
-      if (recover) {
+      if (recover && !data.problem) {
         try {
           const transferred = hosted ? await request('draft_read', data.token) : null;
           const raw = transferred
@@ -230,6 +230,13 @@ export function useCanvasDocument() {
     }
   }
   return {
+    startFresh: () => {
+      if (session) {
+        setSession({ ...session, problem: undefined, saved: false });
+        setDirty(true);
+        setNotice('New v3 draft. The existing file is untouched until Save map.');
+      }
+    },
     session,
     document,
     scope,
