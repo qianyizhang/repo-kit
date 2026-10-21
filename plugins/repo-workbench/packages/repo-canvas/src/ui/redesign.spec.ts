@@ -1,3 +1,6 @@
+import { hostDocument } from '../../../../tests/browser/host-fixture';
+import { APP_URI } from '../server/app-resource';
+import type { CanvasExchange } from '../model/bridge';
 import { test, expect } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -339,5 +342,92 @@ test('each destructive agent proposal requires its own migration approval', asyn
       join(original.repo, '.repo-canvas/architecture.json'),
       JSON.stringify(original.document),
     );
+  }
+});
+
+test('discussion proposals require fresh consent and Apply leaves the saved map unchanged', async ({
+  page,
+  request,
+}) => {
+  const original = (await (await request.get('/api/state')).json()) as Session;
+  const headers = { 'X-Repo-Canvas-Token': original.token };
+  await request.put('/api/state', {
+    headers,
+    data: { revision: original.revision, document: model },
+  });
+  await request.put('/api/draft', { headers, data: { draft: null } });
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StreamableHTTPClientTransport } =
+    await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const client = new Client({ name: 'discussion-review-test', version: '1' });
+  await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
+  try {
+    const resource = (await client.readResource({ uri: APP_URI })).contents[0];
+    if (!('text' in resource)) throw new Error('Expected HTML resource');
+    const messages: { content: { text: string }[] }[] = [];
+    await page.exposeFunction(
+      'canvasTool',
+      (params: { name: string; arguments: Record<string, unknown> }) => client.callTool(params),
+    );
+    await page.exposeFunction('canvasMessage', (message: (typeof messages)[number]) => {
+      messages.push(message);
+      return {};
+    });
+    const html = await hostDocument(resource.text);
+    await page.route('**/proposal-host', (route) =>
+      route.fulfill({ contentType: 'text/html', body: html }),
+    );
+    await page.goto('/proposal-host');
+    const ui = page.frameLocator('iframe');
+    const review = ui.getByRole('region', { name: 'Discussion map proposal' });
+    for (let count = 1; count <= 2; count++) {
+      await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Review type removal');
+      await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
+      await expect.poll(() => messages.length).toBe(count);
+      const requestId = messages.at(-1)!.content[0].text.match(/request ([a-f0-9-]+)/)![1];
+      const read = await client.callTool({ name: 'canvas_read', arguments: { requestId } });
+      const exchange = (
+        JSON.parse((read.content as { text: string }[])[0].text) as { request: CanvasExchange }
+      ).request;
+      const response = await client.callTool({
+        name: 'canvas_reply',
+        arguments: {
+          requestId,
+          reply: 'Review removing the type.',
+          proposal: { ...exchange.context.document, nodeTypes: [] },
+        },
+      });
+      expect(response.isError).not.toBe(true);
+      await expect(
+        review.getByRole('button', { name: 'Apply to draft', exact: true }),
+      ).toBeDisabled();
+      await expect(review.getByLabel('Accept these type migrations')).not.toBeChecked();
+      await review.getByLabel('Accept these type migrations').check();
+      await expect(
+        review.getByRole('button', { name: 'Apply to draft', exact: true }),
+      ).toBeEnabled();
+      if (count === 1) {
+        await review.getByRole('button', { name: 'Dismiss', exact: true }).click();
+        await expect(review).toHaveCount(0);
+      }
+    }
+    await review.getByRole('button', { name: 'Apply to draft', exact: true }).click();
+    await expect(review).toHaveCount(0);
+    expect(
+      ((await (await request.get('/api/state')).json()) as Session).document.nodeTypes,
+    ).toHaveLength(1);
+    await ui.getByRole('button', { name: 'Save map', exact: true }).click();
+    await expect(ui.getByText('✓ Shared document')).toBeVisible();
+    expect(
+      ((await (await request.get('/api/state')).json()) as Session).document.nodeTypes,
+    ).toEqual([]);
+  } finally {
+    await page.goto('about:blank');
+    await client.close();
+    writeFileSync(
+      join(original.repo, '.repo-canvas/architecture.json'),
+      JSON.stringify(original.document),
+    );
+    await request.put('/api/draft', { headers, data: { draft: null } });
   }
 });

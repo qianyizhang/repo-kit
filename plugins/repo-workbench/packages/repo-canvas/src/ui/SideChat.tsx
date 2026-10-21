@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useImperativeHandle, type Ref } from 'react';
-import { parseDocument, type Architecture, type ContextComment } from '../model/document';
-import { typeChanges } from '../model/type-changes';
+import { type Architecture, type ContextComment } from '../model/document';
+import { ProposalReview } from './ProposalReview';
 import type { Output } from '../model/contracts';
 import { request } from './api';
 import { initializationPrompt } from '../model/initialization';
@@ -32,8 +32,7 @@ export function SideChat({
   const [data, setData] = useState<Output<'discussion_read'> | null>(null),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
-    [dismissed, setDismissed] = useState(''),
-    [accepted, setAccepted] = useState<string | null>(null);
+    [dismissed, setDismissed] = useState('');
   const current = useRef(data);
   current.current = data;
   const dirty = useRef(false),
@@ -95,10 +94,6 @@ export function SideChat({
   const exchange = data?.history.at(-1),
     pending = exchange?.status === 'pending',
     proposal = exchange?.response?.proposal;
-  const impacts = proposal ? typeChanges(document, proposal) : [];
-  const stale = exchange
-    ? JSON.stringify(exchange.context.document) !== JSON.stringify(parseDocument(document))
-    : false;
   async function send(text = data?.composer ?? '') {
     if (!hosted || sending.current || !data || pending || (!text.trim() && !data.comments.length))
       return;
@@ -246,41 +241,17 @@ export function SideChat({
         </section>
       )}
       {proposal && exchange && dismissed !== exchange.id && (
-        <section className="proposal">
-          <b>Proposed map change</b>
-          <details>
-            <summary>Review proposed document</summary>
-            <pre>{JSON.stringify(proposal, null, 2)}</pre>
-          </details>
-          {impacts.length > 0 && (
-            <>
-              <ul>
-                {impacts.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ul>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={accepted === exchange.id}
-                  onChange={(e) => setAccepted(e.target.checked ? exchange.id : null)}
-                />
-                Accept these type migrations
-              </label>
-            </>
-          )}
-          {stale && <p>The draft changed. Ask for a fresh proposal.</p>}
-          <button
-            disabled={stale || (impacts.length > 0 && accepted !== exchange.id)}
-            onClick={() => {
-              apply(proposal);
-              setDismissed(exchange.id);
-            }}
-          >
-            Apply to draft
-          </button>
-          <button onClick={() => setDismissed(exchange.id)}>Dismiss</button>
-        </section>
+        <ProposalReview
+          current={document}
+          proposal={{
+            id: exchange.id,
+            baseDocument: exchange.context.document,
+            document: proposal,
+          }}
+          origin="discussion"
+          apply={apply}
+          dismiss={() => setDismissed(exchange.id)}
+        />
       )}
       {error && (
         <div className="chat-error" role="alert">

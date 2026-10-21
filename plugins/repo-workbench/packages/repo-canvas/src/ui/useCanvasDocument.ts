@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { parseDocument, rootOf, type Architecture } from '../model/document';
+import { useCallback, useEffect, useRef, useState, useReducer } from 'react';
+import { parseDocument, type Architecture } from '../model/document';
+import { initialDraft, transitionDraft } from '../model/draft';
 import { draftSchema } from '../model/contracts';
 import { request, type Session } from './api';
 import { hosted, prepareHost, rememberRepository, connectionStatus } from './host';
@@ -12,15 +13,11 @@ export function useCanvasDocument() {
   const [lookupReason, setLookupReason] = useState<string>();
   const [retryingConnection, setRetryingConnection] = useState(false);
   const [connectionCheckedAt, setConnectionCheckedAt] = useState('');
-  const [session, setSession] = useState<Session | null>(null),
-    [document, setDocument] = useState<Architecture | null>(null);
-  const [scope, setScope] = useState('repo'),
-    [selection, setSelection] = useState<string | null>(null);
-  const [selections, setSelections] = useState<string[]>([]);
-  const [dirty, setDirty] = useState(false),
-    [conflict, setConflict] = useState(false),
+  const [session, setSession] = useState<Session | null>(null);
+  const [draft, dispatch] = useReducer(transitionDraft, initialDraft);
+  const { document, scope, selection, selections, history, dirty } = draft;
+  const [conflict, setConflict] = useState(false),
     [saving, setSaving] = useState(false);
-  const [history, setHistory] = useState<Architecture[]>([]);
   const documentRef = useRef(document);
   documentRef.current = document;
   const state = useRef({ dirty, revision: session?.revision });
@@ -58,21 +55,16 @@ export function useCanvasDocument() {
               JSON.stringify(restored) !== JSON.stringify(data.document)
             ) {
               setSession({ ...data, revision: draft.revision });
-              setDocument(restored);
-              setScope(
-                restored.modules.some((m) => m.id === draft.scope)
-                  ? draft.scope
-                  : rootOf(restored).id,
-              );
-              setSelection(
-                restored.modules.some((m) => m.id === draft.selection) ? draft.selection : null,
-              );
-              setSelections(
-                (draft.selections ?? (draft.selection ? [draft.selection] : [])).filter((id) =>
-                  restored.modules.some((m) => m.id === id),
-                ),
-              );
-              setDirty(true);
+              dispatch({
+                type: 'load',
+                document: restored,
+                view: {
+                  scope: draft.scope,
+                  selection: draft.selection,
+                  selections: draft.selections ?? (draft.selection ? [draft.selection] : []),
+                },
+                dirty: true,
+              });
               setConflict(data.revision !== draft.revision);
               setNotice('Restored your unsaved draft in this tab.');
               return;
@@ -83,13 +75,8 @@ export function useCanvasDocument() {
         }
       }
       setSession(data);
-      setDocument(data.document);
-      setScope(rootOf(data.document).id);
-      setSelection(null);
-      setSelections([]);
-      setDirty(false);
+      dispatch({ type: 'load', document: data.document });
       setConflict(false);
-      setHistory([]);
       setError('');
     } catch (error) {
       setError(String(error));
@@ -181,29 +168,16 @@ export function useCanvasDocument() {
           }
           data.document = parseDocument(data.document);
           setSession(data);
-          setDocument(data.document);
-          setHistory([]);
+          dispatch({ type: 'refresh', document: data.document });
           setConflict(false);
-          setScope((id) =>
-            data.document.modules.some((m) => m.id === id) ? id : rootOf(data.document).id,
-          );
-          setSelection((id) => (data.document.modules.some((m) => m.id === id) ? id : null));
           setNotice('Updated from the shared repo document.');
         })
         .catch((error: unknown) => setError(String(error)));
     }, 3000);
     return () => clearInterval(timer);
   }, []);
-  function replaceDraft(next: Architecture) {
-    setDocument(next);
-    setScope((id) => (next.modules.some((m) => m.id === id) ? id : rootOf(next).id));
-    setSelection((id) => (next.modules.some((m) => m.id === id) ? id : null));
-    setDirty(true);
-  }
   function edit(next: Architecture) {
-    if (!document) return;
-    setHistory((h) => [...h.slice(-39), document]);
-    replaceDraft(next);
+    dispatch({ type: 'edit', document: next });
     setNotice('');
   }
   async function save() {
@@ -218,8 +192,7 @@ export function useCanvasDocument() {
       state.current.revision = snapshot.revision;
       setSession({ ...session, ...snapshot });
       if (documentRef.current === document) {
-        setDocument(snapshot.document);
-        setDirty(false);
+        dispatch({ type: 'saved', document: snapshot.document, expected: document });
       }
       setConflict(false);
       setNotice('Saved to .repo-canvas/architecture.json');
@@ -233,18 +206,19 @@ export function useCanvasDocument() {
     startFresh: () => {
       if (session) {
         setSession({ ...session, problem: undefined, saved: false });
-        setDirty(true);
+        dispatch({ type: 'startFresh' });
         setNotice('New v3 draft. The existing file is untouched until Save map.');
       }
     },
     session,
     document,
     scope,
-    setScope,
+    enter: (id: string) => dispatch({ type: 'enter', id }),
+    locate: (id: string) => dispatch({ type: 'locate', id }),
     selection,
-    setSelection,
+    select: (id: string | null, additive = false) => dispatch({ type: 'select', id, additive }),
     selections,
-    setSelections,
+    selectMany: (ids: string[]) => dispatch({ type: 'selectMany', ids }),
     needsRepository,
     lookupReason,
     retryingConnection,
@@ -253,15 +227,14 @@ export function useCanvasDocument() {
     dirty,
     conflict,
     saving,
-    history,
-    setHistory,
+    canUndo: history.length > 0,
+    undo: () => dispatch({ type: 'undo' }),
     error,
     setError,
     notice,
     setNotice,
     load,
     edit,
-    replaceDraft,
     save,
   };
 }

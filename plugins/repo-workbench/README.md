@@ -144,4 +144,10 @@ Author `.ts`/`.tsx` and CSS; `dist/` is generated, Git-ignored, and explicitly i
 
 The UI uses the official MCP Apps SDK through `ui/host-client.ts`; `ui/host.ts` owns repository selection and restart recovery. `useCanvasDocument` owns drafts, revision conflicts, history and saves; `RepositoryPicker` owns selection UI. Codex is the acceptance target. Later Pi/DeepSeek harness experiments should adapt host capabilities, not duplicate application semantics or assume Codex's SQLite layout.
 
+The draft transition module owns document history and valid navigation for both
+human actions and agent commands. Undo restores the document while preserving
+current navigation where valid. The shared proposal review module compares the
+captured basis, binds migration consent to the proposal, and applies only to the
+draft; MCP proposals and discussion replies use the same policy. Save remains explicit.
+
 MCP Apps SDK 1.7.5 is pinned to stay compatible with MCP SDK 1.x. SDK 2.x requires a separate coordinated server migration. The packaged UI URI includes the build fingerprint, which covers source, static assets, build configuration and the dependency lockfile. Both server and UI report the same identity; this does not refresh an already running server process.

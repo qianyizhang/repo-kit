@@ -10,7 +10,7 @@ import {
 } from '../model/document';
 import { TypeEditor } from './TypeEditor';
 import { GroupEditor } from './Groups';
-import { typeChanges } from '../model/type-changes';
+import { ProposalReview } from './ProposalReview';
 import { download } from './api';
 import { useCanvasDocument } from './useCanvasDocument';
 import { RepositoryPicker } from './RepositoryPicker';
@@ -28,11 +28,12 @@ export function App() {
     session,
     document,
     scope,
-    setScope,
+    enter: enterScope,
+    locate,
     selection,
-    setSelection,
+    select: selectNode,
     selections,
-    setSelections,
+    selectMany,
     needsRepository,
     lookupReason,
     retryingConnection,
@@ -41,15 +42,14 @@ export function App() {
     dirty,
     conflict,
     saving,
-    history,
-    setHistory,
+    canUndo,
+    undo,
     error,
     setError,
     notice,
     setNotice,
     load,
     edit,
-    replaceDraft,
     save,
   } = useCanvasDocument();
   const chatActions = useRef<ChatActions>(null);
@@ -75,7 +75,6 @@ export function App() {
     setMenu(null);
     queueMicrotask(() => menuOrigin.current?.focus());
   }
-  const [migrationAccepted, setMigrationAccepted] = useState<string | null>(null);
   const [addingParent, setAddingParent] = useState<string | null>(null);
   async function comment(target: Target) {
     if (!document) return;
@@ -158,28 +157,15 @@ export function App() {
     [newName, setNewName] = useState('');
   function enter(id: string) {
     if (inspectTimer.current) clearTimeout(inspectTimer.current);
-    setScope(id);
+    enterScope(id);
     setGroup('');
-    setSelection(null);
-    setSelections([]);
     setMultiSelect(false);
     if (compact) setNavigation(false);
     setQuery('');
   }
-  const activeSelections = selections.filter((id) =>
-    document?.modules.some((m) => m.id === id && m.parent === scope),
-  );
+  const activeSelections = selections;
   function select(id: string | null, additive = false) {
-    const next =
-      id === null
-        ? []
-        : additive
-          ? activeSelections.includes(id)
-            ? activeSelections.filter((key) => key !== id)
-            : [...activeSelections, id]
-          : [id];
-    setSelections(next);
-    setSelection(next.at(-1) ?? null);
+    selectNode(id, additive);
     if (inspectTimer.current) clearTimeout(inspectTimer.current);
     // Keep the second click on the same card before the inspector changes pane width.
     setInspectTab('details');
@@ -210,8 +196,7 @@ export function App() {
           enter(command.target);
           break;
         case 'select':
-          setSelections(command.targets);
-          setSelection(command.targets.at(-1) ?? null);
+          selectMany(command.targets);
           break;
         case 'panel':
           setPanel(command.panel);
@@ -227,15 +212,6 @@ export function App() {
       }
     },
   );
-  let staleProposal = false;
-  if (agent.proposal) {
-    try {
-      staleProposal =
-        JSON.stringify(parseDocument(document)) !== JSON.stringify(agent.proposal.baseDocument);
-    } catch {
-      staleProposal = true;
-    }
-  }
   const file = useRef<HTMLInputElement>(null);
   if (!session || !document)
     return (
@@ -364,8 +340,7 @@ export function App() {
                   key={m.id}
                   onClick={() => {
                     enter(m.parent ?? m.id);
-                    setSelection(m.id);
-                    setSelections([m.id]);
+                    locate(m.id);
                   }}
                 >
                   <span>◇</span>
@@ -512,53 +487,16 @@ export function App() {
           </div>
         )}
         {agent.proposal && (
-          <section className="agent-proposal" aria-label="Agent map proposal">
-            <details>
-              <summary>
-                Review proposed map · {agent.proposal.document.modules.length} concepts
-              </summary>
-              <p>{agent.proposal.explanation}</p>
-              <details>
-                <summary>Review proposed document</summary>
-                <pre>{JSON.stringify(agent.proposal.document, null, 2)}</pre>
-              </details>
-              {typeChanges(document, agent.proposal.document).length > 0 && (
-                <>
-                  <ul>
-                    {typeChanges(document, agent.proposal.document).map((change, i) => (
-                      <li key={i}>{change}</li>
-                    ))}
-                  </ul>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={migrationAccepted === agent.proposal.id}
-                      onChange={(e) =>
-                        setMigrationAccepted(e.target.checked ? agent.proposal!.id : null)
-                      }
-                    />
-                    Accept these type migrations
-                  </label>
-                </>
-              )}
-              <button
-                className="primary"
-                disabled={
-                  staleProposal ||
-                  (typeChanges(document, agent.proposal.document).length > 0 &&
-                    migrationAccepted !== agent.proposal.id)
-                }
-                onClick={() => {
-                  edit(agent.proposal!.document);
-                  void agent.dismiss();
-                }}
-              >
-                Apply to draft
-              </button>
-              <button onClick={() => void agent.dismiss()}>Dismiss proposal</button>
-              {staleProposal && <p>The draft changed. Ask for a fresh proposal.</p>}
-            </details>
-          </section>
+          <ProposalReview
+            current={document}
+            proposal={agent.proposal}
+            explanation={agent.proposal.explanation}
+            origin="agent"
+            apply={edit}
+            dismiss={() => {
+              void agent.dismiss();
+            }}
+          />
         )}
         <Canvas
           token={session.token}
@@ -727,10 +665,9 @@ export function App() {
             </button>
             <button
               role="menuitem"
-              disabled={!history.length}
+              disabled={!canUndo}
               onClick={() => {
-                replaceDraft(history.at(-1)!);
-                setHistory(history.slice(0, -1));
+                undo();
                 setMenu(null);
               }}
             >
@@ -873,8 +810,7 @@ export function App() {
                 ],
               });
               if (addingParent && addingParent !== scope) enter(addingParent);
-              setSelection(id);
-              setSelections([id]);
+              selectNode(id);
               setPanel('inspect');
               setAdding(false);
               setAddingParent(null);

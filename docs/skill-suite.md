@@ -35,6 +35,15 @@ retrying. Updates retain the previous managed installation under
 `.repo-kit-skill-backups/` beside the resolved destination, outside skill discovery.
 The source lock must match before sync.
 
+If a write failure or process exit interrupts replacement, the installer retains
+one interrupted-update record alongside the receipt. `check` and `diff` report
+the interruption without writing. The next explicit `sync` verifies the recorded
+old/new hashes and backups, restores the previous installation, then retries the
+requested update. A completed update only needs its leftover record removed.
+Unexpected edits or changed backups stop recovery before any paths move; preserve
+and reconcile those files manually. This covers process interruption, not a
+power-loss durability guarantee.
+
 ## Review an update
 
 Fetch Matt's repository into a disposable checkout and inspect the six selected

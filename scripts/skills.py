@@ -25,6 +25,7 @@ UPSTREAM_SKILLS = (
 )
 LOCAL_SKILLS = ("next-slice", "show-me", "finish-work", "simplify-repository")
 RECEIPT = ".repo-kit-skills.json"
+INTERRUPTED = ".repo-kit-skills-interrupted.json"
 
 
 def digest(data: bytes) -> str:
@@ -100,8 +101,75 @@ def changes(before: dict[str, bytes], after: dict[str, bytes]) -> list[str]:
     return [p for p in sorted(before.keys() | after.keys()) if before.get(p) != after.get(p)]
 
 
+def entry_hashes(path: Path) -> dict[str, str]:
+    if path.is_symlink():
+        raise ValueError(f"Skill recovery refuses symlinks: {path}")
+    if path.is_dir():
+        return hashes(files(path))
+    return {"": digest(path.read_bytes())} if path.exists() else {}
+
+
+def recover_installation(target: Path, *, apply: bool) -> None:
+    """Roll back a known interrupted replacement; never infer ownership from missing files."""
+    marker = target / INTERRUPTED
+    if marker.is_symlink():
+        raise ValueError("Interrupted installation record must not be a symlink")
+    if not marker.exists():
+        return
+    if not apply:
+        raise ValueError("Interrupted installation; run sync to verify recovery and retry")
+    record = json.loads(marker.read_text())
+    names = [*UPSTREAM_SKILLS, *LOCAL_SKILLS, "mattpocock-LICENSE", RECEIPT]
+    if (
+        record.get("schemaVersion") != 1
+        or not re.fullmatch(r"[a-f0-9]{16}(?:-[\w-]+)?", record["recovery"])
+        or set(record["before"]) != set(names)
+        or set(record["after"]) != set(names)
+    ):
+        raise ValueError("Invalid interrupted installation record; reconcile manually")
+    recovery = target.resolve().parent / ".repo-kit-skill-backups" / record["recovery"]
+    if recovery.is_symlink() or recovery.parent.is_symlink() or not recovery.is_dir():
+        raise ValueError("Skill recovery backup is unavailable; reconcile manually")
+    # Validate every path before moving any: a user edit anywhere blocks the whole recovery.
+    for name in names:
+        before, after = record["before"][name], record["after"][name]
+        actual, backup = entry_hashes(target / name), entry_hashes(recovery / name)
+        if (
+            actual not in (before, after, {})
+            or (backup and backup != before)
+            or (actual != before and before and backup != before)
+            or (name != RECEIPT and (target / name).is_dir() and not actual and before != {})
+        ):
+            raise ValueError(f"Skill recovery stopped: {name} changed; preserve and reconcile it first")
+    # A committed receipt plus complete matching content means only record removal was interrupted.
+    if all(entry_hashes(target / name) == record["after"][name] for name in names):
+        marker.unlink()
+        return
+    with tempfile.TemporaryDirectory(prefix=".repo-kit-recover-", dir=target) as stage_name:
+        stage = Path(stage_name)
+        (stage / "discard").mkdir()
+        for name in names:
+            dest = target / name
+            if entry_hashes(dest) == record["before"][name]:
+                continue
+            source = recovery / name
+            if record["before"][name]:
+                if source.is_dir():
+                    shutil.copytree(source, stage / name)
+                else:
+                    shutil.copy2(source, stage / name)
+            # Renames leave each destination old, new, or absent, even if rollback is interrupted.
+            if dest.exists():
+                os.replace(dest, stage / "discard" / name)
+            if record["before"][name]:
+                os.replace(stage / name, dest)
+    marker.unlink()
+    print("Recovered previous skill installation; retrying requested sync")
+
+
 def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = False) -> bool:
     lock, desired = bundle(root)
+    recover_installation(target, apply=apply)
     receipt_path = target / RECEIPT
     if receipt_path.is_symlink():
         raise ValueError("Installation receipt must not be a symlink")
@@ -151,11 +219,6 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
             recovery.mkdir(parents=True, exist_ok=True)
             if receipt:
                 shutil.copy2(receipt_path, recovery / RECEIPT)
-            for name in [*lock["skills"], "mattpocock-LICENSE"]:
-                dest = target / name
-                if dest.exists():
-                    os.replace(dest, recovery / name)
-                os.replace(stage / name, dest)
             write_json(
                 stage / RECEIPT,
                 {
@@ -166,7 +229,24 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
                     "upstreamRevision": lock["upstream"]["revision"],
                 },
             )
+            names = [*lock["skills"], "mattpocock-LICENSE", RECEIPT]
+            write_json(
+                stage / INTERRUPTED,
+                {
+                    "schemaVersion": 1,
+                    "recovery": recovery.name,
+                    "before": {name: entry_hashes(target / name) for name in names},
+                    "after": {name: entry_hashes(stage / name) for name in names},
+                },
+            )
+            os.replace(stage / INTERRUPTED, target / INTERRUPTED)
+            for name in [*lock["skills"], "mattpocock-LICENSE"]:
+                dest = target / name
+                if dest.exists():
+                    os.replace(dest, recovery / name)
+                os.replace(stage / name, dest)
             os.replace(stage / RECEIPT, receipt_path)
+            (target / INTERRUPTED).unlink()
         print(f"Synchronized {len(lock['skills'])} skills; recovery: {recovery}")
     elif not changed and receipt_current:
         print("Installed bundle matches lock")

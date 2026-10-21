@@ -6,6 +6,7 @@ import io
 import json
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -62,6 +63,112 @@ class SkillSyncTest(unittest.TestCase):
         )
         recovery = self.target.parent / ".repo-kit-skill-backups"
         self.assertTrue(any(MODULE.files(path) == before for path in recovery.iterdir()))
+
+    def interrupt_update(self, failure=OSError) -> None:
+        self.sync(apply=True)
+        source = self.root / "skills/next-slice/SKILL.md"
+        source.write_text(source.read_text() + "\nReviewed update.\n")
+        MODULE.relock(self.root)
+        replace = MODULE.os.replace
+
+        def interrupted(src, dst):
+            if Path(dst) == self.target / "improve-codebase-architecture" and ".repo-kit-stage-" in str(src):
+                raise failure("interrupted replacement")
+            return replace(src, dst)
+
+        with patch.object(MODULE.os, "replace", side_effect=interrupted):
+            with self.assertRaisesRegex(failure, "interrupted replacement"):
+                self.sync(apply=True)
+
+    def test_interrupted_sync_recovers_on_explicit_retry(self) -> None:
+        for failure in (OSError, KeyboardInterrupt):
+            with self.subTest(failure=failure.__name__):
+                self.interrupt_update(failure)
+                before_check = MODULE.files(self.target)
+                with self.assertRaisesRegex(ValueError, "Interrupted.*sync"):
+                    self.sync()
+                self.assertEqual(before_check, MODULE.files(self.target))
+                self.sync(apply=True)
+                self.assertTrue(self.sync())
+
+    def test_interrupted_sync_preserves_unexpected_edits_before_any_recovery(self) -> None:
+        self.interrupt_update()
+        path = self.target / "retro/SKILL.md"
+        path.write_text("Independent edit after interruption")
+        before = MODULE.files(self.target)
+        with self.assertRaisesRegex(ValueError, "recovery.*changed"):
+            self.sync(apply=True)
+        self.assertEqual(before, MODULE.files(self.target))
+
+    def test_process_exit_and_interrupted_rollback_can_retry(self) -> None:
+        self.sync(apply=True)
+        source = self.root / "skills/next-slice/SKILL.md"
+        source.write_text(source.read_text() + "\nUpdated after process exit.\n")
+        MODULE.relock(self.root)
+        code = """
+import importlib.util, os, sys
+from pathlib import Path
+spec = importlib.util.spec_from_file_location('skills', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+replace = module.os.replace
+def interrupted(src, dst):
+    if Path(dst).name == 'improve-codebase-architecture' and '.repo-kit-stage-' in str(src):
+        os._exit(73)
+    return replace(src, dst)
+module.os.replace = interrupted
+module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", code, str(ROOT / "scripts/skills.py"), str(self.root), str(self.target)]
+        )
+        self.assertEqual(73, result.returncode)
+        replace = MODULE.os.replace
+
+        def interrupted_recovery(src, dst):
+            if Path(dst) == self.target / "improve-codebase-architecture":
+                raise OSError("rollback interrupted")
+            return replace(src, dst)
+
+        with patch.object(MODULE.os, "replace", side_effect=interrupted_recovery):
+            with self.assertRaisesRegex(OSError, "rollback interrupted"):
+                self.sync(apply=True)
+        self.sync(apply=True)
+        self.assertTrue(self.sync())
+
+    def test_completed_installation_with_remaining_record_is_finalized(self) -> None:
+        unlink = Path.unlink
+
+        def interrupted(path, *args, **kwargs):
+            if path == self.target / MODULE.INTERRUPTED:
+                raise OSError("record cleanup interrupted")
+            return unlink(path, *args, **kwargs)
+
+        with patch.object(Path, "unlink", interrupted):
+            with self.assertRaisesRegex(OSError, "record cleanup interrupted"):
+                self.sync(apply=True)
+        receipt = (self.target / MODULE.RECEIPT).read_bytes()
+        self.sync(apply=True)
+        self.assertEqual(receipt, (self.target / MODULE.RECEIPT).read_bytes())
+        self.assertTrue(self.sync())
+
+    def test_first_installation_interruption_keeps_unrelated_skills(self) -> None:
+        other = self.target / "independent/SKILL.md"
+        other.parent.mkdir(parents=True)
+        other.write_text("Owned elsewhere")
+        replace = MODULE.os.replace
+
+        def interrupted(src, dst):
+            if Path(dst) == self.target / "next-slice":
+                raise OSError("first installation interrupted")
+            return replace(src, dst)
+
+        with patch.object(MODULE.os, "replace", side_effect=interrupted):
+            with self.assertRaisesRegex(OSError, "first installation interrupted"):
+                self.sync(apply=True)
+        self.sync(apply=True)
+        self.assertTrue(self.sync())
+        self.assertEqual("Owned elsewhere", other.read_text())
 
     def test_additive_upgrade_rejects_empty_or_populated_unmanaged_destination(self) -> None:
         self.install_previous_selection()
