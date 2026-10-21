@@ -12,12 +12,12 @@ npm run build
 npm pack
 ```
 
-The tarball includes all runtime code and UI assets, with no production dependency installation or lifecycle scripts. It can be installed using npm at user scope or in a repository. The package is not published to a registry yet; use the absolute tarball path below.
+The tarball includes all runtime code and UI assets, with no production dependency installation or lifecycle scripts. It can be installed using npm at user scope or in a repository. The package is not published to a registry yet; replace the example tarball path below with the file produced by `npm pack`.
 
 ### User-wide
 
 ```sh
-npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-0.1.5.tgz --ignore-scripts
+npm install --prefix "$HOME/.local/share/repo-workbench" /absolute/repo-kit-workbench-VERSION.tgz --ignore-scripts
 "$HOME/.local/share/repo-workbench/node_modules/.bin/repo-workbench" setup --scope user
 ```
 
@@ -28,7 +28,7 @@ Setup merges one entry into `~/.agents/plugins/marketplace.json`, preserving oth
 From the target repository:
 
 ```sh
-npm install --save-dev /absolute/repo-kit-workbench-0.1.5.tgz --ignore-scripts
+npm install --save-dev /absolute/repo-kit-workbench-VERSION.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
@@ -132,10 +132,7 @@ file and one previous `.1` file, approximately 512 KiB each. New files are priva
 Logs include repository paths and operational errors, but no source bodies, map/draft
 payloads, or chat messages. Review paths before sharing a downloaded report.
 
-A repository-load error and a missing binding are different failures. Manual selection
-cancels a pending chat binding; a later response to that ticket is deliberately rejected.
-Server IDs help distinguish those cancellations from a server restart. Directory
-discovery supports filesystem names such as Astro/Next dynamic routes, Unicode, spaces,
+Directory discovery supports filesystem names such as Astro/Next dynamic routes, Unicode, spaces,
 and long paths without treating them as document IDs; saved maps keep their existing IDs.
 
 ## Maintained application contracts

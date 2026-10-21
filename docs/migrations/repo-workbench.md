@@ -5,6 +5,13 @@ session review/trace, usage, installation, and the game consumer. Add subsequent
 migration checks here. Keep implementation detail with its owning source; this
 list owns the deferred acceptance and final fix round only.
 
+The runs below are historical evidence for the versions named. Current connection
+behavior is documented in the [Workbench README](../../plugins/repo-workbench/README.md):
+v0.2.0 uses typed connection operations and has removed chat binding tickets.
+The old ticket/spinner checks below describe that earlier implementation; use the
+current connection flow when completing the still-open host, save, recovery, and
+installation acceptance checks. Historical passes do not establish v0.2.0 acceptance.
+
 User decision, 2026-10-20: continue automated verification now. Collect checks
 requiring a desktop restart or the user's manual interaction; perform them once
 all migration slices are ready, then complete one final fix round. Do not restart
@@ -40,7 +47,7 @@ Browser launches on macOS require approved execution outside the restricted
 sandbox and disposable profiles. Native checks start no model turns and do not
 change the user's configuration. A default test run skips the opt-in native check.
 
-## Active acceptance run — 2026-10-20
+## Historical acceptance run — 2026-10-20
 
 Source: `8260583d76a6`. Preflight confirmed the installed user runtime and Codex
 cache match the source build; `repo-workbench@personal` is enabled and the old

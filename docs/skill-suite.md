@@ -9,6 +9,8 @@ delivered file hashes. The MIT licenses are retained in the bundle.
 Skills are installed once for the user account. Project-specific rules and skills
 stay in their owning repository. This product is separate from `template/`:
 Copier distributes governance, not the shared skills.
+Repo-kit's local discovery directory contains only `maintain-repo-kit`; shared
+skills use the user installation, without repository-local aliases.
 
 ## Install and check
 
