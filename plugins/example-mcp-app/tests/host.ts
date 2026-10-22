@@ -60,6 +60,8 @@ async function open() {
       if (height !== undefined) view.style.height = `${Math.min(10000, Math.max(300, height))}px`;
     });
     current.oncalltool = async (params) => {
+      if (params.name === 'example_echo' && new URLSearchParams(location.search).has('slow-tool'))
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       if (params.name === 'example_trace' && new URLSearchParams(location.search).has('old-build'))
         return {
           content: [],
@@ -111,8 +113,16 @@ async function open() {
     };
     current.oninitialized = () => {
       void (async () => {
-        await current.sendToolInputPartial({ arguments: {} });
-        await current.sendToolInput({ arguments: {} });
+        if (new URLSearchParams(location.search).has('partial-input')) {
+          await current.sendToolInputPartial({ arguments: { topic: 'partial draft' } });
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          await current.sendToolInputPartial({ arguments: { topic: 'partial draft extended' } });
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await current.sendToolInput({ arguments: { topic: 'final input' } });
+        } else {
+          await current.sendToolInputPartial({ arguments: {} });
+          await current.sendToolInput({ arguments: {} });
+        }
         await current.sendToolResult(data.result);
         report(
           'App connected. Tool/resource requests reach the real server. Chat messages stay in this test host.',

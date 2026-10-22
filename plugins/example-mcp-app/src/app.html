@@ -9,93 +9,102 @@
     </style>
   </head>
   <body>
-    <main>
-      <header>
-        <div>
-          <p class="eyebrow">EXAMPLE MCP APP</p>
-          <h1>Follow one interaction.</h1>
-        </div>
-        <span id="connection" class="badge" role="status">Checking host</span>
-      </header>
-      <div class="mode-bar">
-        <div class="mode-switch" role="group" aria-label="Execution mode">
-          <button id="fixture-mode" aria-pressed="true">Learn with fixtures</button
-          ><button id="live-mode" aria-pressed="false">Run live</button>
-        </div>
-        <p id="mode-note"></p>
-      </div>
-      <nav id="journeys" aria-label="Journeys"></nav>
-      <section class="journey-intro">
-        <p id="journey-number" class="eyebrow"></p>
-        <h2 id="journey-title"></h2>
-        <p id="description"></p>
-        <div class="expected">
-          <b>Expected behavior</b>
-          <p id="expected"></p>
-        </div>
-      </section>
-      <section class="controls" aria-label="Journey controls">
-        <label id="input-label"
-          >Demo text<textarea id="demo-text" maxlength="2000" rows="2">
-Hello from the MCP App</textarea></label
-        ><label id="scenario-label">Case<select id="scenario"></select></label>
-        <div class="action-row">
-          <button id="run" class="primary">Play fixture</button><span id="availability"></span>
-        </div>
-      </section>
-      <section class="evidence">
-        <div class="evidence-heading">
-          <div>
-            <p class="eyebrow">INTERACTION EVIDENCE</p>
-            <h2 id="run-title">Ready when you are</h2>
+    <main id="workspace">
+      <header class="appbar">
+        <strong>Example MCP App</strong>
+        <div class="row">
+          <div class="mode" role="group" aria-label="Execution mode">
+            <button id="fixture-mode" aria-pressed="true">Fixture</button
+            ><button id="live-mode" aria-pressed="false">Live</button>
           </div>
-          <label id="history-label">Previous runs<select id="history"></select></label>
+          <button id="roles">Explain the 4 roles</button
+          ><button id="connection" aria-label="Connection details">Checking host</button>
         </div>
-        <div id="outcome" role="status"></div>
-        <p id="route" class="route"></p>
-        <div class="lanes">
-          <section class="lane app-lane" aria-label="App events">
-            <h3><span class="dot"></span>App <small>Interface boundary</small></h3>
-            <div id="app-events"></div>
-          </section>
-          <section class="lane host-lane" aria-label="Host evidence">
-            <h3><span class="dot"></span>Host <small>Codex or fixture</small></h3>
-            <div id="host-events"></div>
-          </section>
-          <section class="lane server-lane" aria-label="Server events">
-            <h3><span class="dot"></span>Server <small>MCP boundary</small></h3>
-            <div id="server-events"></div>
-          </section>
-        </div>
-        <details id="result-details">
-          <summary>Action result</summary>
-          <pre id="result"></pre>
-        </details>
-      </section>
-      <footer>
-        <div class="footer-actions">
-          <button id="refresh">Refresh evidence</button><button id="export">Export evidence</button
-          ><span id="diagnostic-status" role="status"></span>
-        </div>
-        <details>
-          <summary>Connection details</summary>
-          <pre id="details"></pre>
-        </details>
-        <details id="background">
-          <summary id="background-title">Background traffic</summary>
-          <p>
-            Observer calls collect and share evidence. Size notifications resize the panel. These
-            are excluded from journey results.
+      </header>
+      <div class="shell">
+        <aside>
+          <p class="eyebrow">Scenarios</p>
+          <nav id="journeys" aria-label="Scenarios"></nav>
+        </aside>
+        <section class="content">
+          <h1 id="journey-title"></h1>
+          <p id="description" class="description"></p>
+          <div id="variants" class="variants" role="group" aria-label="Outcome variants"></div>
+          <div id="input-label" class="input-row">
+            <label for="demo-text">Text</label
+            ><input id="demo-text" maxlength="2000" value="Hello from the MCP App" /><span
+              id="recorded-input"
+              tabindex="0"
+              class="input-note"
+              >Recorded input ⓘ</span
+            >
+          </div>
+          <p id="mode-note" class="small muted"></p>
+          <div class="runbar">
+            <button id="run" class="primary">Play fixture</button>
+            <p id="availability"></p>
+            <label id="history-label"
+              >Runs
+              <select id="history"></select
+            ></label>
+          </div>
+          <div id="outcome" role="status"></div>
+          <div class="row"><button id="check-conversation" hidden>Check conversation</button></div>
+          <div
+            id="phase-focus"
+            class="phase-focus"
+            role="group"
+            aria-label="Highlight phase"
+            hidden
+          ></div>
+          <div class="graph-head">
+            <h2>Sequence</h2>
+            <span id="order-note" class="small muted"></span>
+          </div>
+          <div class="graph-frame">
+            <div id="actors" class="actors"></div>
+            <div id="sequence" class="sequence"></div>
+            <div class="graph-foot">
+              <span>Hover or focus for payload · click / tap to pin</span
+              ><span id="event-count"></span>
+            </div>
+          </div>
+          <p class="legend">
+            Solid: captured boundary (or labelled fixture). Dashed: destination not observed.
+            Vertical spacing is not latency.
           </p>
-          <div id="background-events"></div>
-        </details>
-        <p class="footnote">
-          Wire IDs match a request to its response within one connection. Interaction IDs group a
-          user action across connections. Raw payloads are in each event’s details. Use demo data;
-          free text is recorded.
-        </p>
-      </footer>
+          <div id="evidence-problem" class="gap" hidden>
+            <p id="diagnostic-status"></p>
+            <button id="refresh">Refresh evidence</button>
+          </div>
+          <div class="log-toolbar">
+            <button id="log-toggle" aria-expanded="false">Event log</button
+            ><button id="export">Export session log</button
+            ><span id="log-count" class="small muted"></span>
+          </div>
+          <section id="event-log" hidden>
+            <label
+              >Show
+              <select id="log-filter">
+                <option value="interaction">Selected interaction</option>
+                <option value="housekeeping">Housekeeping</option>
+                <option value="session">Entire session</option>
+              </select></label
+            >
+            <p id="log-help"></p>
+            <div id="log-records"></div>
+          </section>
+        </section>
+      </div>
     </main>
+    <div id="payload-tip" role="tooltip" hidden></div>
+    <dialog id="detail">
+      <header>
+        <h2 id="detail-title"></h2>
+        <button id="detail-close" aria-label="Close details">Close</button>
+      </header>
+      <div id="detail-body"></div>
+    </dialog>
     <script>
       /* SCRIPT */
     </script>

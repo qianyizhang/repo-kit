@@ -47,4 +47,5 @@ const html = (await readFile(resolve(root, 'src/app.html'), 'utf8'))
 await writeFile(resolve(root, 'dist/app.html'), html);
 await bundle('src/server.ts', 'node', 'server.mjs');
 await bundle('src/preview.ts', 'node', 'preview.mjs');
+await writeFile(resolve(dist, 'build.json'), JSON.stringify({ build: fingerprint }) + '\n');
 console.log(`Built Example MCP App ${fingerprint}`);

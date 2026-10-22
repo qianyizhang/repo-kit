@@ -17,7 +17,7 @@ const build = EXAMPLE_BUILD,
 const instance = randomUUID(),
   log = new TraceLog('server');
 const reports = new PanelReports();
-const server = new McpServer({ name: 'example-mcp-app', version: '0.2.0' });
+const server = new McpServer({ name: 'example-mcp-app', version: '0.3.0' });
 log.local('server.started', { instance, build, pid: process.pid });
 registerAppTool(
   server,

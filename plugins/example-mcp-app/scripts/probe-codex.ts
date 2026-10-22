@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { snapshotSchema } from '../src/contracts.ts';
 
@@ -96,6 +97,13 @@ try {
   const identity = z
     .object({ uri: z.string(), build: z.string(), instance: z.string() })
     .parse(opened.structuredContent);
+  const expected = z
+    .object({ build: z.string() })
+    .parse(JSON.parse(await readFile(new URL('../dist/build.json', import.meta.url), 'utf8')));
+  if (identity.build !== expected.build)
+    throw new Error(
+      `Installed build ${identity.build} differs from tested checkout ${expected.build}; install/reconnect before native acceptance.`,
+    );
   const resource = z
     .object({
       contents: z.array(
@@ -108,7 +116,7 @@ try {
       (item) =>
         item.uri === identity.uri &&
         item.mimeType === 'text/html;profile=mcp-app' &&
-        item.text.includes('Follow one interaction'),
+        item.text.includes('Explain the 4 roles'),
     )
   )
     throw new Error('Native host did not read the expected app resource');

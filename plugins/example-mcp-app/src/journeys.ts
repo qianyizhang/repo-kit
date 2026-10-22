@@ -7,81 +7,69 @@ export const journeys: Record<
   {
     title: string;
     description: string;
-    expected: string;
     button: string;
-    route: string;
     input: boolean;
   }
 > = {
   startup: {
     title: 'Open the app',
     description: 'Two handshakes connect the server and the interface.',
-    expected:
-      'The host discovers the tool, reads its HTML resource, then negotiates the app bridge. Resource preloading can change this order.',
     button: 'Inspect startup',
-    route: 'Host ↔ Server, then App ↔ Host',
     input: false,
   },
   tool: {
     title: 'Call a tool',
     description: 'Follow one echo request across both connections.',
-    expected:
-      'The server returns the exact demo text. Both transport legs share an interaction ID; their wire request IDs can differ.',
     button: 'Call echo',
-    route: 'App → Host → Server → Host → App',
     input: true,
   },
   resource: {
     title: 'Read a resource',
     description: 'Load JSON through the host, without a browser fetch.',
-    expected:
-      'The server returns application/json with the interaction ID and current server instance.',
     button: 'Read resource',
-    route: 'App → Host → Server → Host → App',
     input: false,
   },
   context: {
     title: 'Update model context',
     description: 'Provide context for a later conversation turn.',
-    expected:
-      'The host acknowledges the update. This does not start a model turn or prove that a model used the context.',
     button: 'Update context',
-    route: 'App ↔ Host · no server operation',
     input: true,
   },
   message: {
     title: 'Send a chat message',
     description: 'Ask the host to send text into this conversation.',
-    expected:
-      'An acknowledgment proves the host accepted the request. Check this Codex chat for arrival and any model response; neither is implied by the acknowledgment.',
     button: 'Send message',
-    route: 'App ↔ Host · no server operation',
     input: true,
   },
-  error: {
-    title: 'Understand failures',
-    description: 'Compare an application failure with a protocol failure.',
-    expected:
-      'A tool error returns a valid response with isError: true. A missing resource returns a JSON-RPC error. Neither should be shown as a successful action.',
-    button: 'Run error case',
-    route: 'App → Host → Server → Host → App',
-    input: false,
+  investigate: {
+    title: 'Investigate → ask',
+    description: 'Read a resource, test a tool, provide context, then explicitly send a message.',
+    button: 'Read resource',
+    input: true,
   },
   teardown: {
     title: 'Close the app',
     description: 'Observe a host-mediated cleanup request.',
-    expected:
-      'The app requests closure. If the host agrees, it sends ui/resource-teardown and the app acknowledges. The panel may disappear; silence does not prove closure.',
     button: 'Request close',
-    route: 'App → Host → App · host decides',
     input: false,
   },
 };
-export type Scenario = 'success' | 'rejected' | 'timeout' | 'tool-error' | 'protocol-error';
+export type Scenario = Run['scenario'];
 export function makeFixture(
   journey: JourneyId,
   scenario: Scenario,
+  input = 'Hello from the MCP App',
 ): { run: Run; events: TraceEvent[] } {
+  if (journey === 'investigate') {
+    const parts = (['resource', 'tool', 'context', 'message'] as const).map((id) =>
+      makeFixture(id, id === 'message' ? scenario : 'success', input),
+    );
+    const id = `fixture-investigate-${scenario}`;
+    return {
+      run: { ...parts.at(-1)!.run, id, journey },
+      events: parts.flatMap((p) => p.events).map((e, i) => ({ ...e, runId: id, sequence: i + 1 })),
+    };
+  }
   const id = `fixture-${journey}-${scenario}`,
     app = new TraceLog('app'),
     server = new TraceLog('server');
@@ -145,7 +133,7 @@ export function makeFixture(
     emit(app, false, { jsonrpc: '2.0', method: 'ui/notifications/initialized' });
     summary =
       'Server discovery, HTML loading and the separate UI handshake are complete in this example.';
-  } else if (journey === 'tool' || journey === 'resource' || journey === 'error') {
+  } else if (journey === 'tool' || journey === 'resource') {
     const resource = journey === 'resource' || scenario === 'protocol-error';
     const method = resource ? 'resources/read' : 'tools/call';
     const params = resource
@@ -157,7 +145,7 @@ export function makeFixture(
         }
       : {
           name: 'example_echo',
-          arguments: { text: 'Hello from the example', runId: id, fail: journey === 'error' },
+          arguments: { text: input, runId: id, fail: scenario === 'tool-error' },
         };
     request(app, false, 7, method, params);
     request(server, true, 42, method, params);
@@ -170,7 +158,7 @@ export function makeFixture(
       result = error;
     } else {
       const data =
-        journey === 'error'
+        scenario === 'tool-error'
           ? { isError: true, content: [{ type: 'text', text: 'Deliberate tool failure' }] }
           : resource
             ? {
@@ -183,13 +171,13 @@ export function makeFixture(
                 ],
               }
             : {
-                content: [{ type: 'text', text: 'Hello from the example' }],
-                structuredContent: { echo: 'Hello from the example', runId: id },
+                content: [{ type: 'text', text: input }],
+                structuredContent: { echo: input, runId: id },
               };
       response(server, false, 42, data);
       response(app, true, 7, data);
       result = data;
-      if (journey === 'error') {
+      if (scenario === 'tool-error') {
         status = 'error';
         summary = 'Expected tool failure: JSON-RPC succeeded, but isError is true.';
       } else
@@ -208,7 +196,7 @@ export function makeFixture(
     const method = journey === 'message' ? 'ui/message' : 'ui/update-model-context';
     request(app, false, 7, method, {
       ...(journey === 'message' ? { role: 'user' } : {}),
-      content: [{ type: 'text', text: 'Example text. No real message is sent.' }],
+      content: [{ type: 'text', text: input }],
     });
     if (scenario === 'timeout') {
       status = 'uncertain';
@@ -235,50 +223,12 @@ export function makeFixture(
       journey,
       mode: 'fixture',
       status,
+      scenario,
+      input,
       summary,
       result: boundedPayload(result),
       startedAt: '2026-01-01T00:00:00.000Z',
     },
-    events,
-  };
-}
-
-export function runEvents(run: Run, events: TraceEvent[]) {
-  return events.filter((event) => event.runId === run.id && !event.observer);
-}
-export function hostEvidence(run: Run, events: TraceEvent[]): { label: string; body: string } {
-  const hasApp = events.some((e) => e.source === 'app'),
-    hasServer = events.some((e) => e.source === 'server');
-  if (run.journey === 'startup')
-    return {
-      label: 'Two separate connections',
-      body: 'Server initialization and UI initialization are separate handshakes. The middle of the host is not instrumented.',
-    };
-  if (hasApp && hasServer)
-    return {
-      label: 'Forwarding inferred',
-      body: 'The two recorded legs carry the same interaction ID. This supports the route through the host; internal host processing is not directly captured.',
-    };
-  if (run.journey === 'tool' || run.journey === 'resource' || run.journey === 'error')
-    return {
-      label: 'Partial evidence',
-      body: 'One transport leg is missing. Do not infer forwarding from similar IDs or timestamps. Refresh server evidence or inspect a host error.',
-    };
-  if (run.journey === 'teardown')
-    return {
-      label: run.status === 'closed' ? 'Cleanup request captured' : 'Host decision pending',
-      body: 'The host controls closure. A sent notification alone does not prove that it closed the panel.',
-    };
-  const response = events.find((e) => e.source === 'app' && e.kind === 'response');
-  return {
-    label: response
-      ? response.status === 'success'
-        ? 'Host acknowledgment captured'
-        : 'Host rejection captured'
-      : 'No host acknowledgment',
-    body:
-      run.journey === 'message'
-        ? 'A bridge reply does not prove message arrival or model execution. Check the owning conversation.'
-        : 'The bridge can acknowledge context receipt. Model use of that context is not observable here.',
+    events: scenario === 'missing-trace' ? events.filter((e) => e.source === 'app') : events,
   };
 }

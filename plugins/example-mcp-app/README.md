@@ -1,8 +1,9 @@
 # Example MCP App
 
-Seven journeys explain the MCP App lifecycle: opening, tools, resources, model
-context, chat messages, failures and cleanup. Each page shows expected behavior,
-one interaction at a time, and three color-coded columns: **App / Host / Server**.
+A four-role sequence workspace explains **Main conversation / App panel / Host /
+MCP server**. Choose one scenario, inspect captured events on its timeline, and
+compare operation outcomes in place. The composite Investigate → ask journey
+advances resource, tool, context and message steps through separate deliberate actions.
 
 ## Two explicit modes
 
@@ -63,24 +64,31 @@ changes; rebuilding the checkout does not update an already running server.
 A user click creates an **interaction ID**. Tool arguments and resource URIs
 carry it across the host. The two SDK transports capture real envelopes. A raw
 JSON-RPC **wire ID** matches one request with its response on one connection;
-the host can rewrite it. Wire IDs stay in each event's collapsed details. Timing
+the host can rewrite it. Wire IDs stay in each event's payload preview and pinned inspector. Timing
 is the interval between request and response at that capture point; server timing
 is not an end-to-end round trip.
 
-The Host column explains what the recorded boundaries establish. Forwarding is
+The actor lanes explain the route and what the recorded boundaries establish. Forwarding is
 **inferred** when both legs share an interaction ID. Internal host processing is
 not instrumented. For message/context journeys, the app captures the actual
 bridge acknowledgment; it cannot observe model execution.
 
-Each journey retains previous runs. Observer calls and size notifications live
-under **Background traffic**. Refresh reads one server snapshot; it cannot
-include its own response. Responses distinguish protocol errors, tool
+Each scenario retains previous runs and independent drafts. Observer calls and
+size notifications are available through the event log's **Housekeeping** filter. Refresh reads one server snapshot; it cannot include its own response. While an
+operation is pending, non-overlapping bounded snapshot reads collect server events.
+The local observer updates immediately; server events append to the log when received. Complete, uniquely correlated RPC
+paths use explicitly inferred sequence order in the graph; ambiguous paths keep
+receipt order. No
+synthetic payload chunks are generated. Actual partial tool-input notifications
+update a stable stream row and remain separate raw log records. Responses distinguish protocol errors, tool
 `isError`, successful replies and uncertain timeouts. A timeout never auto-resends.
 A teardown notification alone does not establish that a panel closed.
 
 ## State, boundaries and limits
 
-- Each transport retains 250 events; the panel retains 30 runs. The server trace
+- Each transport retains 250 events; the merged view retains 500 observations and
+  the panel retains 30 runs. Overlapping snapshots are deduplicated by source
+  instance and sequence. Receipt order does not establish cross-clock causality. The server trace
   belongs to one process and may include multiple panels. Per-run IDs isolate
   feature results; the startup page shows process-wide discovery evidence.
 - `example_trace` returns the server snapshot and a compact panel index. An
@@ -106,6 +114,8 @@ A teardown notification alone does not establish that a panel closed.
 | ---------------------------------------------- | ----------------------------------------------------------------------- |
 | `src/contracts.ts`                             | Shared schemas and bounded panel report storage                         |
 | `src/trace.ts`                                 | SDK transport capture and explicit request/run correlation              |
+| `src/observability.ts`, `src/sequence.ts`      | Bounded deduplicated observations, actor routes and stream projections  |
+| `src/view.ts`                                  | Sequence, event log, payload previews and pinned inspector              |
 | `src/journeys.ts`                              | Journey definitions, deterministic fixtures and evidence interpretation |
 | `src/app.ts`, `src/app.html`, `src/styles.css` | Shared UI and native SDK integration                                    |
 | `src/server.ts`                                | Tool/resource registration and stdio server                             |
@@ -116,7 +126,7 @@ A teardown notification alone does not establish that a panel closed.
 
 ```sh
 npm run check
-npm run test:browser
+EXAMPLE_TEST_PORT=4397 npm run test:browser
 EXAMPLE_CODEX_BIN=/absolute/path/to/desktop-bundled/codex npm run probe:codex
 ```
 
@@ -127,9 +137,13 @@ exercise fixture isolation, correlation, errors, capability gating, timeout,
 keyboard, narrow layout, theme, export and teardown. On this Mac, run browser
 tests outside the restricted sandbox per the browser testing guide.
 
+The [outcome/wiring matrix](tests/OUTCOMES.md) lists each exercised path and its
+acceptance assertions.
+
 The native probe uses the actual desktop-bundled Codex app-server and installed
 plugin configuration, opens an ephemeral model-free thread, verifies plugin
 provenance, reads the HTML resource, calls echo and checks same-instance traces.
+It rejects an installed build that differs from the tested `dist/build.json`.
 It does not prove an active desktop panel or real conversation delivery.
 
 Final native acceptance: open the installed panel, run a uniquely labelled echo

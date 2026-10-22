@@ -39,7 +39,7 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
     assert.equal(html.contents[0]?.mimeType, 'text/html;profile=mcp-app');
     assert.match(
       z.object({ text: z.string() }).parse(html.contents[0]).text,
-      /Follow one interaction/,
+      /Explain the 4 roles/,
     );
     const opened = await client.callTool({ name: 'example_open', arguments: {} });
     assert.equal(z.object({ uri: z.string() }).parse(opened.structuredContent).uri, ui.resourceUri);

@@ -6,7 +6,7 @@ export const journeySchema = z.enum([
   'resource',
   'context',
   'message',
-  'error',
+  'investigate',
   'teardown',
 ]);
 export type JourneyId = z.infer<typeof journeySchema>;
@@ -31,7 +31,16 @@ export const runSchema = z.object({
   ordinal: z.number(),
   journey: journeySchema,
   mode: z.enum(['fixture', 'live']),
-  status: z.enum(['running', 'success', 'error', 'uncertain', 'closed']),
+  status: z.enum(['running', 'waiting', 'success', 'error', 'uncertain', 'closed']),
+  scenario: z.enum([
+    'success',
+    'tool-error',
+    'protocol-error',
+    'rejected',
+    'timeout',
+    'missing-trace',
+  ]),
+  input: z.string().max(2000),
   summary: z.string().max(3000),
   result: z.string().max(13000),
   startedAt: z.string(),

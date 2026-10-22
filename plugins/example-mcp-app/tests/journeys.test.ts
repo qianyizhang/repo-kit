@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { makeFixture, runEvents, hostEvidence, journeys } from '../src/journeys.ts';
+import { makeFixture, journeys } from '../src/journeys.ts';
 import { PanelReports, type JourneyId } from '../src/contracts.ts';
 
 void test('fixtures are deterministic and labelled; distinct wire IDs group by interaction', () => {
@@ -9,20 +9,12 @@ void test('fixtures are deterministic and labelled; distinct wire IDs group by i
     const first = makeFixture(journey, 'success');
     assert.deepEqual(first, makeFixture(journey, 'success'));
     assert.ok(first.events.every((e) => e.provenance === 'fixture'));
-    assert.equal(runEvents(first.run, first.events).length, first.events.length);
+    assert.ok(first.events.every((e) => e.runId === first.run.id));
   }
   const fixture = makeFixture('tool', 'success');
   assert.deepEqual(
     fixture.events.map((e) => e.requestId),
     [7, 42, 42, 7],
-  );
-  assert.equal(hostEvidence(fixture.run, fixture.events).label, 'Forwarding inferred');
-  assert.equal(
-    hostEvidence(
-      fixture.run,
-      fixture.events.filter((e) => e.source === 'app'),
-    ).label,
-    'Partial evidence',
   );
   assert.equal(makeFixture('message', 'timeout').run.status, 'uncertain');
   assert.equal(makeFixture('message', 'rejected').run.status, 'error');

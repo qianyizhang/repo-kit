@@ -1,6 +1,6 @@
 {
   "name": "@repo-kit/example-mcp-app",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "An inspectable MCP App: real protocol traffic, resources and lifecycle",
@@ -12,7 +12,8 @@
     "plugin.json",
     "mcp.json",
     "README.md",
-    "design.md"
+    "design.md",
+    "tests/OUTCOMES.md"
   ],
   "scripts": {
     "build": "node scripts/build.ts",
