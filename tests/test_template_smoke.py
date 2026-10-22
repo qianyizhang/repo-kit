@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 
@@ -21,7 +22,7 @@ V2_MARKER = "<!-- repo-kit-smoke-v2 -->"
 SEED_V2_MARKER = "# repo-kit-smoke-seed-v2"
 
 SEEDED_PATHS = (
-    "CLAUDE.md",
+    "AGENTS.md",
     "docs/index.md",
     "docs/glossary/ddd.md",
     "records/work-items/backlog.md",
@@ -103,7 +104,11 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         run("git", "commit", "-m", "fixture v1", cwd=cls.source)
         run("git", "tag", FIXTURE_V1, cwd=cls.source)
 
-        cls.managed_paths = tuple(cls.source / "template/docs/rules" / name for name in ("skill.md", "governance.md"))
+        cls.managed_paths = (
+            cls.source / "template/docs/rules/skill.md",
+            cls.source / "template/docs/rules/governance.md",
+            cls.source / "template/CLAUDE.md",
+        )
         for path in cls.managed_paths:
             path.write_text(f"{path.read_text(encoding='utf-8').rstrip()}\n\n{V2_MARKER}\n")
         for relative in SEEDED_PATHS:
@@ -137,6 +142,13 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         destination = self.temp_root / "first-copy"
         self.copy(destination)
         (destination / "pyproject-doc-governance.toml").replace(destination / "pyproject.toml")
+        self.assertIn("Rendered smoke project.", (destination / "AGENTS.md").read_text())
+        self.assertEqual((ROOT / "template/CLAUDE.md").read_text(), (destination / "CLAUDE.md").read_text())
+        authority = tomllib.loads((destination / "pyproject.toml").read_text())["tool"]["doc_governance"][
+            "authority_files"
+        ]
+        self.assertIn("AGENTS.md", authority)
+        self.assertNotIn("CLAUDE.md", authority)
 
         run(sys.executable, "scripts/bootstrap_agents.py", cwd=destination)
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
@@ -211,8 +223,11 @@ document_class: coordination
         local_setting = '\n[tool.consumer_fixture]\nretained = "consumer owned"\n'
         config_path.write_text(config_path.read_text(encoding="utf-8") + local_setting, encoding="utf-8")
         local_marker = "<!-- retained consumer policy -->"
-        constitution = destination / "CLAUDE.md"
-        constitution.write_text(constitution.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
+        legacy = destination / "CLAUDE.md"
+        legacy.write_text(legacy.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
+        constitution = destination / "AGENTS.md"
+        independent_rule = "<!-- independent AGENTS policy -->"
+        constitution.write_text(constitution.read_text() + independent_rule)
         glossary = destination / "docs/glossary/ddd.md"
         glossary.write_text(glossary.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
         run("git", "init", cwd=destination)
@@ -221,8 +236,19 @@ document_class: coordination
         run("git", "add", ".", cwd=destination)
         run("git", "commit", "-m", "consumer historical baseline", cwd=destination)
 
+        # Follow the migration handoff: reconcile local instruction owners before
+        # Copier changes the managed/seeded paths, then commit the reviewed result.
+        reference = self.temp_root / "historical-reconciliation-seeds"
+        self.copy(reference)
+        constitution.write_text(legacy.read_text() + "\n" + independent_rule + "\n")
+        legacy.write_bytes((reference / "CLAUDE.md").read_bytes())
+        run("git", "add", "AGENTS.md", "CLAUDE.md", cwd=destination)
+        run("git", "commit", "-m", "reconcile local policy into AGENTS", cwd=destination)
+
         copier("update", "--trust", "--defaults", "--vcs-ref", FIXTURE_V1, cwd=destination)
         self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
+        self.assertIn(independent_rule, constitution.read_text())
+        self.assertEqual((reference / "CLAUDE.md").read_bytes(), legacy.read_bytes())
         self.assertIn(local_marker, glossary.read_text(encoding="utf-8"))
         self.assertIn(local_setting, config_path.read_text(encoding="utf-8"))
         self.assertFalse((destination / ".codex/skills/handoff/SKILL.md").exists())
@@ -235,12 +261,10 @@ document_class: coordination
 
         # Model an explicit consumer reconciliation using the candidate's
         # rendered seeds, preserving known local policy and configuration.
-        reference = self.temp_root / "historical-reconciliation-seeds"
-        self.copy(reference)
-        for relative in ("CLAUDE.md", "docs/index.md", "records/work-items/backlog.md"):
+        for relative in ("AGENTS.md", "docs/index.md", "records/work-items/backlog.md"):
             content = (reference / relative).read_text(encoding="utf-8")
-            if relative == "CLAUDE.md":
-                content += local_marker
+            if relative == "AGENTS.md":
+                content += local_marker + "\n" + independent_rule + "\n"
             (destination / relative).write_text(content, encoding="utf-8")
         config_path.write_text(
             (reference / "pyproject-doc-governance.toml").read_text(encoding="utf-8") + local_setting,
@@ -249,6 +273,7 @@ document_class: coordination
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
         run(sys.executable, "scripts/bootstrap_agents.py", "--check", cwd=destination)
         self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
+        self.assertIn(independent_rule, constitution.read_text())
         self.assertIn(local_marker, glossary.read_text(encoding="utf-8"))
         self.assertIn(local_setting, config_path.read_text(encoding="utf-8"))
 

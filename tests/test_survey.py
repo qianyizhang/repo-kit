@@ -32,15 +32,15 @@ class SurveyTest(unittest.TestCase):
             self.git(repo, "init", "-b", "main")
             self.git(repo, "config", "user.name", "Survey fixture")
             self.git(repo, "config", "user.email", "survey@repo-kit.invalid")
-        self.write(self.repo, "copier.yml", "_skip_if_exists:\n  - CLAUDE.md\n  - binding.md\n")
-        self.write(self.repo, "template/CLAUDE.md.jinja", "Constitution for {{ project_name }}\n")
+        self.write(self.repo, "copier.yml", "_skip_if_exists:\n  - AGENTS.md\n  - binding.md\n")
+        self.write(self.repo, "template/AGENTS.md.jinja", "Constitution for {{ project_name }}\n")
         self.write(self.repo, "template/binding.md", "Kit fallback\n")
         self.write(self.repo, "template/binding.md.jinja", "Binding for {{ project_name }}\n")
         self.write(self.repo, "template/scripts/check.py", "# managed v1\n")
         self.commit(self.repo)
         self.git(self.repo, "tag", "baseline")
         self.write(self.consumer, ".copier-answers.yml", f"_commit: baseline\n_src_path: {self.repo}\n")
-        self.write(self.consumer, "CLAUDE.md", "Consumer-specific policy\n")
+        self.write(self.consumer, "AGENTS.md", "Consumer-specific policy\n")
         self.write(self.consumer, "binding.md", "Consumer-specific binding\n")
         self.write(self.consumer, "scripts/check.py", "# managed v1\n")
         self.commit(self.consumer)
@@ -70,7 +70,7 @@ class SurveyTest(unittest.TestCase):
         self.assertTrue(complete)
         self.assertIn("Seeded/local deltas needing review: none", output)
         self.assertIn(
-            "Rendered outputs not compared (manual binding review required): `CLAUDE.md`, `binding.md`", output
+            "Rendered outputs not compared (manual binding review required): `AGENTS.md`, `binding.md`", output
         )
         self.assertEqual(survey.template_outputs(self.repo, "HEAD")["binding.md"], "template/binding.md.jinja")
 

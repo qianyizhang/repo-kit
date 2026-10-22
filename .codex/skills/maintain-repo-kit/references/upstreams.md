@@ -4,6 +4,19 @@ Upstreams provide Candidates, never authority. For each review, fetch into a
 temporary directory, record the commit, compare behavior, and classify findings
 as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 
+## Personal practice review — 2026-10-22
+
+- `cursor/plugins/pstack` at `d1453c11d1dde9714d4c313c97d3a68432265c7f`
+  (Lauren Tan, MIT, 0.15.29): **adapt** selected type/boundary,
+  structural-learning and experience/verification concepts into `user/` and its
+  maintenance process. Full orchestration remains outside adoption.
+- `mattpocock/skills` at `5beb35b040e3de97e54fa9e386d7e42d15c295c2`:
+  **already-covered**; all 18 files in the six selected directories match the
+  existing pinned snapshot. No refresh or additional skills were installed.
+- Review depth, concrete TypeScript counterexamples and primary platform sources
+  are recorded in the [practice-library review](../../../../docs/reviews/2026-10-22-practice-library.md).
+  Future additions follow [user instruction maintenance](../../../../docs/user-instructions.md).
+
 ## Shared suite adoption — 2026-10-14
 
 Adopted six unchanged Matt skills from `49dd158d1076134a641b33efb035946536778336`:

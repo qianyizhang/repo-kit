@@ -88,8 +88,8 @@ These belong to another SSOT; this sheet links, never forks them.
 | **Frontier**, **Frontier batch**, **Context hygiene** | [`skill-glossary.md`](skill-glossary.md) §Coordination |
 | **Leading word**, **Progressive disclosure**, **Completion criterion** | [`skill-glossary.md`](skill-glossary.md) |
 | **SSOT** (single source of truth) | `docs/index.md` Authority by concern · [`skill-glossary.md`](skill-glossary.md) §Pruning |
-| **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `CLAUDE.md` or `docs/models.md` · [core-model guidance](core-models.md) mechanics |
+| **Core model** | [`governance.md`](governance.md) §Scoped authority and core models · repository instance in `AGENTS.md` or `docs/models.md` · [core-model guidance](core-models.md) mechanics |
 | **Campaign** | [`governance.md`](governance.md) §Campaigns · [`doc.md`](doc.md) §Campaign records |
 | **Provenance**, **Witness** | domain — the repo's glossary (`docs/glossary/`) + product SSOT |
 | **Fail-closed** / **fail-open** | [`governance.md`](governance.md) §Agent toolchains and symlinks · [`doc.md`](doc.md) §Frontmatter and classes |
-| Repository-specific mode names and done-ladder rungs | `CLAUDE.md` or another owning repository binding |
+| Repository-specific mode names and done-ladder rungs | `AGENTS.md` or another owning repository binding |

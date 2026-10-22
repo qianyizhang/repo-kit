@@ -14,7 +14,7 @@ exclude_path_contains = ["/prompts"]
 # top-level dirs whose backticked paths in authority docs must resolve
 repo_path_dirs = [{% for d in code_dirs.split() %}"{{ d }}"{% if not loop.last %}, {% endif %}{% endfor %}]
 authority_files = [
-    "CLAUDE.md", "readme.md", "README.md",
+    "AGENTS.md", "readme.md", "README.md",
     "docs/index.md",
 ]
 authority_globs = ["docs/glossary/*.md"]
@@ -77,7 +77,7 @@ glossary_globs = ["docs/glossary/*.md"]
 blocking_rule_ids = []
 
 [[tool.authoring_check.targets]]
-glob = "CLAUDE.md"
+glob = "AGENTS.md"
 profile = "instruction"
 
 [[tool.authoring_check.targets]]

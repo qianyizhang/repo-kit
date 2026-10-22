@@ -1,7 +1,7 @@
 # Governance kit — copier template.
 # Deterministic file propagation for the portable governance layer (docs/rules/*,
-# checks, ruff_base.toml, and AGENTS.md) plus one-time repository
-# bindings (CLAUDE.md, docs/index.md, backlog, glossary, and configuration).
+# checks, ruff_base.toml, and the Claude discovery pointer) plus one-time
+# repository bindings (AGENTS.md, docs/index.md, backlog, glossary, and configuration).
 #
 # Delivered paths outside _skip_if_exists are kit-owned. `copier update` merges
 # template changes against the recorded baseline; review local edits/conflicts.
@@ -17,7 +17,7 @@ _envops:
 
 # Seeded once, then repo-owned — never clobbered on update.
 _skip_if_exists:
-  - CLAUDE.md
+  - AGENTS.md
   - docs/index.md
   - records/work-items/backlog.md
   - docs/glossary/ddd.md
@@ -39,7 +39,9 @@ _message_after_copy: |
        `<repo-python> scripts/check_authoring.py` into a separate advisory target.
 
 _message_after_update: |
-  Kit files updated. Review local bindings before accepting the result. Then
+  Kit files updated. AGENTS.md owns repository policy; CLAUDE.md only points to it.
+  For older baselines, reconcile both files using repo-kit's migration handoff.
+  Review local bindings before accepting the result. Then
   replace <repo-python> with this repository's supported Python invocation and
   run `<repo-python> scripts/check_docs.py`; if the symlink map changed, also run
   `<repo-python> scripts/bootstrap_agents.py`.

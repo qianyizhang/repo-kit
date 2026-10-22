@@ -52,7 +52,7 @@ We need to preserve this excluded sentence.
 """,
             encoding="utf-8",
         )
-        (self.root / "CLAUDE.md").write_text("更新文件\uff0c然后运行测试。\n最好记录结果。\n", encoding="utf-8")
+        (self.root / "AGENTS.md").write_text("更新文件\uff0c然后运行测试。\n最好记录结果。\n", encoding="utf-8")
         (self.root / "records" / "reports" / "history.md").write_text("Use the legacy term.\n", encoding="utf-8")
         self._write_config(mode="advisory", blocking=())
 
@@ -69,7 +69,7 @@ glossary_globs = ["docs/glossary/*.md"]
 blocking_rule_ids = [{blocking_toml}]
 
 [[tool.authoring_check.targets]]
-glob = "CLAUDE.md"
+glob = "AGENTS.md"
 profile = "instruction"
 
 [[tool.authoring_check.targets]]

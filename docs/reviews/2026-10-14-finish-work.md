@@ -111,7 +111,7 @@ normal handoff or commit, not a permanent ledger row.
 | [TB3](../../../tb3/AGENTS.md) | Governance, artifact retention, group contracts | Frozen evidence and scores; staged artifact gate; corrected code does not restore old conclusions |
 | [qi](../../../qi/CLAUDE.md) | Testing rules, model/contracts, existing experiment/work records | Replay parity and optional-backend isolation; retain measured source and historical hashes |
 | [astro-blog](../../../astro-blog/CLAUDE.md) | Publishing/content rules, build checks | Private Raw versus published editions; stable public URLs; output size versus reader download cost |
-| [repo-kit](../../CLAUDE.md) | Product model, skill-suite guide, installer tests | Committed-source provenance; separate skill/governance delivery; consumer scope and staging |
+| [repo-kit](../../AGENTS.md) | Product model, skill-suite guide, installer tests | Committed-source provenance; separate skill/governance delivery; consumer scope and staging |
 
 These are proposed bindings grounded in current entry-point guidance and sampled
 sessions, not freshly audited whole-repository rulebooks. The study created no empty ledgers or repository bindings. Subsequent adoption

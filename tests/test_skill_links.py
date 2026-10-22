@@ -23,6 +23,7 @@ class SkillLinksTest(unittest.TestCase):
             ROOT / ".codex" / "skills" / "maintain-repo-kit",
             ROOT / "skills",
             ROOT / "docs",
+            ROOT / "user",
             ROOT / "plugins" / "repo-workbench" / "docs",
             ROOT / "plugins" / "repo-workbench" / "skills",
         )

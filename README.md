@@ -1,10 +1,25 @@
 # repo-kit
 
-Shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
+Personal Codex instructions, shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
 governance template, plus the optional [Repo Workbench
 plugin](plugins/repo-workbench/README.md). `skills/` owns the ten-skill bundle;
 `template/` owns portable governance; `plugins/` owns executable development tools. Root
-[CLAUDE.md](CLAUDE.md) governs maintenance here.
+[AGENTS.md](AGENTS.md) governs maintenance here. `user/` owns the personal working
+core and on-demand [practice guides](user/practices/README.md).
+
+## Personal instructions
+
+Review and install the working core and TypeScript/React, Python, Apple-native
+and UI/UX guides independently of skills and repository governance:
+
+```sh
+python3.12 scripts/user_instructions.py diff
+python3.12 scripts/user_instructions.py sync
+python3.12 scripts/user_instructions.py check
+```
+
+Unmanaged existing files require reviewed adoption first. See
+[adoption, drift protection and recovery](docs/user-instructions.md).
 
 ## Shared skills
 
@@ -71,12 +86,15 @@ lag source `HEAD`. An explicit commit selects that reviewed state without
 creating a release checkpoint; tagging and propagation remain separate actions.
 
 Review preserved bindings and run the consumer's checks before accepting an
-update.
+update. When moving from a Claude-owned baseline, follow the
+[migration handoff](.codex/skills/maintain-repo-kit/references/migration-handoff.md)
+before updating: preserve local policy in `AGENTS.md` and reduce `CLAUDE.md` to
+its discovery pointer.
 
 ## Verify repo-kit
 
 Run the pinned unit, Copier-smoke, and Ruff commands in
-[`CLAUDE.md`](CLAUDE.md#verification).
+[`AGENTS.md`](AGENTS.md#verification).
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
 slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)

@@ -1,19 +1,19 @@
 ---
 name: maintain-repo-kit
-version: "1.5.0"
-description: Survey and reconcile repo-kit's local topology, downstream candidates, external upstream ideas, and Copier baselines. Use for maintenance, promotion, consumer reconciliation, or release preparation.
+version: "1.6.0"
+description: Maintain repo-kit's personal instructions and practice guides; survey and reconcile local topology, downstream candidates, upstream ideas and Copier baselines. Use for guidance maintenance, promotion, consumer reconciliation or release preparation.
 scope: repo-kit maintenance
 status: stable
-last_update: 2026-10-14
+last_update: 2026-10-22
 document_class: artifact
 ---
 
 # Maintain repo-kit
 
-Read root `CLAUDE.md` first. Keep local Git topology, consumer evidence, and
+Read root `AGENTS.md` first. Keep local Git topology, consumer evidence, and
 external ideas separate. All enter as Candidates; only explicit promotion
-changes the shared `skills/` bundle, governance `template/`, or optional
-executable `plugins/`. Consumer bindings remain consumer authority.
+changes personal guidance in `user/`, the shared `skills/` bundle, governance
+`template/`, or optional executable `plugins/`. Consumer bindings remain consumer authority.
 
 Use a Campaign only when a destination spans sessions and material fog must be
 revisited. It links the frontier, work, evidence, learning, and decisions while
@@ -36,6 +36,15 @@ unassessed, not unchanged: reconcile their consumer-owned bindings separately.
 Unavailable provenance produces an incomplete survey and a nonzero exit.
 
 ## Reconcile one flow at a time
+
+### Personal core and practice guides
+
+For changes to `user/AGENTS.md` or `user/practices/`, read
+[user instruction maintenance](../../../docs/user-instructions.md). It owns intake,
+layer reconciliation, source/example review, explicit sync and drift recovery.
+Promote common judgment into the appropriate small surface; keep repo-specific
+contracts, commands and evidence policy with their owner. Use existing authorization
+and settled decisions; a source review does not authorize unrelated propagation.
 
 ### Local branches and worktrees
 
@@ -60,7 +69,7 @@ Compare each consumer against the `_commit` in `.copier-answers.yml`:
 - a consumer-only skill is not automatically a kit candidate.
 
 For a portable Candidate, identify its commit and rationale, recreate the
-minimal change in its product owner (`skills/`, `template/`, or `plugins/`),
+minimal change in its product owner (`user/`, `skills/`, `template/`, or `plugins/`),
 and verify it here.
 Never copy a dirty snapshot.
 Keep local vocabulary, paths, authority, and source identity downstream.

@@ -19,8 +19,8 @@ inventory, technology list, roadmap, or claim of objective completeness.
 - Code and tests own executable local behavior.
 - Work records coordinate change; they do not become another authority layer.
 
-Keep a genuinely small model in `CLAUDE.md`. Use `docs/models.md` when several
-models, diagrams, examples, or stable references would make `CLAUDE.md` noisy;
+Keep a genuinely small model in `AGENTS.md`. Use `docs/models.md` when several
+models, diagrams, examples, or stable references would make `AGENTS.md` noisy;
 leave a concise governing summary and link behind. Keep implementation detail in
 its lower authority.
 

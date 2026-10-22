@@ -2,18 +2,18 @@
 description: Python style doctrine — semantic types, closed value sets, and useful comments.
 scope: python style rules
 status: stable
-last_update: 2026-09-11
+last_update: 2026-10-22
 document_class: coordination
 ---
 
 # Python rules
 
 Portable doctrine. Repo-specific exemplars (which files demonstrate a sanctioned
-pattern) live in the repo's `CLAUDE.md` binding, not here.
+pattern) live in the repo's `AGENTS.md` binding, not here.
 
 ## baseline
 
-- Modern Python 3.12+ features and practices; PEP 8.
+- Python syntax and dependencies follow the repository's supported runtime; PEP 8.
 - Lint/format via ruff. Shared doctrine defaults live in `ruff_base.toml`
   (extended by `pyproject.toml [tool.ruff]`); repo-specific `ignore` entries
   stay in `pyproject.toml` with a comment saying why.
@@ -22,11 +22,13 @@ pattern) live in the repo's `CLAUDE.md` binding, not here.
 
 Pick the container that *says what the data is for*:
 
-- `BaseModel`: the model needs serialization or crosses a domain boundary.
+- An existing schema/model system for runtime-validated serialized contracts.
 - `dataclass`: the default record type.
 - `NamedTuple` over bare `tuple`.
-- `TypedDict` over bare `dict`; `Mapping` to imply immutability.
-- `Any` / `object` only with caution — and a comment explaining why.
+- `TypedDict` for fixed-key dictionary records; `dict[K, V]` for genuine mappings.
+  `Mapping[K, V]` exposes a read-only API, not an immutable object or nested values.
+- `object` for unparsed values; narrow before use. `Any` bypasses static checking;
+  keep it at actual dynamic boundaries and explain where typed behavior resumes.
 - `TypeAlias` for repeated complex patterns (e.g. sum types).
 
 ### closed value sets

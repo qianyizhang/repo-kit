@@ -10,7 +10,7 @@ document_class: coordination
 
 Portable doctrine. Repo-specific exemplars — which modules are runnable today,
 the exact env vars that redirect side-effecting roots, the current consolidated
-contexts — live in the repo's `CLAUDE.md` binding, not here.
+contexts — live in the repo's `AGENTS.md` binding, not here.
 
 ## Choose verification by changed surface
 
@@ -58,7 +58,7 @@ flux and the durable artifact is the design, not a green bar.
 > contracts and behaviours** in the same change that lands the consolidation.
 
 Interface-drafted contexts stay untested until they have code. The list of which
-modules are runnable today is a binding (`CLAUDE.md`), not doctrine — it moves.
+modules are runnable today is a binding (`AGENTS.md`), not doctrine — it moves.
 
 ## Where tests live — colocated unit, central e2e
 

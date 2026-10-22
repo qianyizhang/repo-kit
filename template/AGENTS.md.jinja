@@ -2,11 +2,11 @@
 description: System rules, invariants, and guidelines for developer agents.
 scope: system guidelines
 status: stable
-last_update: 2026-09-12
+last_update: 2026-10-22
 document_class: coordination
 ---
 
-# CLAUDE.md
+# Repository instructions
 
 This file is the repository binding for developer agents. Keep project-specific
 identity, invariants, authority, and commands here. Portable doctrine lives in
@@ -33,19 +33,14 @@ the work.
 Name repository-specific contracts, schemas, ADRs, and module authorities here
 or link them from that index. `README.md` owns human setup and usage.
 
-## Working principles
+## Working agreements
 
-- **Concise is the key.**
-- **Full means full.** When asked to complete, extend, or verify coverage, do the
-  actual work — never relabel a partial run as "full".
 - Complete the requested deliverable, applicable verification, and necessary
   documentation within the authorized scope. Reuse authorization already given;
   ask again only for material unresolved choices or actions outside that scope.
 - Choose verification by changed surface under `docs/rules/testing.md` and the
   commands below. Preserve required gates and re-derive numeric claims from
   current evidence.
-- **Symlinks are load-bearing** (see below). Before `rm` or bulk file ops near
-  symlinks, verify their targets.
 
 ## Agent assets
 
@@ -56,30 +51,20 @@ created by `scripts/bootstrap_agents.py`. Edit skills only under
 
 ## Commands
 
-```bash
-make install   # sync deps and install pre-commit hooks
-make lint      # lint, formatter checks, import contracts, docs (check_docs.py)
-make test      # test suite
-make check     # full local verification: lint + tests
-make format    # auto-format and auto-fix
-```
+<!-- Record the actual setup, lint, test and verification commands for this
+     repository, including supported runtimes and checks by changed surface. -->
 
 ## Architecture rules
 
 <!-- Fill in the module graph, bounded-context rules, owning contracts, and
      mechanical enforcement. Link the canonical domain glossary. -->
 
-## Testing
+## Workflows
 
 Shared skills are installed separately from repo-kit; Copier does not distribute
 skill bodies. Keep specialized skills local under `.codex/skills/`.
-Use `next-slice` for prioritization, `show-me` for visual explanations, and the
-installed Matt skills for design, terminology and requested reviews.
-`retro` and `improve-codebase-architecture` are explicit-user workflows.
-
-Repository paths, invariants and check commands stay in this constitution and
-its linked owners. Accepted decisions remain settled; continue already-authorized
-work without another confirmation unless a material ambiguity remains.
+Use the task-to-skill routes in `docs/index.md`. Repository paths, invariants
+and check commands stay here and in their linked owners.
 
 ## Housekeeping (after a task)
 

@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-09-21
+last_update: 2026-10-22
 document_class: coordination
 ---
 
@@ -16,7 +16,7 @@ bindings.
 
 - **Doctrine** is a practice that transfers across repositories of this shape.
   It lives once under `docs/rules/`.
-- **Binding** is what is true of one repository. Its entry point is `CLAUDE.md`,
+- **Binding** is what is true of one repository. Its entry point is `AGENTS.md`,
   which links to lower owning contracts, schemas, ADRs, glossaries, and code.
 - Project-agnostic refinements are promoted to the kit. Repository facts stay in
   their owning binding. Copying either into the other creates drift.
@@ -42,7 +42,7 @@ do not silently amend the requirement to match the code. Identified source
 artifacts and frozen manifests own recorded observations within their provenance
 and conditions; summaries and generated reports do not replace that evidence.
 
-A repository states its core model in `CLAUDE.md` or `docs/models.md`. Use
+A repository states its core model in `AGENTS.md` or `docs/models.md`. Use
 [core-model guidance](core-models.md)
 for durable model shapes and update mechanics. A core-model change requires an
 explicit before/after model, evidence, affected authorities, and a decision lock;
@@ -79,8 +79,8 @@ shape.
 Toolchains share agent assets by symlink, not copy:
 
 ```text
-CLAUDE.md                 # repository binding and agent entry point
-AGENTS.md                 # thin pointer to CLAUDE.md
+AGENTS.md                 # repository binding and agent entry point
+CLAUDE.md                 # discovery pointer to AGENTS.md
 .codex/                   # canonical shared agent assets
   ├── agents/
   └── skills/
