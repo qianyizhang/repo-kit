@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Example MCP App</title>
+    <style>
+      /* STYLES */
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">EXAMPLE MCP APP</p>
+          <h1>Follow one interaction.</h1>
+        </div>
+        <span id="connection" class="badge" role="status">Checking host</span>
+      </header>
+      <div class="mode-bar">
+        <div class="mode-switch" role="group" aria-label="Execution mode">
+          <button id="fixture-mode" aria-pressed="true">Learn with fixtures</button
+          ><button id="live-mode" aria-pressed="false">Run live</button>
+        </div>
+        <p id="mode-note"></p>
+      </div>
+      <nav id="journeys" aria-label="Journeys"></nav>
+      <section class="journey-intro">
+        <p id="journey-number" class="eyebrow"></p>
+        <h2 id="journey-title"></h2>
+        <p id="description"></p>
+        <div class="expected">
+          <b>Expected behavior</b>
+          <p id="expected"></p>
+        </div>
+      </section>
+      <section class="controls" aria-label="Journey controls">
+        <label id="input-label"
+          >Demo text<textarea id="demo-text" maxlength="2000" rows="2">
+Hello from the MCP App</textarea></label
+        ><label id="scenario-label">Case<select id="scenario"></select></label>
+        <div class="action-row">
+          <button id="run" class="primary">Play fixture</button><span id="availability"></span>
+        </div>
+      </section>
+      <section class="evidence">
+        <div class="evidence-heading">
+          <div>
+            <p class="eyebrow">INTERACTION EVIDENCE</p>
+            <h2 id="run-title">Ready when you are</h2>
+          </div>
+          <label id="history-label">Previous runs<select id="history"></select></label>
+        </div>
+        <div id="outcome" role="status"></div>
+        <p id="route" class="route"></p>
+        <div class="lanes">
+          <section class="lane app-lane" aria-label="App events">
+            <h3><span class="dot"></span>App <small>Interface boundary</small></h3>
+            <div id="app-events"></div>
+          </section>
+          <section class="lane host-lane" aria-label="Host evidence">
+            <h3><span class="dot"></span>Host <small>Codex or fixture</small></h3>
+            <div id="host-events"></div>
+          </section>
+          <section class="lane server-lane" aria-label="Server events">
+            <h3><span class="dot"></span>Server <small>MCP boundary</small></h3>
+            <div id="server-events"></div>
+          </section>
+        </div>
+        <details id="result-details">
+          <summary>Action result</summary>
+          <pre id="result"></pre>
+        </details>
+      </section>
+      <footer>
+        <div class="footer-actions">
+          <button id="refresh">Refresh evidence</button><button id="export">Export evidence</button
+          ><span id="diagnostic-status" role="status"></span>
+        </div>
+        <details>
+          <summary>Connection details</summary>
+          <pre id="details"></pre>
+        </details>
+        <details id="background">
+          <summary id="background-title">Background traffic</summary>
+          <p>
+            Observer calls collect and share evidence. Size notifications resize the panel. These
+            are excluded from journey results.
+          </p>
+          <div id="background-events"></div>
+        </details>
+        <p class="footnote">
+          Wire IDs match a request to its response within one connection. Interaction IDs group a
+          user action across connections. Raw payloads are in each event’s details. Use demo data;
+          free text is recorded.
+        </p>
+      </footer>
+    </main>
+    <script>
+      /* SCRIPT */
+    </script>
+  </body>
+</html>
