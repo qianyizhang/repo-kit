@@ -77,7 +77,7 @@ establish these limits, not an assessment of the whole suite's runtime behavior.
 
 ## Primary references and scope
 
-Each topic links its primary references and review date. The reviewed source set
+Topic guides link primary references; this dated review records scope. Sources
 includes TypeScript/compiler and typescript-eslint documentation, React state
 modeling, Python typing/PEP 8/PyPA/Ruff, Swift API/concurrency guidance, Apple HIG
 and testing/accessibility documentation, and W3C WCAG/WAI evaluation guidance.

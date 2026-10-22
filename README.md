@@ -5,7 +5,7 @@ governance template, plus the optional [Repo Workbench
 plugin](plugins/repo-workbench/README.md). `skills/` owns the ten-skill bundle;
 `template/` owns portable governance; `plugins/` owns executable development tools. Root
 [AGENTS.md](AGENTS.md) governs maintenance here. `user/` owns the personal working
-core and on-demand [practice guides](user/practices/README.md).
+core and on-demand [practice guides](docs/user-instructions.md#sources).
 
 ## Personal instructions
 
@@ -93,8 +93,21 @@ its discovery pointer.
 
 ## Verify repo-kit
 
-Run the pinned unit, Copier-smoke, and Ruff commands in
-[`AGENTS.md`](AGENTS.md#verification).
+Use Python 3.12 and pinned tools; the root stays manifest-free:
+
+```sh
+python3.12 scripts/skills.py check --source-only
+python3.12 -m unittest discover -s tests -v
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+```
+
+For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a
+reviewed candidate index; use a disposable checkout to exclude unrelated staging.
+For user instructions, review `diff`, run `sync`, then `check`.
+For executable workbench changes, use Node 24.21+ and run `npm run check` and
+`npm run test:browser` in `plugins/repo-workbench`. Browser tests on this Mac need
+approved execution outside the restricted sandbox and disposable profiles.
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
 slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)

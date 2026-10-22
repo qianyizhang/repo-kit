@@ -1,64 +1,30 @@
 ---
-description: Python style doctrine — semantic types, closed value sets, and useful comments.
-scope: python style rules
+description: Python types, boundaries and effects.
+scope: python practices
 status: stable
 last_update: 2026-10-22
 document_class: coordination
 ---
 
-# Python rules
+# Python
 
-Portable doctrine. Repo-specific exemplars (which files demonstrate a sanctioned
-pattern) live in the repo's `AGENTS.md` binding, not here.
+- Follow the supported interpreter and existing tool configuration, including
+  embedded runtimes. Keep lint settings in configuration, not prose.
+- Use dataclasses for internal records, TypedDict for fixed-key wire dictionaries,
+  and dict/Mapping for collections. Reuse an existing model when it owns validation.
+- Accept unparsed values as `object` and narrow them. Restrict `Any` to genuine
+  dynamic boundaries, then resume typed behavior.
+- `Mapping` is a read-only interface, not deep immutability; frozen dataclasses
+  can also contain mutable values. Make mutation ownership explicit.
+- Validate input once at its boundary; annotations do not validate runtime data.
+  Preserve wire fields, null/absence distinctions, units and raw evidence.
+- Prefer `Literal` for wire choices; use enums when behavior or iteration earns them.
+- Keep transformations in functions, CLI parsing at the edge and I/O/state changes
+  explicit. Imports must not start work or require private data.
+- Catch expected failures at meaningful boundaries and retain their causes.
+- Comments explain non-obvious constraints and rationale; remove narration and
+  resolved TODOs. Docstrings cover obligations signatures cannot express.
 
-## baseline
-
-- Python syntax and dependencies follow the repository's supported runtime; PEP 8.
-- Lint/format via ruff. Shared doctrine defaults live in `ruff_base.toml`
-  (extended by `pyproject.toml [tool.ruff]`); repo-specific `ignore` entries
-  stay in `pyproject.toml` with a comment saying why.
-
-## semantic typehints
-
-Pick the container that *says what the data is for*:
-
-- An existing schema/model system for runtime-validated serialized contracts.
-- `dataclass`: the default record type.
-- `NamedTuple` over bare `tuple`.
-- `TypedDict` for fixed-key dictionary records; `dict[K, V]` for genuine mappings.
-  `Mapping[K, V]` exposes a read-only API, not an immutable object or nested values.
-- `object` for unparsed values; narrow before use. `Any` bypasses static checking;
-  keep it at actual dynamic boundaries and explain where typed behavior resumes.
-- `TypeAlias` for repeated complex patterns (e.g. sum types).
-
-### closed value sets
-
-Default to `Literal` — the value *is* the wire string: no drift, composes in
-unions, no import needed to compare. Promote to `StrEnum` **only** when the type
-carries behaviour or order that would otherwise be stranded in a side table:
-
-- a state machine (a status type owning its allowed transitions),
-- an ordinal scale (a severity type owning `.rank`),
-- behaviour dispatch (an operator type owning `.apply`),
-- member iteration.
-
-Never promote a discriminator tag (`kind: Literal["criteria"]`). Explain a
-non-obvious promotion beside the type, using the applicable justification.
-
-## comments
-
-Use names and structure for obvious behavior. Keep comments that explain
-non-obvious rationale, invariants, constraints, or test intent beside the code
-they protect. API docstrings describe usage, obligations, and failure semantics
-that signatures cannot express. Update or remove comments with their code;
-delete narration and spent TODOs after resolving their tracked work.
-
-These tags are optional aids, not a required annotation scheme:
-
-- `# WHY:` — non-obvious rationale for a design choice.
-- `# INVARIANT:` — a property the surrounding code relies on staying true.
-- `# CONTRACT:` — an obligation to/from another module or layer.
-- `# COMPAT:` — a compatibility constraint (and when it can be dropped).
-- `# TODO:` / `# HACK:` — tracked deferral or known shortcut.
-- `# SAMPLE:` — for non-obvious data/rule shapes, a sample demonstrating the
-  shape. Add regex examples when the accepted or rejected shape is non-obvious.
+References: [typing](https://typing.python.org/en/latest/spec/concepts.html),
+[Mapping](https://peps.python.org/pep-3119/#mappings),
+[PEP 8](https://peps.python.org/pep-0008/).

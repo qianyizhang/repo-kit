@@ -26,8 +26,9 @@ class UserInstructionsTest(unittest.TestCase):
         self.source = self.root / "user/AGENTS.md"
         self.source.parent.mkdir(parents=True)
         self.source.write_text("# Personal defaults\n\nPreserve unrelated work.\n")
-        self.profile = self.root / "user/practices/python.md"
-        self.profile.parent.mkdir()
+        (self.root / "user/practices").mkdir()
+        self.profile = self.root / "template/docs/rules/python.md"
+        self.profile.parent.mkdir(parents=True)
         self.profile.write_text("# Python\n\nUse the project's runtime.\n")
         self.home = Path(self.temp.name).resolve() / "codex"
         self.home.mkdir()
@@ -201,10 +202,19 @@ class UserInstructionsTest(unittest.TestCase):
         self.assertEqual({}, self.snapshot())
         self.assertEqual(0, cli("sync").returncode)
         self.assertEqual((ROOT / "user/AGENTS.md").read_bytes(), self.target.read_bytes())
+        self.assertEqual((ROOT / "template/docs/rules/python.md").read_bytes(), self.installed_profile.read_bytes())
         self.assertEqual(0, cli("check").returncode)
         self.target.write_text("Independent edit\n")
         self.assertEqual(1, cli("sync").returncode)
         self.assertEqual("Independent edit\n", self.target.read_text())
+
+    def test_duplicate_python_source_is_rejected_before_installation_changes(self) -> None:
+        self.sync(apply=True)
+        before = self.snapshot()
+        (self.root / "user/practices/python.md").write_text("Competing Python guidance\n")
+        with self.assertRaisesRegex(ValueError, "Duplicate instruction source"):
+            self.sync(apply=True)
+        self.assertEqual(before, self.snapshot())
 
     def test_guide_drift_blocks_the_whole_bundle_and_reconciles_one_reviewed_file(self) -> None:
         self.sync(apply=True)
@@ -263,7 +273,7 @@ class UserInstructionsTest(unittest.TestCase):
 
     def test_adding_a_guide_preserves_existing_files_and_retirement_needs_reconciliation(self) -> None:
         self.sync(apply=True)
-        added = self.profile.parent / "ui-ux.md"
+        added = self.root / "user/practices/ui-ux.md"
         added.write_text("Review actual rendered content.\n")
         self.sync(apply=True)
         self.assertEqual(added.read_bytes(), (self.home / "practices/ui-ux.md").read_bytes())

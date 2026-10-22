@@ -39,12 +39,9 @@ Unavailable provenance produces an incomplete survey and a nonzero exit.
 
 ### Personal core and practice guides
 
-For changes to `user/AGENTS.md` or `user/practices/`, read
-[user instruction maintenance](../../../docs/user-instructions.md). It owns intake,
-layer reconciliation, source/example review, explicit sync and drift recovery.
-Promote common judgment into the appropriate small surface; keep repo-specific
-contracts, commands and evidence policy with their owner. Use existing authorization
-and settled decisions; a source review does not authorize unrelated propagation.
+For `user/` or the shared Python source at `template/docs/rules/python.md`, follow
+[instruction maintenance](../../../docs/user-instructions.md) for intake, sync
+and recovery.
 
 ### Local branches and worktrees
 

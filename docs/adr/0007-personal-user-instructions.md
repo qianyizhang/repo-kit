@@ -15,10 +15,10 @@ repo-kit and its template, with Claude entry points reduced to navigation.
 
 ## Decision
 
-`user/AGENTS.md` owns the concise personal working core; `user/practices/` owns
-on-demand topic defaults. The user explicitly accepted TypeScript/React, Python,
-Apple-native and UI/UX guides with repo exceptions, then requested reconciliation
-of recent lessons into this core while keeping bespoke logic as repo adaptations.
+`user/AGENTS.md` owns the personal core and routes directly to on-demand guides.
+`user/practices/` owns TypeScript/React, Apple-native and UI/UX guidance;
+`template/docs/rules/python.md` is the sole Python source for both Copier and user
+sync. Repo-specific contracts and exceptions stay local.
 A standalone installer copies the reviewed bundle into the selected Codex home.
 It supports read-only check and diff, reviewed
 adoption of an existing file, local-edit refusal, recovery copies and retry after
@@ -26,7 +26,8 @@ an interrupted update. [User instruction maintenance](../user-instructions.md)
 owns the commands and recovery procedure.
 
 Repository instructions keep project identity, authority, invariants and checks.
-Personal defaults are not distributed through Copier or the shared skill bundle.
+The personal bundle is installed separately from Copier and shared skills;
+portable Python guidance is reused by both instruction deliveries.
 Root `AGENTS.md` owns repo-kit's local constitution. The template seeds the
 consumer-owned binding as `AGENTS.md`; `CLAUDE.md` only points to it. Existing
 consumers require explicit binding reconciliation before updating; there is no

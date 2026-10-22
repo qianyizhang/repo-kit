@@ -17,7 +17,7 @@ rules or evidence.
 | Concept | Role | Authority |
 | --- | --- | --- |
 | **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
-| **Personal instructions** | Working core in `user/AGENTS.md` and on-demand topic guides in `user/practices/`, explicitly synced to this user's Codex home. | This user; repositories retain project-specific authority. |
+| **Personal instructions** | Core and topic guides explicitly synced to Codex; [source mapping](user-instructions.md#sources) reuses the portable Python guide. | This user; repositories retain project-specific authority. |
 | **Shared skills** | Ten skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
 | **Governance template** | Files intentionally exported from `template/` through Copier. | Repo-kit. |
 | **Executable plugin** | Prebuilt Repo Workbench package in `plugins/repo-workbench/`, installed through npm and a user/repo plugin catalog. | Repo-kit owns tool behavior; target repositories own maps, case definitions and evidence. |

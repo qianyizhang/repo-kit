@@ -1,74 +1,25 @@
 ---
-description: System rules, invariants, and guidelines for developer agents.
-scope: system guidelines
+description: Repository instructions and verification.
+scope: repository binding
 status: stable
 last_update: 2026-10-22
 document_class: coordination
 ---
 
-# Repository instructions
-
-This file is the repository binding for developer agents. Keep project-specific
-identity, invariants, authority, and commands here. Portable doctrine lives in
-`docs/rules/` and is updated through the governance kit.
-
-## What this project is
+# {{ project_name }}
 
 {{ project_tagline }}
 
-<!-- Fill in the system's purpose and deterministic backbone. -->
+Read `docs/index.md` for relevant contracts and workflows. Keep repository-specific
+rules here; portable doctrine belongs in `docs/rules/`.
 
-## Core model and governing invariant
+## Constraints
 
-<!-- State the few concepts and relationships needed to predict the system, or
-     point to docs/models.md. State the invariant that constrains implementation.
-     Use docs/rules/core-models.md when the model
-     needs a durable graph or relationship specification. -->
+<!-- State the governing invariant and link architecture/schema/glossary owners. -->
 
-## Authority map
+## Verification
 
-Use `docs/index.md` to find the authorities relevant to the task; it owns the
-human-facing flow map. Read other areas when their contracts or evidence affect
-the work.
-Name repository-specific contracts, schemas, ADRs, and module authorities here
-or link them from that index. `README.md` owns human setup and usage.
+<!-- Record supported runtimes and actual setup/check commands by changed surface. -->
 
-## Working agreements
-
-- Complete the requested deliverable, applicable verification, and necessary
-  documentation within the authorized scope. Reuse authorization already given;
-  ask again only for material unresolved choices or actions outside that scope.
-- Choose verification by changed surface under `docs/rules/testing.md` and the
-  commands below. Preserve required gates and re-derive numeric claims from
-  current evidence.
-
-## Agent assets
-
-`.codex/` holds the real shared agent assets. `.agents` and `.claude/skills` are
-relative symlinks into it, declared in `[tool.doc_governance.symlinks]` and
-created by `scripts/bootstrap_agents.py`. Edit skills only under
-`.codex/skills/`; resolve symlink targets before deleting anything nearby.
-
-## Commands
-
-<!-- Record the actual setup, lint, test and verification commands for this
-     repository, including supported runtimes and checks by changed surface. -->
-
-## Architecture rules
-
-<!-- Fill in the module graph, bounded-context rules, owning contracts, and
-     mechanical enforcement. Link the canonical domain glossary. -->
-
-## Workflows
-
-Shared skills are installed separately from repo-kit; Copier does not distribute
-skill bodies. Keep specialized skills local under `.codex/skills/`.
-Use the task-to-skill routes in `docs/index.md`. Repository paths, invariants
-and check commands stay here and in their linked owners.
-
-## Housekeeping (after a task)
-
-- Keep repository bindings here and promote portable refinements to the kit.
-- Route precise unfinished work through `records/work-items/backlog.md`; use an
-  optional Campaign only at the threshold in `docs/rules/governance.md`.
-- Follow `docs/rules/doc.md` for documentation lifecycle and frontmatter.
+Apply `docs/rules/testing.md`. Edit local skills in `.codex/skills/`; resolve
+symlink targets before deletion. Track unfinished work in `records/work-items/backlog.md`.
