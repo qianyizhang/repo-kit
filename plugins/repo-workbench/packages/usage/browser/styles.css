@@ -1,20 +1,3 @@
-:root {
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  color: #233127;
-  background: #f5f6f3;
-  font-size: 14px;
-  --green: #347353;
-  --muted: #6b766e;
-  --line: #dce3db;
-  --purple: #8070a2;
-  --read: #83b79a;
-  --write: #d4ae64;
-}
 * {
   box-sizing: border-box;
 }
@@ -29,13 +12,13 @@ select {
 }
 button {
   cursor: pointer;
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 9px 13px;
 }
 button:hover {
-  background: #eaf1e9;
+  background: var(--hover);
 }
 button:disabled {
   opacity: 0.5;
@@ -45,12 +28,12 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #80aa90;
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 button.active {
   background: var(--green);
-  color: #fff;
+  color: var(--on-accent);
   border-color: var(--green);
 }
 .app {
@@ -105,7 +88,7 @@ button.active {
   background: transparent;
 }
 .tabs button.active {
-  color: #fff;
+  color: var(--on-accent);
   background: var(--green);
 }
 .filters {
@@ -127,7 +110,7 @@ button.active {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px;
-  background: #fff;
+  background: var(--panel);
   max-width: 240px;
 }
 .filters #search {
@@ -157,21 +140,21 @@ button.active {
   display: inline-block;
   padding: 9px 14px;
   border-radius: 7px;
-  background: #276344;
-  color: white;
+  background: var(--accent);
+  color: var(--on-accent);
   text-decoration: none;
 }
 .trace-link[aria-disabled='true'] {
-  background: #e8eee7;
-  color: #647268;
+  background: var(--border);
+  color: var(--muted);
 }
 .session-row {
   cursor: pointer;
 }
 .session-row:hover,
 .session-row:focus {
-  background: #edf5ee;
-  outline: 2px solid #83b79a;
+  background: var(--selected);
+  outline: 2px solid var(--read);
   outline-offset: -2px;
 }
 .sort-header {
@@ -190,7 +173,7 @@ button.active {
   margin-bottom: 20px;
 }
 .card {
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 20px;
@@ -243,7 +226,7 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 6px;
-  background: white;
+  background: var(--panel);
   font-size: 12px;
 }
 .chart {
@@ -342,7 +325,7 @@ h2 {
 }
 .bar-track {
   height: 7px;
-  background: #edf1ec;
+  background: var(--hover);
   margin-top: 7px;
   border-radius: 3px;
   overflow: hidden;
@@ -369,7 +352,7 @@ th {
   padding: 10px 12px;
 }
 td {
-  border-bottom: 1px solid #edf1ec;
+  border-bottom: 1px solid var(--border);
   padding: 12px;
 }
 td.number,
@@ -404,8 +387,8 @@ td button {
   line-height: 1.6;
 }
 .notice {
-  background: #faf6e9;
-  border: 1px solid #e6dcc1;
+  background: var(--hover);
+  border: 1px solid var(--warning);
   border-radius: 7px;
   padding: 11px 14px;
   margin: 0 0 18px;
@@ -416,7 +399,7 @@ td button {
   background: none;
   border: 0;
   padding: 0;
-  color: #735523;
+  color: var(--warning);
   text-decoration: underline;
 }
 .hidden,
@@ -479,7 +462,7 @@ code {
 .drawer {
   width: 760px;
   max-width: 100%;
-  background: #fff;
+  background: var(--panel);
   padding: 28px;
   overflow: auto;
   box-shadow: -5px 0 30px #0001;
@@ -490,7 +473,7 @@ code {
 .evidence pre {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  background: #f5f6f3;
+  background: var(--canvas);
   border-radius: 7px;
   padding: 15px;
   font-size: 11px;
@@ -507,7 +490,7 @@ code {
   font-size: 12px;
 }
 .error {
-  color: #9a3730;
+  color: var(--danger);
 }
 #message {
   font-size: 12px;
@@ -516,8 +499,8 @@ code {
 #tooltip {
   position: fixed;
   pointer-events: none;
-  background: #233127;
-  color: #fff;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-ink);
   padding: 10px 13px;
   border-radius: 7px;
   z-index: 8;
@@ -600,5 +583,11 @@ code {
   }
   .status {
     white-space: normal;
+  }
+}
+
+@media (max-width: 600px) {
+  .kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

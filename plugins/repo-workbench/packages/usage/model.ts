@@ -20,6 +20,8 @@ export type UsageRecord = {
   method: 'response' | 'snapshot' | 'delta';
 };
 export type Source = {
+  encoding?: 'zstd';
+  storedBytes?: number;
   path: string;
   session: string;
   parent: string;

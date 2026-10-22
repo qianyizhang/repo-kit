@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import type { ReviewDocument } from './model/contracts.ts';
-import { ReviewProvider } from './app/context.tsx';
-import { App } from './app/app.tsx';
+import { mount } from './mount.tsx';
+let root: ReturnType<typeof createRoot>;
 import './styles.css';
 async function start() {
   const element = document.getElementById('trace-data');
@@ -17,7 +17,12 @@ async function start() {
           accept="application/json"
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (file) void file.text().then((text) => mount(JSON.parse(text) as ReviewDocument));
+            if (file)
+              void file.text().then((text) => {
+                const data = JSON.parse(text) as ReviewDocument;
+                root.unmount();
+                mount(data);
+              });
           }}
         />
       </main>,
@@ -32,15 +37,6 @@ async function start() {
   ) as ReviewDocument;
   element.remove();
   mount(data);
-}
-let root: ReturnType<typeof createRoot> | undefined;
-function mount(document: ReviewDocument) {
-  root ??= createRoot(window.document.getElementById('root')!);
-  root.render(
-    <ReviewProvider document={document}>
-      <App />
-    </ReviewProvider>,
-  );
 }
 void start().catch((error: unknown) => {
   document.getElementById('root')!.textContent =

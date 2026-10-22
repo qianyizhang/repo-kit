@@ -148,7 +148,7 @@ void test(
           marketplacePath: target.marketplace,
           pluginName: 'repo-workbench',
         });
-        assert.deepEqual(detail.plugin.mcpServers, ['repo_canvas']);
+        assert.deepEqual(detail.plugin.mcpServers.sort(), ['repo_canvas', 'workbench_reports']);
         assert.equal(detail.plugin.skills.length, 2);
         t.diagnostic(
           `Repo catalog discovered; native materialization installed=${own.installed}, enabled=${own.enabled}. Desktop activation is a separate acceptance check.`,

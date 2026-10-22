@@ -2,6 +2,7 @@ import { summarize, estimate, type UsageRecord, type Prices, type Snapshot } fro
 import { element, set, node, exact, money } from './dom.ts';
 export function createEvidenceDrawer(options: {
   snapshot: () => Snapshot;
+  openTrace?: (session: string) => void;
   prices: () => Prices;
   timezone: () => string;
 }) {
@@ -32,7 +33,13 @@ export function createEvidenceDrawer(options: {
         sessions.length === 1
           ? 'Open full trace ↗'
           : 'Open full trace · ' + session.slice(0, 8) + ' ↗';
-      if (location.protocol === 'http:') {
+      if (options.openTrace) {
+        link.href = '#';
+        link.onclick = (event) => {
+          event.preventDefault();
+          options.openTrace?.(session);
+        };
+      } else if (location.protocol === 'http:') {
         link.href = '/trace?session=' + encodeURIComponent(session) + '#view=conversation';
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
@@ -46,7 +53,7 @@ export function createEvidenceDrawer(options: {
       actions,
       node(
         'p',
-        location.protocol === 'http:'
+        options.openTrace || location.protocol === 'http:'
           ? 'Full trace includes available messages, tools, outputs and indexed child sessions, regardless of the current usage filters.'
           : 'Full traces require the local dashboard server: npm run usage:dashboard -- --serve.',
         'caption',
@@ -121,7 +128,7 @@ export function createEvidenceDrawer(options: {
   element('evidence').addEventListener('click', (e) => {
     if (e.target === element('evidence')) closeEvidence();
   });
-  document.addEventListener('keydown', (e) => {
+  const onKey = (e: KeyboardEvent) => {
     if (!isOpen) return;
     if (e.key === 'Escape') closeEvidence();
     if (e.key === 'Tab') {
@@ -138,6 +145,9 @@ export function createEvidenceDrawer(options: {
         first?.focus();
       }
     }
+  };
+  document.addEventListener('keydown', onKey);
+  return Object.assign(openEvidence, {
+    dispose: () => document.removeEventListener('keydown', onKey),
   });
-  return openEvidence;
 }

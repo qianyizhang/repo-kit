@@ -129,25 +129,39 @@ function subscribe(restore: () => void) {
     window.removeEventListener(changed, restore);
   };
 }
-const snapshot = () => location.hash;
+let memoryHash: string | undefined;
+const snapshot = () => memoryHash ?? location.hash;
 export function useReviewState(curated: boolean, firstThread: string) {
-  // The URL is the single owner. Rendering and state calculation never write browser history.
+  // Standalone uses the URL; embedded mode owns a panel-local fragment. Render stays pure.
   const hash = useSyncExternalStore(subscribe, snapshot);
   const state = useMemo(() => readState(hash, curated, firstThread), [hash, curated, firstThread]);
   const update = useCallback(
     (patch: Partial<ReviewState>) => {
-      const prior = readState(location.hash, curated, firstThread);
+      const prior = readState(snapshot(), curated, firstThread);
       const next = transition(prior, patch, firstThread);
       const target = fragment(next);
       if (target === fragment(prior)) return;
       const navigation = (['view', 'turn', 'actionTurn', 'episode', 'stage'] as const).some(
         (key) => key in patch && next[key] !== prior[key],
       );
-      if (navigation) history.pushState(null, '', target);
-      else history.replaceState(null, '', target);
+      try {
+        if (memoryHash !== undefined) memoryHash = target;
+        else if (navigation) history.pushState(null, '', target);
+        else history.replaceState(null, '', target);
+      } catch {
+        memoryHash = target;
+      }
       window.dispatchEvent(new Event(changed));
     },
     [curated, firstThread],
   );
   return [state, update] as const;
+}
+
+export function resetReviewNavigation() {
+  memoryHash = '';
+  window.dispatchEvent(new Event(changed));
+}
+export function reviewSelection() {
+  return snapshot();
 }

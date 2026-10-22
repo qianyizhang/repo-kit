@@ -1,6 +1,28 @@
 # Repo Workbench
 
-An optional repo-kit plugin for repository architecture and recorded coding-session review. Canvas is an MCP App in the current Codex chat; session review and usage run locally and export self-contained HTML. No model process, API key, account, or network service is required by the runtime.
+An optional repo-kit plugin for repository architecture and recorded coding-session review. Canvas, trace analysis and usage are MCP Apps in the current Codex chat. Each also runs standalone; session review and usage retain their offline HTML exports. No model process, API key, account, or network service is required by the runtime.
+
+## Report modes
+
+| Task                   | Codex MCP App                                                                               | Standalone                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Usage                  | `usage_open({roots?: ["/absolute/log-root"]})`                                              | `repo-workbench usage --serve` or offline export         |
+| Recorded trace         | `trace_open({session: "SESSION_ID", roots?: [...]})`, or open a row's full trace from usage | Full trace from the local usage server                   |
+| Authored evidence case | Use its standalone export                                                                   | `repo-workbench trace --repo ... --input ... --case ...` |
+
+The embedded views reuse the standalone renderers and indexed source reader.
+Full bodies and images travel through `report_app`; the iframe does not fetch
+localhost. **Discuss** freezes the question, view settings and bounded evidence;
+`report_read({requestId})` lets the current chat read it. Usage captures include
+selected recorded token totals; trace captures include at most 20 excerpts by
+thread/turn/event, with other filters recorded as context. Usage source references are limited to 20, with coverage gaps summarized. Price overrides and
+billing are excluded. Answers appear in the chat. No source log is written. Plain JSONL and zstd archives share decoded-byte hashes and lazy trace reads. All recorded dates are shown initially; explicit presets narrow them. A cold archive scan continues while the panel shows loading, and the shared disk index speeds later opens.
+
+Contexts expire on server restart or after 12 newer opens; up to 8 traces per
+context and 40 discussion captures are retained in memory. Reopen an expired
+report. Unconfirmed message delivery keeps the question and capture ID; inspect
+the chat before sending again. Builds identify both UI and server; a freshly
+built package does not refresh an already attached Codex server.
 
 ## Install
 

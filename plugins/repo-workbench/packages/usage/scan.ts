@@ -1,3 +1,4 @@
+import { compressedLog, supportedLog, logStream } from '../logs/source.ts';
 import { open, readdir, stat, mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { gzipSync, gunzipSync } from 'node:zlib';
@@ -50,7 +51,7 @@ type Entry = {
   cursor: Cursor;
 };
 export type ScanCache = Map<string, Entry>;
-const indexVersion = 3;
+const indexVersion = 4;
 export async function loadIndex(directory: string): Promise<ScanCache> {
   try {
     const index = JSON.parse(await readFile(resolve(directory, 'manifest.json'), 'utf8')) as {
@@ -104,6 +105,17 @@ export function defaultRoots(): string[] {
   const home = process.env.CODEX_HOME || resolve(homedir(), '.codex');
   return [resolve(home, 'sessions'), resolve(home, 'archived_sessions')];
 }
+export function usageIndexPath(roots: string[], directory?: string) {
+  const key = createHash('sha256')
+    .update(JSON.stringify([...roots].sort()))
+    .digest('hex')
+    .slice(0, 20);
+  return resolve(
+    directory ??
+      resolve(process.env.XDG_CACHE_HOME ?? resolve(homedir(), '.cache'), 'repo-workbench/usage'),
+    key,
+  );
+}
 function counters(v: unknown): Tokens | null {
   const r = obj(v);
   if (r.input_tokens === undefined || r.output_tokens === undefined) return null;
@@ -144,6 +156,7 @@ async function parseFile(
   const handle = await open(path, 'r');
   const before = await handle.stat();
   const append =
+    !compressedLog(path) &&
     previous &&
     before.size > previous.size &&
     before.ino === previous.ino &&
@@ -170,15 +183,13 @@ async function parseFile(
   let project = prior?.cursor.context.project ?? 'Unknown';
   const contexts = new Map<string, Context>(prior?.cursor.contexts);
   const digest = new AppendHash(prior?.cursor.hash);
+  const archiveDigest = compressedLog(path) ? createHash('sha256') : undefined;
   const offset = prior?.cursor.offset ?? 0;
   const start = Math.min(offset, prior?.cursor.hash.bytes ?? 0);
   let position = start;
   let committed = offset;
   let pending: Buffer = Buffer.alloc(0);
-  const stream =
-    before.size > start
-      ? handle.createReadStream({ start, end: before.size - 1, autoClose: false })
-      : null;
+  const stream = before.size > start ? logStream(handle, path, start, before.size - 1) : null;
   function parseLine(line: string) {
     source.lines++;
     if (!line.trim()) return;
@@ -259,7 +270,8 @@ async function parseFile(
     if (stream)
       for await (const raw of stream) {
         const chunk = raw as Buffer;
-        digest.update(chunk.subarray(Math.max(0, (prior?.cursor.hash.bytes ?? 0) - position)));
+        if (archiveDigest) archiveDigest.update(chunk);
+        else digest.update(chunk.subarray(Math.max(0, (prior?.cursor.hash.bytes ?? 0) - position)));
         const parseBytes = chunk.subarray(Math.max(0, offset - position));
         position += chunk.length;
         pending = pending.length ? Buffer.concat([pending, parseBytes]) : parseBytes;
@@ -284,7 +296,12 @@ async function parseFile(
     };
     // A valid unterminated line is provisional; retry it from its beginning on append.
     if (pending.length) parseLine(pending.toString('utf8'));
-    source.sha256 = digest.hex();
+    source.sha256 = archiveDigest ? archiveDigest.digest('hex') : digest.hex();
+    source.bytes = archiveDigest ? position : digest.state().bytes;
+    if (compressedLog(path)) {
+      source.encoding = 'zstd';
+      source.storedBytes = before.size;
+    }
     const after = await handle.stat();
     if (
       after.size < before.size ||
@@ -314,14 +331,14 @@ async function parseFile(
 async function discover(root: string, gaps: Gap[]): Promise<string[]> {
   try {
     const info = await stat(root);
-    if (info.isFile()) return root.endsWith('.jsonl') ? [root] : [];
+    if (info.isFile()) return supportedLog(root) ? [root] : [];
     const files: string[] = [];
     for (const entry of (await readdir(root, { withFileTypes: true })).sort((a, b) =>
       a.name.localeCompare(b.name),
     )) {
       const path = resolve(root, entry.name);
       if (entry.isDirectory()) files.push(...(await discover(path, gaps)));
-      else if (entry.isFile() && entry.name.endsWith('.jsonl')) files.push(path);
+      else if (entry.isFile() && supportedLog(entry.name)) files.push(path);
     }
     return files;
   } catch (e) {

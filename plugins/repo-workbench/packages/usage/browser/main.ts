@@ -31,8 +31,15 @@ async function main() {
   const data = await new Response(
     new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')),
   ).text();
-  let snapshot = JSON.parse(data) as Snapshot;
   encoded.remove();
+  mountUsage(JSON.parse(data) as Snapshot);
+}
+export interface UsageHost {
+  refresh(): Promise<Snapshot>;
+  openTrace: (session: string) => void;
+}
+export function mountUsage(initial: Snapshot, host?: UsageHost) {
+  let snapshot = initial;
   let prices: Prices = parsePrices(officialPrices);
   const storageKey = 'codex-offline-usage-prices-v2';
   try {
@@ -69,6 +76,7 @@ async function main() {
   let sortKey = 'tokens';
   let sortDirection = -1;
   const openEvidence = createEvidenceDrawer({
+    openTrace: host?.openTrace,
     snapshot: () => snapshot,
     prices: () => prices,
     timezone: () => filters().timezone,
@@ -283,7 +291,7 @@ async function main() {
   function renderSources() {
     set(
       'source-summary',
-      `${snapshot.sources.length} files · ${snapshot.cachedFiles} unchanged files reused · ${snapshot.appendedFiles} appended files · ${snapshot.reindexedFiles} full scans · ${compact(snapshot.scannedBytes)} bytes scanned · ${snapshot.duplicates} duplicates ignored · ${snapshot.inherited} inherited records ignored`,
+      `${snapshot.sources.length} files (${snapshot.sources.filter((s) => s.encoding === 'zstd').length} compressed) · ${snapshot.cachedFiles} unchanged files reused · ${snapshot.appendedFiles} appended files · ${snapshot.reindexedFiles} full scans · ${compact(snapshot.scannedBytes)} bytes scanned · ${snapshot.duplicates} duplicates ignored · ${snapshot.inherited} inherited records ignored`,
     );
     set('gap-label', `Coverage gaps (${snapshot.gaps.length})`);
     const totals = element('gap-summary');
@@ -314,7 +322,7 @@ async function main() {
       d.append(
         node(
           'p',
-          `${exact(s.bytes)} bytes · ${exact(s.lines)} physical lines · ${exact(s.records)} retained events`,
+          `${exact(s.bytes)} decoded bytes${s.encoding ? ` · zstd (${exact(s.storedBytes ?? 0)} stored bytes)` : ''} · ${exact(s.lines)} physical lines · ${exact(s.records)} retained events`,
         ),
       );
       const details = node('details');
@@ -333,7 +341,12 @@ async function main() {
     else if (element('message').textContent?.startsWith('The start date')) message('');
     set(
       'updated',
-      'Scanned ' + new Date(snapshot.generatedAt).toLocaleString('en', { timeZone: f.timezone }),
+      'Recorded history · ' +
+        (snapshot.records.length
+          ? dateKey(snapshot.records[0].at, f.timezone) +
+            ' – ' +
+            dateKey(snapshot.records.at(-1)!.at, f.timezone)
+          : 'No usage records'),
     );
     set('total', compact(s.total));
     element('total').title = exact(s.total) + ' tokens';
@@ -416,7 +429,7 @@ async function main() {
   element('reset').addEventListener('click', () => {
     for (const id of ['model', 'project', 'effort', 'search']) input(id).value = '';
     message('');
-    range(30);
+    range(null);
   });
   element('previous').addEventListener('click', () => {
     page--;
@@ -445,8 +458,16 @@ async function main() {
         Object.defineProperty(proposed, model, { value: price, enumerable: true });
       }
       prices = parsePrices(proposed);
-      localStorage.setItem(storageKey, JSON.stringify(prices));
-      set('price-status', 'Saved in this browser.');
+      let persisted = true;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(prices));
+      } catch {
+        persisted = false;
+      }
+      set(
+        'price-status',
+        persisted ? 'Saved in this browser.' : 'Applied for this panel; export to retain rates.',
+      );
       render();
     } catch (e) {
       set('price-status', e instanceof Error ? e.message : String(e));
@@ -454,7 +475,11 @@ async function main() {
   });
   element('reset-prices').addEventListener('click', () => {
     prices = parsePrices(officialPrices);
-    localStorage.setItem(storageKey, JSON.stringify(prices));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(prices));
+    } catch {
+      /* Panel-local rates. */
+    }
     renderPrices();
     render();
     set('price-status', `Restored official rates checked ${priceDate}.`);
@@ -471,11 +496,18 @@ async function main() {
         const file = element<HTMLInputElement>('price-file').files?.[0];
         if (!file) return;
         const imported = parsePrices(JSON.parse(await file.text()));
-        localStorage.setItem(storageKey, JSON.stringify(imported));
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(imported));
+        } catch {
+          /* Panel-local rates. */
+        }
         prices = imported;
         renderPrices();
         render();
-        set('price-status', 'Imported and saved prices.');
+        set(
+          'price-status',
+          'Imported prices. Export to retain them when browser storage is unavailable.',
+        );
       } catch (e) {
         set('price-status', e instanceof Error ? e.message : String(e));
       } finally {
@@ -484,7 +516,7 @@ async function main() {
     })();
   });
   element('refresh').addEventListener('click', () => {
-    if (!['http:', 'https:'].includes(location.protocol)) {
+    if (!host && !['http:', 'https:'].includes(location.protocol)) {
       message(
         'This is a saved snapshot. Re-run npm run usage:dashboard, or use --serve for local refresh.',
       );
@@ -495,12 +527,16 @@ async function main() {
     message('Scanning local logs…');
     void (async () => {
       try {
-        const response = await fetch('/refresh', {
-          method: 'POST',
-          headers: { 'X-Usage-Refresh': '1' },
-        });
-        if (!response.ok) throw new Error(await response.text());
-        const data = (await response.json()) as Snapshot;
+        const data = host
+          ? await host.refresh()
+          : await (async () => {
+              const response = await fetch('/refresh', {
+                method: 'POST',
+                headers: { 'X-Usage-Refresh': '1' },
+              });
+              if (!response.ok) throw new Error(await response.text());
+              return (await response.json()) as Snapshot;
+            })();
         if (data.schemaVersion !== 1 || !Array.isArray(data.records))
           throw new Error('Invalid usage snapshot');
         snapshot = data;
@@ -520,17 +556,27 @@ async function main() {
     })();
   });
   let resizeFrame = 0;
-  window.addEventListener('resize', () => {
+  const onResize = () => {
     cancelAnimationFrame(resizeFrame);
     resizeFrame = requestAnimationFrame(() => charts.trend(selected()));
-  });
+  };
+  window.addEventListener('resize', onResize);
   populateFilters();
-  range(30);
+  range(null);
+  return {
+    selection: () => ({ filters: filters() }),
+    dispose: () => {
+      window.removeEventListener('resize', onResize);
+      cancelAnimationFrame(resizeFrame);
+      openEvidence.dispose();
+    },
+  };
 }
-void main().catch((error: unknown) => {
-  const target = document.getElementById('message');
-  if (target) {
-    target.textContent = `Could not load the offline usage report: ${error instanceof Error ? error.message : String(error)}`;
-    target.className = 'error';
-  }
-});
+if (document.getElementById('usage-data'))
+  void main().catch((error: unknown) => {
+    const target = document.getElementById('message');
+    if (target) {
+      target.textContent = `Could not load the offline usage report: ${error instanceof Error ? error.message : String(error)}`;
+      target.className = 'error';
+    }
+  });

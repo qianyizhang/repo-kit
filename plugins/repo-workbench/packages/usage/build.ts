@@ -1,15 +1,20 @@
-import { renderReview } from '../session-review/build.ts';
-import type { ReviewDocument } from '../session-review/src/model/contracts.ts';
-import { readSessionBody, normalizeSessionFile, sessionTrace } from '../trace/jsonl.ts';
+import { readSessionBody } from '../trace/jsonl.ts';
+import { createTraceReader, textBlock } from './trace-service.ts';
 import { asset } from '../runtime/assets.ts';
-import { mkdtemp, mkdir, writeFile, realpath, stat } from 'node:fs/promises';
-import { tmpdir, homedir } from 'node:os';
+import { mkdtemp, mkdir, writeFile, realpath } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { basename, resolve, sep } from 'node:path';
-import { createHash } from 'node:crypto';
 
 import { createServer, type Server } from 'node:http';
 import { gzipSync } from 'node:zlib';
-import { scan, defaultRoots, loadIndex, saveIndex, type ScanCache } from './scan.ts';
+import {
+  scan,
+  defaultRoots,
+  loadIndex,
+  saveIndex,
+  usageIndexPath,
+  type ScanCache,
+} from './scan.ts';
 import type { Snapshot } from './model.ts';
 
 export function runtime(): Promise<string> {
@@ -88,59 +93,7 @@ export function startServer(
 ): Promise<{ server: Server; url: string }> {
   let html = initial.html;
   let currentSnapshot = initial.snapshot;
-  let traceCache:
-    { key: string; promise: Promise<{ data: ReviewDocument; html: string }> } | undefined;
-  async function fullTrace(session: string) {
-    const canonical = new Map<string, Snapshot['sources'][number]>();
-    for (const source of currentSnapshot.sources) {
-      if (!source.session) continue;
-      const prior = canonical.get(source.session);
-      if (!prior || source.bytes > prior.bytes) canonical.set(source.session, source);
-    }
-    if (!canonical.has(session)) return null;
-    const selected = new Set([session]);
-    let count: number;
-    do {
-      count = selected.size;
-      for (const source of canonical.values())
-        if (selected.has(source.parent)) selected.add(source.session);
-    } while (selected.size !== count);
-    const sources = [
-      canonical.get(session)!,
-      ...[...canonical.values()].filter(
-        (source) => source.session !== session && selected.has(source.session),
-      ),
-    ];
-    const stamps = await Promise.all(
-      sources.map(async (source) => {
-        const s = await stat(source.path);
-        return [source.path, s.size, s.mtimeMs, s.ctimeMs, s.ino, s.dev];
-      }),
-    );
-    const key = JSON.stringify([session, stamps]);
-    if (traceCache?.key === key) return traceCache.promise;
-    const promise = (async () => {
-      const threads = [];
-      for (const source of sources)
-        threads.push(
-          await normalizeSessionFile(
-            source.path,
-            source.session,
-            source.session === session ? 'Selected session' : 'Child session',
-            { lazyBodies: true },
-          ),
-        );
-      const data = sessionTrace(threads, session);
-      return { data, html: await renderReview(data) };
-    })();
-    traceCache = { key, promise };
-    try {
-      return await promise;
-    } catch (error) {
-      if (traceCache?.promise === promise) traceCache = undefined;
-      throw error;
-    }
-  }
+  const fullTrace = createTraceReader(() => currentSnapshot);
   let refreshing = false;
   const server = createServer((request, response) => {
     void (async () => {
@@ -189,27 +142,8 @@ export function startServer(
           }
           const body = await readSessionBody(thread, event);
           const value = field === 'output' ? (body.output ?? '') : body.text;
-          if (offset > value.length) {
-            response.writeHead(400).end('Invalid record range');
-            return;
-          }
-          let end = Math.min(value.length, offset + 64 * 1024);
-          // Do not split a UTF-16 surrogate pair between blocks.
-          if (
-            end < value.length &&
-            value.charCodeAt(end - 1) >= 0xd800 &&
-            value.charCodeAt(end - 1) <= 0xdbff
-          )
-            end++;
           response.setHeader('Content-Type', 'application/json');
-          response.end(
-            JSON.stringify({
-              text: value.slice(offset, end),
-              offset,
-              nextOffset: end,
-              total: value.length,
-            }),
-          );
+          response.end(JSON.stringify(textBlock(value, offset)));
         } else {
           const index = Number(target.searchParams.get('image'));
           if (!target.searchParams.has('image') || !Number.isSafeInteger(index) || index < 0) {
@@ -342,15 +276,7 @@ export async function runCli(args: string[]) {
     }
   }
   const selected = roots.length ? roots : defaultRoots();
-  const key = createHash('sha256')
-    .update(JSON.stringify([...selected].sort()))
-    .digest('hex')
-    .slice(0, 20);
-  const index = resolve(
-    indexDirectory ??
-      resolve(process.env.XDG_CACHE_HOME ?? resolve(homedir(), '.cache'), 'repo-workbench/usage'),
-    key,
-  );
+  const index = usageIndexPath(selected, indexDirectory);
   const cache = await loadIndex(index);
   console.error(`Index: ${cache.size} sources restored. Scanning local logs…`);
   const result = await buildDashboard({ roots: selected, output, cache, index });

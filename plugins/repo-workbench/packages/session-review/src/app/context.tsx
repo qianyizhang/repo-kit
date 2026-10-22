@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
 import type { ReviewDocument, TraceEvent } from '../model/contracts.ts';
 import { traceActions } from '../model/actions.ts';
-import { recordSource } from '../model/data-source.ts';
+import { recordSource, type RecordSource } from '../model/data-source.ts';
 import { useReviewState } from './state.ts';
-function useModel(document: ReviewDocument) {
+function useModel(document: ReviewDocument, source?: RecordSource) {
   const [state, update] = useReviewState(!!document.curation, document.threads[0]?.id ?? '');
   const index = useMemo(() => {
     const threads = new Map(document.threads.map((t) => [t.id, t]));
@@ -15,9 +15,9 @@ function useModel(document: ReviewDocument) {
       events,
       eventMap: new Map(events.map((e) => [e.key, e])),
       actions: traceActions(events),
-      source: recordSource(document),
+      source: source ?? recordSource(document),
     };
-  }, [document]);
+  }, [document, source]);
   const review = (e: TraceEvent) =>
     e.kind === 'auto-review' || index.threads.get(e.threadId)?.purpose === 'auto-review';
   const visible = (e: TraceEvent) => state.reviews || !review(e);
@@ -37,11 +37,13 @@ const Context = createContext<ReturnType<typeof useModel> | null>(null);
 export function ReviewProvider({
   document,
   children,
+  source,
 }: {
   document: ReviewDocument;
   children: ReactNode;
+  source?: RecordSource;
 }) {
-  const model = useModel(document);
+  const model = useModel(document, source);
   return <Context value={model}>{children}</Context>;
 }
 export function useReview() {

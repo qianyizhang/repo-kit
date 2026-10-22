@@ -25,5 +25,6 @@ Repository contracts, runtimes and required checks govern their scope.
 
 Read applicable files in `$CODEX_HOME/practices` (default `~/.codex/practices`):
 `typescript.md` for TS/React, `python.md` for Python, `apple-native.md` for Apple
-apps, and `ui-ux.md` for visible flows. Before launching Chrome/Chrome for Testing
+apps, and `ui-ux.md` for visible flows. Read `mcp-apps.md` for standalone/Codex
+app integration. Before launching Chrome/Chrome for Testing
 tests on this Mac, read `macos-browser-testing.md`.

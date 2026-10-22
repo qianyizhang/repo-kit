@@ -101,6 +101,8 @@ export interface TraceThread {
   parent?: string;
   purpose?: 'auto-review';
   source: {
+    encoding?: 'zstd';
+    storedBytes?: number;
     name: string;
     format: string;
     version: number;

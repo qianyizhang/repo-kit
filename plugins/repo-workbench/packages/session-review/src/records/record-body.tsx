@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { TraceEvent, ThreadRead } from '../model/contracts.ts';
 import { useReview } from '../app/context.tsx';
 import { RecordText, RichText } from './record-text.tsx';
 import { WebResult } from './native-records.tsx';
 export function RecordBody({ event: e, images = true }: { event: TraceEvent; images?: boolean }) {
-  const { source, state } = useReview();
+  const { state } = useReview();
   const [imagesOpen, setImagesOpen] = useState(false);
   return (
     <>
@@ -47,16 +47,7 @@ export function RecordBody({ event: e, images = true }: { event: TraceEvent; ima
           <summary>Recorded images ({e.body.imageCount})</summary>
           {imagesOpen &&
             Array.from({ length: e.body.imageCount }, (_, i) => (
-              <img
-                key={i}
-                src={source.image(e, i)}
-                alt="Image retained in this trace record"
-                loading="lazy"
-                onError={(ev) => {
-                  ev.currentTarget.alt =
-                    'Image unavailable; reopen the trace if the source changed.';
-                }}
-              />
+              <LazyImage key={i} event={e} index={i} />
             ))}
         </details>
       )}
@@ -80,19 +71,23 @@ export function RecordedImages({ event, captions }: { event: TraceEvent; caption
       {urls.map((url, index) => (
         <figure key={index}>
           <a href={url} target="_blank" rel="noreferrer" title="Open retained image">
-            <img
-              src={url}
-              alt={
-                urls.length === 1 && captions.length === 1
-                  ? captions[0].split('/').at(-1)
-                  : `Retained image ${index + 1}`
-              }
-              loading="lazy"
-              onError={(ev) => {
-                ev.currentTarget.alt =
-                  'Retained image unavailable; reopen the trace if its source changed.';
-              }}
-            />
+            {event.body && source.loadImage ? (
+              <LazyImage event={event} index={index} />
+            ) : (
+              <img
+                src={url}
+                alt={
+                  urls.length === 1 && captions.length === 1
+                    ? captions[0].split('/').at(-1)
+                    : `Retained image ${index + 1}`
+                }
+                loading="lazy"
+                onError={(ev) => {
+                  ev.currentTarget.alt =
+                    'Retained image unavailable; reopen the trace if its source changed.';
+                }}
+              />
+            )}
           </a>
           <figcaption>
             {urls.length === 1 && captions.length === 1
@@ -157,5 +152,33 @@ function ThreadReadOverview({ value }: { value: ThreadRead }) {
         </section>
       ))}
     </section>
+  );
+}
+
+function LazyImage({ event, index }: { event: TraceEvent; index: number }) {
+  const { source } = useReview();
+  const [url, setUrl] = useState<string | undefined>(source.image(event, index));
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    if (source.loadImage)
+      void source
+        .loadImage(event, index)
+        .then((value) => {
+          if (active) setUrl(value);
+        })
+        .catch((e: unknown) => {
+          if (active) setError(String(e));
+        });
+    return () => {
+      active = false;
+    };
+  }, [source, event, index]);
+  return error ? (
+    <p role="alert">{error}</p>
+  ) : url ? (
+    <img src={url} alt="Image retained in this trace record" loading="lazy" />
+  ) : (
+    <p role="status">Loading image…</p>
   );
 }

@@ -1,0 +1,48 @@
+/* Shared report palette. Standalone follows the OS; an MCP host sets data-theme. */
+:root {
+  color-scheme: light dark;
+  --canvas: light-dark(#f5f6f7, #181c22);
+  --panel: light-dark(#ffffff, #222831);
+  --ink: light-dark(#202830, #e5eaf0);
+  --muted: light-dark(#626e7b, #a9b4c2);
+  --border: light-dark(#dce1e7, #414b59);
+  --line: var(--border);
+  --hover: light-dark(#eef2f5, #2d3744);
+  --accent: light-dark(#246b5a, #8bd0b6);
+  --on-accent: light-dark(#ffffff, #172820);
+  --selected: light-dark(#e5f1ec, #28453d);
+  --selected-ink: light-dark(#205844, #b0ebd3);
+  --warning: light-dark(#8e5d1c, #e5bb77);
+  --warning-bg: light-dark(#fff9ef, #392d1f);
+  --danger: light-dark(#a63c3c, #f29a9a);
+  --info: light-dark(#315e9c, #91baf5);
+  --violet: light-dark(#8751a3, #c9a8e8);
+  --tooltip-bg: light-dark(#202830, #e5eaf0);
+  --tooltip-ink: light-dark(#ffffff, #202830);
+  --heat-0: var(--hover);
+  --heat-1: light-dark(#d0e5d5, #304d41);
+  --heat-2: light-dark(#94bfa3, #47795f);
+  --heat-3: light-dark(#57956d, #65a483);
+  --heat-4: light-dark(#276344, #8bd0b6);
+  --green: var(--accent);
+  --read: light-dark(#83b79a, #75b69a);
+  --write: light-dark(#bc9146, #d4ae64);
+  --purple: light-dark(#8070a2, #aa91d0);
+  --output: light-dark(#b3a6c8, #d1bde8);
+  color: var(--ink);
+  background: var(--canvas);
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}

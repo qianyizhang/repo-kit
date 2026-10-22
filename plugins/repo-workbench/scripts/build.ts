@@ -44,6 +44,7 @@ const html = read('index.html')
     (_tag, path: string) => `<style>${read(path).replace(/<\/style/gi, '<\\/style')}</style>`,
   );
 await writeFile(resolve(assets, 'canvas.html'), html);
+const reportTheme = await readFile(resolve(root, 'packages/reports/theme.css'), 'utf8');
 const review = await outputs({
   configFile: resolve(root, 'packages/session-review/vite.config.ts'),
   logLevel: 'warn',
@@ -81,12 +82,28 @@ for (const [source, dest] of [
 ])
   await writeFile(
     resolve(assets, dest),
-    await readFile(resolve(root, 'packages/usage/browser', source)),
+    (source === 'styles.css' ? reportTheme : '') +
+      (await readFile(resolve(root, 'packages/usage/browser', source), 'utf8')),
   );
+const reportApp = await bundle({
+  write: false,
+  input: resolve(root, 'packages/reports/app.ts'),
+  platform: 'browser',
+  transform: { define: { WORKBENCH_BUILD: JSON.stringify(buildId) } },
+  output: { format: 'iife', codeSplitting: false },
+});
+const reportScript = reportApp.output.find((item) => item.type === 'chunk');
+if (!reportScript || reportScript.type !== 'chunk') throw new Error('Missing report app bundle');
+const usageTemplate = await readFile(resolve(assets, 'usage.html'), 'utf8');
+const body = /<body>([\s\S]*)<\/body>/.exec(usageTemplate)?.[1];
+if (!body) throw new Error('Missing usage template');
+const reportHTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Repo Workbench reports</title><style id="usage-style">${await readFile(resolve(assets, 'usage.css'), 'utf8')}</style><style id="trace-style" media="not all">${await readFile(resolve(assets, 'review.css'), 'utf8')}</style><style>${await readFile(resolve(root, 'packages/reports/styles.css'), 'utf8')}</style></head><body><div id="report-toolbar"><button id="report-back" hidden>Back to usage</button><span id="report-status" role="status">Connecting…</span><input id="report-question" aria-label="Discuss this view" placeholder="Ask about this view" maxlength="4000"><button id="report-send" disabled>Discuss</button></div><div id="usage-view" hidden>${body}</div><div id="root" hidden></div><script>${reportScript.code.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+await writeFile(resolve(assets, 'reports.html'), reportHTML);
 await bundle({
   input: {
     cli: resolve(root, 'packages/runtime/cli.ts'),
     'canvas-server': resolve(root, 'packages/repo-canvas/src/server/stdio.ts'),
+    'reports-server': resolve(root, 'packages/reports/stdio.ts'),
   },
   platform: 'node',
   external: [/^node:/],

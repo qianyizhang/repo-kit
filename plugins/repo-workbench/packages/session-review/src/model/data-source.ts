@@ -13,6 +13,7 @@ export interface RecordSource {
     signal: AbortSignal,
   ): Promise<TextBlock>;
   image(event: TraceEvent, index: number): string | undefined;
+  loadImage?(event: TraceEvent, index: number): Promise<string>;
   manifest: string;
 }
 /** Embedded exports and bounded, byte-pinned local reads implement the same interface. */

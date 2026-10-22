@@ -1,3 +1,4 @@
+import { compressedLog, logStream, readLogRanges } from '../logs/source.ts';
 import { readQuestions, questionResult, linkCompactions } from './native-tools.ts';
 import { toolSignature, toolSignatures, wrapperTools } from './tool-signatures.ts';
 import { semanticOperation, linkSemanticActions } from './semantic-links.ts';
@@ -12,7 +13,7 @@ import {
 import { classifyRequest } from './classify.ts';
 import { completedEvent } from './completed.ts';
 import { open } from 'node:fs/promises';
-import type { ReadStream } from 'node:fs';
+import type { Readable } from 'node:stream';
 import { createHash } from 'node:crypto';
 import type { TraceEvent, TraceThread, Omission, ReviewDocument } from './contracts.ts';
 import { eventKey } from './normalize.ts';
@@ -48,7 +49,7 @@ function content(value: unknown): { text: string; images: string[] } {
 }
 const bodyPreviewSize = 1200;
 /** Keep byte offsets exact for UTF-8, CRLF, blank lines and unterminated tails. */
-async function* sourceLines(stream: ReadStream) {
+async function* sourceLines(stream: Readable) {
   let parts: Buffer[] = [],
     size = 0,
     offset = 0;
@@ -138,32 +139,19 @@ function observableBody(data: Obj): RecordBody | null {
 /** Read only the pinned observable record, never a request-supplied file path. */
 export async function readSessionBody(thread: TraceThread, event: TraceEvent): Promise<RecordBody> {
   if (!event.body || !thread.source.path) throw new Error('Record body is not indexed.');
-  const handle = await open(thread.source.path, 'r');
-  try {
-    let result: RecordBody | null = null;
-    for (const source of event.body.sources) {
-      const buffer = Buffer.alloc(source.bytes);
-      let read = 0;
-      while (read < buffer.length) {
-        const next = await handle.read(buffer, read, buffer.length - read, source.offset + read);
-        if (!next.bytesRead) break;
-        read += next.bytesRead;
-      }
-      if (
-        read !== buffer.length ||
-        createHash('sha256').update(buffer).digest('hex') !== source.sha256
-      )
-        throw new Error('Source record changed. Reopen the trace to refresh it.');
-      const body = observableBody(object(JSON.parse(buffer.toString('utf8'))));
-      if (!body) throw new Error('This payload is unavailable.');
-      if (!result) result = body;
-      else result.imageUrls = [...new Set([...result.imageUrls, ...body.imageUrls])];
-    }
-    if (!result) throw new Error('Record body is unavailable.');
-    return result;
-  } finally {
-    await handle.close();
+  const buffers = await readLogRanges(thread.source.path, event.body.sources);
+  let result: RecordBody | null = null;
+  for (const [i, source] of event.body.sources.entries()) {
+    const buffer = buffers[i];
+    if (createHash('sha256').update(buffer).digest('hex') !== source.sha256)
+      throw new Error('Source record changed. Reopen the trace to refresh it.');
+    const body = observableBody(object(JSON.parse(buffer.toString('utf8'))));
+    if (!body) throw new Error('This payload is unavailable.');
+    if (!result) result = body;
+    else result.imageUrls = [...new Set([...result.imageUrls, ...body.imageUrls])];
   }
+  if (!result) throw new Error('Record body is unavailable.');
+  return result;
 }
 
 /** Stream one bounded local source into the existing observable-event contract. */
@@ -176,6 +164,7 @@ export async function normalizeSessionFile(
   const handle = await open(path, 'r');
   const before = await handle.stat();
   const hash = createHash('sha256');
+  let decodedBytes = 0;
   const thread: TraceThread = {
     id: expectedSession,
     title: expectedSession,
@@ -219,12 +208,13 @@ export async function normalizeSessionFile(
     group.count++;
     group.refs.push({ thread: expectedSession, turn: turnId, event: id, ordinal: line });
   };
-  const stream = before.size
-    ? handle.createReadStream({ start: 0, end: before.size - 1, autoClose: false })
-    : null;
+  const stream = before.size ? logStream(handle, path, 0, before.size - 1) : null;
   try {
     if (stream) {
-      stream.on('data', (bytes: string | Buffer) => hash.update(bytes));
+      stream.on('data', (bytes: Buffer) => {
+        hash.update(bytes);
+        decodedBytes += bytes.length;
+      });
       for await (const record of sourceLines(stream)) {
         const { raw } = record;
         line++;
@@ -673,6 +663,11 @@ export async function normalizeSessionFile(
     if (!identityVerified)
       throw new Error('Trace source lacks session metadata; refresh the usage dashboard.');
     thread.source.sha256 = hash.digest('hex');
+    thread.source.bytes = decodedBytes;
+    if (compressedLog(path)) {
+      thread.source.encoding = 'zstd';
+      thread.source.storedBytes = before.size;
+    }
     thread.source.lines = line;
     const after = await handle.stat();
     if (

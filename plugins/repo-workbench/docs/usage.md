@@ -1,6 +1,6 @@
 # Offline Codex usage dashboard
 
-A standalone local tool for analyzing Codex JSONL session logs without proxies, accounts, or network calls.
+A local tool for analyzing Codex JSONL session logs and `.jsonl.zst` archives without proxies, accounts, or network calls.
 
 ## Quick start
 
@@ -23,6 +23,8 @@ repo-workbench usage --root /path/to/sessions --serve --port 4382
 npm test
 npm run test:browser -- tests/browser/usage-dashboard.spec.ts
 ```
+
+Both modes initially show all recorded dates. The display follows the OS color mode standalone and the host color mode in Codex. Compressed sources show decoded and stored sizes; hashes and record offsets refer to decoded JSONL. Damaged archives appear as coverage gaps.
 
 Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`.
 

@@ -6,6 +6,12 @@
       "command": "node",
       "args": ["${PLUGIN_ROOT}/dist/canvas-server.mjs"],
       "cwd": "${PLUGIN_ROOT}"
+    },
+    "workbench_reports": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/dist/reports-server.mjs"],
+      "cwd": "${PLUGIN_ROOT}"
     }
   }
 }

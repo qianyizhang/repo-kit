@@ -85,7 +85,7 @@ export function createCharts(options: {
     const max = measure === 'reasoning' ? 100 : Math.max(...values, 1);
     for (let i = 0; i <= 4; i++) {
       const y = top + plotHeight * (1 - i / 4);
-      svgNode('line', { x1: left, x2: width - right, y1: y, y2: y, stroke: '#e8eee7' });
+      svgNode('line', { x1: left, x2: width - right, y1: y, y2: y, stroke: 'var(--border)' });
       const label = svgNode('text', { x: left - 8, y: y + 4, 'text-anchor': 'end' });
       label.textContent =
         measure === 'reasoning'
@@ -102,11 +102,11 @@ export function createCharts(options: {
       const components =
         measure === 'tokens'
           ? ([
-              [s.tokens.input - s.tokens.cached - s.tokens.write, '#347353'],
-              [s.tokens.cached, '#83b79a'],
-              [s.tokens.write, '#d4ae64'],
-              [s.tokens.output - s.tokens.reasoning, '#b3a6c8'],
-              [s.tokens.reasoning, '#8070a2'],
+              [s.tokens.input - s.tokens.cached - s.tokens.write, 'var(--green)'],
+              [s.tokens.cached, 'var(--read)'],
+              [s.tokens.write, 'var(--write)'],
+              [s.tokens.output - s.tokens.reasoning, 'var(--output)'],
+              [s.tokens.reasoning, 'var(--purple)'],
             ] as const)
           : ([
               [
@@ -115,7 +115,7 @@ export function createCharts(options: {
                   : measure === 'events'
                     ? s.events
                     : s.knownCost,
-                '#347353',
+                'var(--green)',
               ],
             ] as const);
       for (const [value, color] of components) {
@@ -171,11 +171,11 @@ export function createCharts(options: {
     const entries =
       measure === 'tokens'
         ? [
-            ['Uncached input', '#347353'],
-            ['Cache read', '#83b79a'],
-            ['Cache write', '#d4ae64'],
-            ['Visible output', '#b3a6c8'],
-            ['Reasoning output', '#8070a2'],
+            ['Uncached input', 'var(--green)'],
+            ['Cache read', 'var(--read)'],
+            ['Cache write', 'var(--write)'],
+            ['Visible output', 'var(--output)'],
+            ['Reasoning output', 'var(--purple)'],
           ]
         : [
             [
@@ -184,7 +184,7 @@ export function createCharts(options: {
                 : measure === 'cost'
                   ? 'Priced subtotal · USD'
                   : 'Usage events',
-              '#347353',
+              'var(--green)',
             ],
           ];
     for (const [text, color] of entries) {
@@ -212,7 +212,13 @@ export function createCharts(options: {
     const container = element('heatmap');
     container.replaceChildren();
     const maxima = Math.max(1, ...[...daily.values()].map((r) => summarize(r, prices).total));
-    const colors = ['#edf1ec', '#d0e5d5', '#94bfa3', '#57956d', '#276344'];
+    const colors = [
+      'var(--heat-0)',
+      'var(--heat-1)',
+      'var(--heat-2)',
+      'var(--heat-3)',
+      'var(--heat-4)',
+    ];
     let week: HTMLElement | null = null;
     const padding = new Date(startTime).getUTCDay();
     for (let i = -padding; i < 182; i++) {
