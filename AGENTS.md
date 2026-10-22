@@ -1,5 +1,8 @@
 # Repo-kit
 
+Use `$CODEX_HOME/AGENTS.md` (default `~/.codex/AGENTS.md`) and its practice guides
+when present; local contracts and checks below still apply.
+
 - Personal defaults: follow [instruction maintenance](docs/user-instructions.md).
 - Shared skills: follow [skill maintenance](docs/skill-suite.md).
 - Governance delivery: `template/` and `copier.yml` own managed files and seeds.
@@ -11,5 +14,5 @@ Promotion, merges, rebases, deletion, worktree removal, tags, pushes and consume
 updates require authorization for that action. Reuse authorization already given.
 
 For ownership changes, read [the model](docs/models.md).
-Before closing a change, run the applicable [verification](README.md#verify-repo-kit)
-and use `finish-work`. Keep unrelated changes outside the commit.
+Before closing, use `finish-work` and run the applicable
+[checks](README.md#verify-repo-kit).

@@ -42,5 +42,10 @@ unexpected edits. Replacements are individually atomic, not a whole-bundle
 transaction or a lock against concurrent writers. Roll back by restoring source
 and syncing. Restart chats whose host caches instructions.
 
+Repos keep local contracts in `AGENTS.md` and point to the installed core. Remove
+copied defaults and stale shared-skill copies during updates. From each affected
+root or nested scope, use `codex debug prompt-input` to check that a fresh run
+loads both the personal core and local instructions.
+
 Run root verification after delivery changes; use representative tasks to assess
 instruction quality. Passing structural tests does not establish agent compliance.
