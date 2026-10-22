@@ -1,11 +1,3 @@
----
-description: Python types, boundaries and effects.
-scope: python practices
-status: stable
-last_update: 2026-10-22
-document_class: coordination
----
-
 # Python
 
 - Follow the supported interpreter and existing tool configuration, including

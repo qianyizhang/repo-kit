@@ -78,7 +78,7 @@ establish these limits, not an assessment of the whole suite's runtime behavior.
 ## Primary references and scope
 
 Topic guides link primary references; this dated review records scope. Sources
-includes TypeScript/compiler and typescript-eslint documentation, React state
+include TypeScript/compiler and typescript-eslint documentation, React state
 modeling, Python typing/PEP 8/PyPA/Ruff, Swift API/concurrency guidance, Apple HIG
 and testing/accessibility documentation, and W3C WCAG/WAI evaluation guidance.
 Google's TS guide explicitly notes Google-specific constraints and volunteer,
@@ -95,8 +95,8 @@ communication. Topic pages add only relevant technical/UI judgment. Repo contrac
 and checks retain bespoke constraints. Existing workflows consult these defaults;
 no additional orchestration skill, per-run ledger or background updater was added.
 
-Portable Python wording about `Mapping`, `Any`/`object`, runtime scope and schema
-selection is corrected at its existing template owner. This does not update consumer copies. Other stale skill
+Python guidance now lives in personal practices; Copier delivers governance and
+tool configuration. Existing consumer copies remain untouched. Other stale skill
 bindings and compiler migrations remain separately scoped candidates.
 
 Manual walkthroughs compared the written defaults with these surveyed cases;

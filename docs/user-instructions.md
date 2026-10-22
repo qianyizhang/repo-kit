@@ -5,8 +5,7 @@
 | Source | Installed path under `CODEX_HOME` |
 | --- | --- |
 | [Personal core](../user/AGENTS.md) | `AGENTS.md` |
-| [TS/React](../user/practices/typescript.md), [Apple](../user/practices/apple-native.md), [UI/UX](../user/practices/ui-ux.md) | `practices/<name>.md` |
-| [Python](../template/docs/rules/python.md) — shared with Copier | `practices/python.md` |
+| [Practice guides](../user/practices/) | `practices/<name>.md` |
 
 Keep one source per rule. Put mechanical constraints in code/config/tests,
 portable judgment in a guide, cross-project agreements in the core, and bespoke
@@ -15,6 +14,7 @@ meaning in the repo. Skills own procedures. Delete text that changes no decision
 For additions, identify the failure they prevent, merge with the owning rule,
 retain necessary exceptions, and review source/version and meaningful examples.
 Keep dated research and attribution in [the source review](reviews/2026-10-22-practice-library.md).
+For vocabulary choices, use [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf).
 
 ## Sync
 

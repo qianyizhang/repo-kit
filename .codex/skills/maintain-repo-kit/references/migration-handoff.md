@@ -16,7 +16,9 @@ this runbook prepares an attributable update and preserves consumer authority.
    separate user installation. Preserve consumer-specific skills and edits before
    Copier retires old generic copies. Governance seeds remain consumer-owned.
 4. Classify existing consumer edits as portable evidence, local binding, or
-   obsolete before Copier can replace a formerly seeded core.
+   obsolete before Copier can replace a formerly seeded core. Before Python
+   guidance leaves the template, preserve local additions to `docs/rules/python.md`
+   in their repo-owned rules and remove stale navigation links.
 5. Reconcile the new coordination paths into consumer-owned configuration and
    navigation: allow advisory Campaigns under `records/campaigns/` and handoffs
    or claim ledgers under `records/reports/`; add local routes only when useful.

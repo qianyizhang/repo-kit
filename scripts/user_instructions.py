@@ -44,27 +44,16 @@ def managed_path(home: Path, name: str) -> Path:
     return home / name
 
 
-def source_files(root: Path) -> dict[str, Path]:
+def source_bundle(root: Path) -> dict[str, bytes]:
     directory = root / "user"
     real_directory(directory)
     real_directory(directory / "practices")
-    sources = {
-        "AGENTS.md": directory / "AGENTS.md",
-        "practices/python.md": root / "template/docs/rules/python.md",
-    }
+    names = ["AGENTS.md"]
     if (directory / "practices").exists():
-        for path in sorted((directory / "practices").iterdir()):
-            name = f"practices/{path.name}"
-            if name in sources:
-                raise ValueError(f"Duplicate instruction source: {name}; edit {sources[name]}")
-            sources[name] = managed_path(directory, name)
-    return sources
-
-
-def source_bundle(root: Path) -> dict[str, bytes]:
+        names.extend(f"practices/{path.name}" for path in sorted((directory / "practices").iterdir()))
     content = {}
-    for name, path in source_files(root).items():
-        data = read_file(path)
+    for name in names:
+        data = read_file(managed_path(directory, name))
         if data is None or not data.strip():
             raise ValueError(f"User instruction source is missing or empty: {name}")
         data.decode("utf-8")
@@ -187,7 +176,7 @@ def sync(
                             (actual[name] or b"").decode("utf-8").splitlines(True),
                             data.decode("utf-8").splitlines(True),
                             fromfile=str(home / name),
-                            tofile=str(source_files(root)[name]),
+                            tofile=str(root / "user" / name),
                         )
                     ),
                     end="",

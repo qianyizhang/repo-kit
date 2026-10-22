@@ -106,8 +106,8 @@ For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a
 reviewed candidate index; use a disposable checkout to exclude unrelated staging.
 For user instructions, review `diff`, run `sync`, then `check`.
 For executable workbench changes, use Node 24.21+ and run `npm run check` and
-`npm run test:browser` in `plugins/repo-workbench`. Browser tests on this Mac need
-approved execution outside the restricted sandbox and disposable profiles.
+`npm run test:browser` in `plugins/repo-workbench`. For browser tests on this Mac,
+read [Mac browser testing](user/practices/macos-browser-testing.md).
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
 slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)

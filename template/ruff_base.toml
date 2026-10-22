@@ -1,4 +1,4 @@
-# Ruff doctrine defaults (docs/rules/python.md) — extended by pyproject.toml
+# Shared Ruff defaults — extended by pyproject.toml
 # [tool.ruff]. Repo-specific `ignore` exceptions belong in pyproject, not here.
 line-length = 120
 target-version = "py312"

@@ -39,9 +39,8 @@ Unavailable provenance produces an incomplete survey and a nonzero exit.
 
 ### Personal core and practice guides
 
-For `user/` or the shared Python source at `template/docs/rules/python.md`, follow
-[instruction maintenance](../../../docs/user-instructions.md) for intake, sync
-and recovery.
+For `user/`, follow [instruction maintenance](../../../docs/user-instructions.md)
+for intake, sync and recovery.
 
 ### Local branches and worktrees
 

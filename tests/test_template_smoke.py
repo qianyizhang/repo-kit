@@ -149,6 +149,7 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         ]
         self.assertIn("AGENTS.md", authority)
         self.assertNotIn("CLAUDE.md", authority)
+        self.assertFalse((destination / "docs/rules/python.md").exists())
 
         run(sys.executable, "scripts/bootstrap_agents.py", cwd=destination)
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
@@ -252,6 +253,7 @@ document_class: coordination
         self.assertIn(local_marker, glossary.read_text(encoding="utf-8"))
         self.assertIn(local_setting, config_path.read_text(encoding="utf-8"))
         self.assertFalse((destination / ".codex/skills/handoff/SKILL.md").exists())
+        self.assertFalse((destination / "docs/rules/python.md").exists())
         run(sys.executable, "scripts/bootstrap_agents.py", cwd=destination)
         before = subprocess.run(
             [sys.executable, "scripts/check_docs.py"], cwd=destination, text=True, capture_output=True, check=False
