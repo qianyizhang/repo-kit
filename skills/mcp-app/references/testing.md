@@ -22,6 +22,7 @@ certification. Keep a lockfile from the chosen package manager before delivery.
 | Standalone         | Domain operations work over HTTP with no host; conversation action unavailable and copy/export useful            |
 | Lifecycle          | Teardown/switch blocks stale completions; closing panel makes no false host cancellation claim                   |
 | Host               | Real SDK AppBridge, opaque iframe origin, restrictive CSP, unsupported capabilities, theme and narrow layout     |
+| Dialog dismissal   | In an SDK host iframe without `allow-forms`, click every Close/Cancel control (including icons) and press Escape; assert dismissal and focus return without submission, navigation or domain writes, including with incomplete required fields |
 
 Unit tests own state/payload/log invariants. Protocol tests spawn the built stdio
 server and inspect actual tools/resources. Browser tests exercise real UI actions

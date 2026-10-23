@@ -135,6 +135,10 @@ test("missing message capability, narrow dark layout and local teardown are expl
 }) => {
   await page.setViewportSize({ width: 390, height: 950 });
   await page.goto("http://127.0.0.1:4398/?limited");
+  await expect(page.locator("iframe")).toHaveAttribute(
+    "sandbox",
+    "allow-scripts",
+  );
   const app = page.frameLocator("iframe");
   await app.locator("#draft").fill("hi");
   await expect(app.locator("#send")).toBeDisabled();
@@ -151,6 +155,16 @@ test("missing message capability, narrow dark layout and local teardown are expl
     fullPage: true,
   });
   await app.locator("#close-info").click();
+  await expect(app.locator("#diagnostics")).not.toBeVisible();
+  await expect(
+    app.getByRole("button", { name: "App info", exact: true }),
+  ).toBeFocused();
+  await app.getByRole("button", { name: "App info", exact: true }).click();
+  await app.locator("#close-info").press("Escape");
+  await expect(app.locator("#diagnostics")).not.toBeVisible();
+  await expect(
+    app.getByRole("button", { name: "App info", exact: true }),
+  ).toBeFocused();
   await page.locator("#teardown").click();
   await expect(app.locator("#connection")).toContainText("not cancelled");
 });

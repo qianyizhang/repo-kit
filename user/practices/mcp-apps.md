@@ -44,6 +44,10 @@ commands and exceptions in the product repository.
 - **Sandbox assumptions:** iframe localhost fetches, relative assets, localStorage
   and History APIs may fail. Use the host bridge; keep view state usable without
   storage, and route external links through the host when embedded.
+- **Blocked dialog controls:** a sandbox without `allow-forms` can block
+  `<form method="dialog">` submission, leaving Close/Cancel inert. Use
+  `type="button"` controls that call `dialog.close()`. Test dismissal in the
+  actual sandbox configuration, including Escape and focus return.
 - **False success:** transport success can contain `isError`. Parse the result.
   Message acknowledgment means accepted delivery, not a completed model reply.
   On timeout, show uncertain delivery and preserve the draft and selected context;
