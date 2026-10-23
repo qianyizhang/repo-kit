@@ -1,16 +1,28 @@
-import { summarize, estimate, type UsageRecord, type Prices, type Snapshot } from '../model.ts';
+import {
+  summarize,
+  estimate,
+  type UsageRecord,
+  type Prices,
+  type UsageData,
+  type UsageRow,
+} from '../model.ts';
 import { element, set, node, exact, money } from './dom.ts';
 export function createEvidenceDrawer(options: {
-  snapshot: () => Snapshot;
+  snapshot: () => UsageData;
+  loadRecords?: (rows: UsageRow[]) => Promise<UsageRecord[]>;
   openTrace?: (session: string) => void;
   prices: () => Prices;
   timezone: () => string;
 }) {
   let isOpen = false;
+  let selected: UsageRow[] = [];
+  let generation = 0;
   let focusBefore: HTMLElement | null = null;
-  function openEvidence(records: UsageRecord[], title: string) {
+  function openEvidence(records: UsageRow[], title: string) {
+    const current = ++generation;
     focusBefore = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     isOpen = true;
+    selected = records;
     const snapshot = options.snapshot(),
       prices = options.prices();
     set('evidence-title', title);
@@ -72,54 +84,72 @@ export function createEvidenceDrawer(options: {
       content.append(d);
     }
     // Keep very large usage summaries responsive; full history opens in the trace visualizer.
-    const shown = records
-      .slice()
-      .sort((a, b) => b.at.localeCompare(a.at))
-      .slice(0, 100);
-    for (const r of shown) {
-      const d = node('div', '', 'record');
-      d.append(
-        node(
-          'p',
-          new Date(r.at).toLocaleString('en', { timeZone: options.timezone() }) +
-            ' · ' +
-            r.model +
-            ' · ' +
-            r.effort,
-        ),
-      );
-      d.append(
-        node(
-          'p',
-          `Input ${exact(r.tokens.input)} (read ${exact(r.tokens.cached)}, write ${exact(r.tokens.write)}) · output ${exact(r.tokens.output)} (reasoning ${exact(r.tokens.reasoning)})`,
-        ),
-      );
-      const cost = estimate(r, prices);
-      d.append(
-        node(
-          'p',
-          `${cost === null ? 'Unpriced' : money(cost) + ' estimated'} · ${r.method === 'response' ? 'Per-response record' : r.method === 'snapshot' ? 'Last-request snapshot' : 'Cumulative delta'}`,
-        ),
-      );
-      d.append(node('code', `${r.source}:${r.line}`));
-      const detail = node('details');
-      detail.append(node('summary', 'Normalized record'));
-      detail.append(node('pre', JSON.stringify(r, null, 2)));
-      d.append(detail);
-      content.append(d);
-    }
-    if (records.length > shown.length)
-      content.append(
-        node(
-          'p',
-          `Showing ${shown.length} of ${records.length} records. Open full trace for complete available session history.`,
-          'caption',
-        ),
-      );
+    const loading = node('p', 'Loading source records…', 'caption');
+    content.append(loading);
+    const sourceRecords = options.loadRecords
+      ? options.loadRecords(records)
+      : Promise.resolve(records.filter((r): r is UsageRecord => 'line' in r));
+    void sourceRecords
+      .then((loaded) => {
+        if (!isOpen || current !== generation) return;
+        loading.remove();
+        const shown = loaded
+          .slice()
+          .sort((a, b) => b.at.localeCompare(a.at))
+          .slice(0, 100);
+        for (const r of shown) {
+          const d = node('div', '', 'record');
+          d.append(
+            node(
+              'p',
+              new Date(r.at).toLocaleString('en', { timeZone: options.timezone() }) +
+                ' · ' +
+                r.model +
+                ' · ' +
+                r.effort,
+            ),
+          );
+          d.append(
+            node(
+              'p',
+              `Input ${exact(r.tokens.input)} (read ${exact(r.tokens.cached)}, write ${exact(r.tokens.write)}) · output ${exact(r.tokens.output)} (reasoning ${exact(r.tokens.reasoning)})`,
+            ),
+          );
+          const cost = estimate(r, prices);
+          d.append(
+            node(
+              'p',
+              `${cost === null ? 'Unpriced' : money(cost) + ' estimated'} · ${r.method === 'response' ? 'Per-response record' : r.method === 'snapshot' ? 'Last-request snapshot' : 'Cumulative delta'}`,
+            ),
+          );
+          d.append(node('code', `${r.source}:${r.line}`));
+          const detail = node('details');
+          detail.append(node('summary', 'Normalized record'));
+          detail.append(node('pre', JSON.stringify(r, null, 2)));
+          d.append(detail);
+          content.append(d);
+        }
+        if (total.events > shown.length)
+          content.append(
+            node(
+              'p',
+              `Showing ${shown.length} of ${total.events} records. Open full trace for complete available session history.`,
+              'caption',
+            ),
+          );
+      })
+      .catch((error: unknown) => {
+        if (isOpen && current === generation) {
+          loading.textContent = String(error);
+          loading.className = 'error';
+        }
+      });
     element('evidence').hidden = false;
     element('close-evidence').focus();
   }
   function closeEvidence() {
+    if (!isOpen) return;
+    generation++;
     element('evidence').hidden = true;
     isOpen = false;
     focusBefore?.focus();
@@ -148,6 +178,12 @@ export function createEvidenceDrawer(options: {
   };
   document.addEventListener('keydown', onKey);
   return Object.assign(openEvidence, {
-    dispose: () => document.removeEventListener('keydown', onKey),
+    close: closeEvidence,
+    selection: () => (isOpen ? selected.map((row) => row.id) : undefined),
+    dispose: () => {
+      generation++;
+      isOpen = false;
+      document.removeEventListener('keydown', onKey);
+    },
   });
 }

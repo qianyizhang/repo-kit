@@ -2,7 +2,7 @@ import {
   dateKey,
   summarize,
   estimate,
-  type UsageRecord,
+  type UsageRow,
   type Prices,
   type Filters,
 } from '../model.ts';
@@ -21,7 +21,7 @@ import {
 export function createCharts(options: {
   prices: () => Prices;
   filters: () => Filters;
-  inspect: (records: UsageRecord[], title: string) => void;
+  inspect: (records: UsageRow[], title: string) => void;
   select: (fields: Record<string, string>) => void;
 }) {
   function tooltip(text: string, event: MouseEvent) {
@@ -32,7 +32,7 @@ export function createCharts(options: {
     tip.style.top =
       Math.max(8, Math.min(event.clientY + 12, window.innerHeight - tip.offsetHeight - 12)) + 'px';
   }
-  function renderTrend(records: UsageRecord[]) {
+  function renderTrend(records: UsageRow[]) {
     const prices = options.prices();
     const container = element('trend');
     container.replaceChildren();
@@ -56,7 +56,7 @@ export function createCharts(options: {
       plotHeight = height - top - bottom;
     const bucketDays = span > 90 ? 7 : 1;
     const first = Date.parse(days[0]);
-    const buckets = new Map<number, UsageRecord[]>();
+    const buckets = new Map<number, UsageRow[]>();
     for (const [day, rows] of daily) {
       const index = Math.floor((Date.parse(day) - first) / 86400000 / bucketDays);
       buckets.set(index, [...(buckets.get(index) ?? []), ...rows]);
@@ -198,7 +198,7 @@ export function createCharts(options: {
     if (measure === 'cost' && records.some((r) => estimate(r, prices) === null))
       legend.append(node('span', 'Unpriced events excluded from cost bars'));
   }
-  function renderHeatmap(records: UsageRecord[]) {
+  function renderHeatmap(records: UsageRow[]) {
     const prices = options.prices();
     const daily = group(records, (r) => dateKey(r.at, options.filters().timezone));
     const end =
@@ -242,11 +242,7 @@ export function createCharts(options: {
       week.append(b);
     }
   }
-  function renderBreakdown(
-    records: UsageRecord[],
-    id: string,
-    key: 'model' | 'project' | 'effort',
-  ) {
+  function renderBreakdown(records: UsageRow[], id: string, key: 'model' | 'project' | 'effort') {
     const prices = options.prices();
     const entries = [...group(records, (r) => r[key])]
       .map(([name, rows]) => ({
@@ -294,7 +290,7 @@ export function createCharts(options: {
 
   return {
     trend: renderTrend,
-    render(records: UsageRecord[]) {
+    render(records: UsageRow[]) {
       renderTrend(records);
       renderHeatmap(records);
       renderBreakdown(records, 'models', 'model');

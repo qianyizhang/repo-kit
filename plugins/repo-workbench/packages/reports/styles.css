@@ -48,3 +48,13 @@
     flex-basis: 100%;
   }
 }
+
+#report-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+#report-toolbar input[type='checkbox'] {
+  width: auto;
+}

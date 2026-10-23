@@ -97,13 +97,14 @@ if (!reportScript || reportScript.type !== 'chunk') throw new Error('Missing rep
 const usageTemplate = await readFile(resolve(assets, 'usage.html'), 'utf8');
 const body = /<body>([\s\S]*)<\/body>/.exec(usageTemplate)?.[1];
 if (!body) throw new Error('Missing usage template');
-const reportHTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Repo Workbench reports</title><style id="usage-style">${await readFile(resolve(assets, 'usage.css'), 'utf8')}</style><style id="trace-style" media="not all">${await readFile(resolve(assets, 'review.css'), 'utf8')}</style><style>${await readFile(resolve(root, 'packages/reports/styles.css'), 'utf8')}</style></head><body><div id="report-toolbar"><button id="report-back" hidden>Back to usage</button><span id="report-status" role="status">Connecting…</span><input id="report-question" aria-label="Discuss this view" placeholder="Ask about this view" maxlength="4000"><button id="report-send" disabled>Discuss</button></div><div id="usage-view" hidden>${body}</div><div id="root" hidden></div><script>${reportScript.code.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
+const reportHTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Repo Workbench reports</title><style id="usage-style">${await readFile(resolve(assets, 'usage.css'), 'utf8')}</style><style id="trace-style" media="not all">${await readFile(resolve(assets, 'review.css'), 'utf8')}</style><style>${await readFile(resolve(root, 'packages/reports/styles.css'), 'utf8')}</style></head><body><div id="report-toolbar"><button id="report-back" hidden>Back to usage</button><span id="report-status" role="status">Connecting…</span><input id="report-question" aria-label="Discuss this view" placeholder="Ask about this view" maxlength="4000"><label title="Usage: current filters or open evidence. Trace: the whole selected turn or action."><input id="report-context" type="checkbox"> Attach selection</label><button id="report-send" disabled>Send</button></div><div id="usage-view" hidden>${body}</div><div id="root" hidden></div><script>${reportScript.code.replace(/<\/script/gi, '<\\/script')}</script></body></html>`;
 await writeFile(resolve(assets, 'reports.html'), reportHTML);
 await bundle({
   input: {
     cli: resolve(root, 'packages/runtime/cli.ts'),
     'canvas-server': resolve(root, 'packages/repo-canvas/src/server/stdio.ts'),
     'reports-server': resolve(root, 'packages/reports/stdio.ts'),
+    'reports-worker': resolve(root, 'packages/reports/scan-worker.ts'),
   },
   platform: 'node',
   external: [/^node:/],

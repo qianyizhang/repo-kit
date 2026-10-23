@@ -23,7 +23,11 @@ import {
   type Filters,
   type Prices,
   type Snapshot,
+  type UsageRow,
   type UsageRecord,
+  type UsageData,
+  eventCount,
+  lastActivity,
 } from '../model.ts';
 async function main() {
   const encoded = element('usage-data');
@@ -35,10 +39,13 @@ async function main() {
   mountUsage(JSON.parse(data) as Snapshot);
 }
 export interface UsageHost {
-  refresh(): Promise<Snapshot>;
+  refresh(): Promise<UsageData>;
+  timezone(timezone: string): Promise<UsageData>;
+  evidence(rows: UsageRow[], timezone: string): Promise<UsageRecord[]>;
+  export(filters: Filters): Promise<UsageRecord[]>;
   openTrace: (session: string) => void;
 }
-export function mountUsage(initial: Snapshot, host?: UsageHost) {
+export function mountUsage(initial: UsageData, host?: UsageHost) {
   let snapshot = initial;
   let prices: Prices = parsePrices(officialPrices);
   const storageKey = 'codex-offline-usage-prices-v2';
@@ -70,7 +77,9 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
     timezone: input('timezone').value,
     ignoreAutoReview: autoReviewToggle.checked,
   });
-  const selected = () => selectRecords(snapshot.records, filters());
+  const selected = () => selectRecords<UsageRow>(snapshot.records, filters());
+  let disposed = false;
+  let timezoneRequest = 0;
   let page = 0;
   const pageSize = 15;
   let sortKey = 'tokens';
@@ -78,6 +87,7 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
   const openEvidence = createEvidenceDrawer({
     openTrace: host?.openTrace,
     snapshot: () => snapshot,
+    loadRecords: host ? (rows) => host.evidence(rows, filters().timezone) : undefined,
     prices: () => prices,
     timezone: () => filters().timezone,
   });
@@ -135,7 +145,7 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
     if (name === 'pricing') renderPrices();
     if (name === 'sources') renderSources();
   }
-  function renderSessions(records: UsageRecord[]) {
+  function renderSessions(records: UsageRow[]) {
     const groups = [...group(records, (r) => r.session)].map(([session, rows]) => ({
       session,
       rows,
@@ -146,7 +156,12 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
       ['session', 'Session / project', (g) => g.session + ' ' + g.rows[0].project],
       ['models', 'Models', (g) => [...new Set(g.rows.map((r) => r.model))].sort().join(', ')],
       ['effort', 'Effort', (g) => [...new Set(g.rows.map((r) => r.effort))].sort().join(', ')],
-      ['last', 'Last activity', (g) => g.rows[g.rows.length - 1].at],
+      [
+        'last',
+        'Last activity',
+        (g) =>
+          g.rows.reduce((last, row) => (lastActivity(row) > last ? lastActivity(row) : last), ''),
+      ],
       ['events', 'Events', (g) => g.total.events],
       ['tokens', 'Tokens', (g) => g.total.total],
       ['reasoning', 'Reasoning / output', (g) => g.total.reasoningShare],
@@ -228,7 +243,7 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
         first,
         node('td', String(columns[1][2](g))),
         node('td', String(columns[2][2](g))),
-        node('td', dateKey(g.rows[g.rows.length - 1].at, filters().timezone)),
+        node('td', dateKey(String(columns[3][2](g)), filters().timezone)),
         node('td', exact(g.total.events), 'number'),
         node('td', compact(g.total.total), 'number'),
         reasoning,
@@ -345,7 +360,13 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
         (snapshot.records.length
           ? dateKey(snapshot.records[0].at, f.timezone) +
             ' – ' +
-            dateKey(snapshot.records.at(-1)!.at, f.timezone)
+            dateKey(
+              snapshot.records.reduce(
+                (last, row) => (lastActivity(row) > last ? lastActivity(row) : last),
+                '',
+              ),
+              f.timezone,
+            )
           : 'No usage records'),
     );
     set('total', compact(s.total));
@@ -392,16 +413,39 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
     }
     set(
       'footer-count',
-      `${exact(records.length)} of ${exact(snapshot.records.length)} usage events · ${f.from || 'earliest'} through ${f.to || 'latest'} · ${f.timezone}${f.ignoreAutoReview ? ' · auto-review sessions hidden' : ''}`,
+      `${exact(s.events)} of ${exact(snapshot.records.reduce((n, r) => n + eventCount(r), 0))} usage events · ${f.from || 'earliest'} through ${f.to || 'latest'} · ${f.timezone}${f.ignoreAutoReview ? ' · auto-review sessions hidden' : ''}`,
     );
     charts.render(records);
     renderSessions(records);
   }
-  for (const id of ['from', 'to', 'model', 'project', 'effort', 'timezone'])
+  for (const id of ['from', 'to', 'model', 'project', 'effort'])
     input(id).addEventListener('change', () => {
       page = 0;
       render();
     });
+  input('timezone').addEventListener('change', () => {
+    if (!host) {
+      page = 0;
+      render();
+      return;
+    }
+    const timezone = input('timezone').value;
+    // Keep the displayed filters consistent with the current summary until the replacement arrives.
+    if ('timezone' in snapshot) input('timezone').value = snapshot.timezone;
+    const current = ++timezoneRequest;
+    void host
+      .timezone(timezone)
+      .then((data) => {
+        if (!disposed && current === timezoneRequest) {
+          input('timezone').value = timezone;
+          page = 0;
+          update(data);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!disposed && current === timezoneRequest) message(String(error), true);
+      });
+  });
   autoReviewToggle.addEventListener('change', () => {
     try {
       localStorage.setItem(autoReviewKey, String(autoReviewToggle.checked));
@@ -439,9 +483,18 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
     page++;
     renderSessions(selected());
   });
-  element('export').addEventListener('click', () =>
-    download('codex-usage.csv', csv(selected(), prices), 'text/csv;charset=utf-8'),
-  );
+  element('export').addEventListener('click', () => {
+    void (async () => {
+      try {
+        const records = host
+          ? await host.export(filters())
+          : selectRecords((snapshot as Snapshot).records, filters());
+        if (!disposed) download('codex-usage.csv', csv(records, prices), 'text/csv;charset=utf-8');
+      } catch (error) {
+        if (!disposed) message(String(error), true);
+      }
+    })();
+  });
   element('save-prices').addEventListener('click', () => {
     try {
       const proposed: Record<string, Record<string, number | boolean>> = {};
@@ -539,11 +592,8 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
             })();
         if (data.schemaVersion !== 1 || !Array.isArray(data.records))
           throw new Error('Invalid usage snapshot');
-        snapshot = data;
-        populateFilters();
-        render();
-        if (!element('sources').hidden) renderSources();
-        if (!element('pricing').hidden) renderPrices();
+        if (disposed) return;
+        update(data);
         message('Refreshed local usage logs.');
       } catch (e) {
         message(
@@ -555,6 +605,15 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
       }
     })();
   });
+  function update(data: UsageData) {
+    if (disposed) return;
+    snapshot = data;
+    openEvidence.close();
+    populateFilters();
+    render();
+    if (!element('sources').hidden) renderSources();
+    if (!element('pricing').hidden) renderPrices();
+  }
   let resizeFrame = 0;
   const onResize = () => {
     cancelAnimationFrame(resizeFrame);
@@ -564,8 +623,10 @@ export function mountUsage(initial: Snapshot, host?: UsageHost) {
   populateFilters();
   range(null);
   return {
-    selection: () => ({ filters: filters() }),
+    update,
+    selection: () => ({ filters: filters(), ids: openEvidence.selection() }),
     dispose: () => {
+      disposed = true;
       window.removeEventListener('resize', onResize);
       cancelAnimationFrame(resizeFrame);
       openEvidence.dispose();

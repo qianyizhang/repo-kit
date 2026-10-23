@@ -3,6 +3,7 @@ import type { CallToolResult, CallToolRequest } from '@modelcontextprotocol/sdk/
 declare global {
   interface Window {
     reportCall(params: CallToolRequest['params']): Promise<CallToolResult>;
+    reportMessage(): Promise<void>;
     boot: { html: string; result: CallToolResult; limited?: boolean };
   }
 }
@@ -19,8 +20,9 @@ const bridge = new AppBridge(
   { hostContext: { theme: 'light', displayMode: 'inline', availableDisplayModes: ['inline'] } },
 );
 bridge.oncalltool = (params) => window.reportCall(params);
-bridge.onmessage = (params) => {
+bridge.onmessage = async (params) => {
   document.getElementById('sent')!.textContent = JSON.stringify(params);
+  await window.reportMessage();
   return Promise.resolve(
     document.querySelector<HTMLSelectElement>('#delivery')!.value === 'reject'
       ? { isError: true }

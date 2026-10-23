@@ -12,16 +12,18 @@ An optional repo-kit plugin for repository architecture and recorded coding-sess
 
 The embedded views reuse the standalone renderers and indexed source reader.
 Full bodies and images travel through `report_app`; the iframe does not fetch
-localhost. **Discuss** freezes the question, view settings and bounded evidence;
-`report_read({requestId})` lets the current chat read it. Usage captures include
-selected recorded token totals; trace captures include at most 20 excerpts by
-thread/turn/event, with other filters recorded as context. Usage source references are limited to 20, with coverage gaps summarized. Price overrides and
-billing are excluded. Answers appear in the chat. No source log is written. Plain JSONL and zstd archives share decoded-byte hashes and lazy trace reads. All recorded dates are shown initially; explicit presets narrow them. A cold archive scan continues while the panel shows loading, and the shared disk index speeds later opens.
+localhost. **Send** delivers the user's text directly. **Attach selection** adds a
+small frozen summary of the current usage filters/open evidence, or a selected
+trace turn/action. An unchecked attachment sends no evidence and creates no
+selection. Additional totals, rows, events, event text and provenance use separate
+scoped tools; the message never requires an initial read. Selections retain the
+captured data and source identity through refresh. Up to 40 are retained; an
+expired selection must be attached again. Unconfirmed delivery keeps the draft;
+check the chat before resending.
 
 Contexts expire on server restart or after 12 newer opens; up to 8 traces per
-context and 40 discussion captures are retained in memory. Reopen an expired
-report. Unconfirmed message delivery keeps the question and capture ID; inspect
-the chat before sending again. Builds identify both UI and server; a freshly
+context are retained in memory. Reopen an expired report.
+Builds identify both UI and server; a freshly
 built package does not refresh an already attached Codex server.
 
 ## Install

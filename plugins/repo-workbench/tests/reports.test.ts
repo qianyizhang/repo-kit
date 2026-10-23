@@ -8,12 +8,17 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { z } from 'zod';
 import { createFixture } from '../packages/usage/fixture.ts';
+import { usageIndexPath } from '../packages/usage/scan.ts';
+import { setTimeout as delay } from 'node:timers/promises';
 import {
   bindingSchema,
   payloadSchema,
   snapshotSchema,
   documentSchema,
   textSchema,
+  overviewSchema,
+  recordsSchema,
+  statusSchema,
 } from '../packages/reports/contracts.ts';
 const unpack = (result: { _meta?: Record<string, unknown> }): unknown =>
   JSON.parse(
@@ -43,9 +48,13 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((t) => t.name).sort(), [
     'report_app',
-    'report_read',
+    'report_provenance',
+    'trace_event_text',
+    'trace_events',
     'trace_open',
     'usage_open',
+    'usage_records',
+    'usage_summary',
   ]);
   const meta = z
     .object({ ui: z.object({ resourceUri: z.string() }) })
@@ -92,11 +101,10 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
   assert.equal(typeof textSchema.parse(unpack(reads[0])).text, 'string');
   assert.equal((await call(a.contextId, { ...request, revision: 'stale' })).isError, true);
   assert.equal((await call(a.contextId, { ...request, offset: -1 })).isError, true);
-  const capture = z.object({ requestId: z.string() }).parse(
+  const selection = z.object({ selectionId: z.string() }).parse(
     unpack(
       await call(a.contextId, {
-        action: 'capture',
-        question: 'Why these totals?',
+        action: 'select_usage',
         filters: {
           from: '',
           to: '',
@@ -107,21 +115,73 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
           timezone: 'UTC',
           ignoreAutoReview: false,
         },
-        selection: 'all',
       }),
     ),
   );
   const frozen = await client.callTool({
-    name: 'report_read',
-    arguments: { requestId: capture.requestId },
+    name: 'usage_summary',
+    arguments: { selectionId: selection.selectionId },
   });
+  assert.doesNotMatch(JSON.stringify(frozen), /sources|sha256|PRIVATE_PROMPT_SENTINEL/);
+  const provenance = await client.callTool({
+    name: 'report_provenance',
+    arguments: { selectionId: selection.selectionId, limit: 1 },
+  });
+  assert.match(JSON.stringify(provenance), /sha256/);
+  assert.equal(
+    (
+      await client.callTool({
+        name: 'usage_records',
+        arguments: { selectionId: selection.selectionId, limit: 21 },
+      })
+    ).isError,
+    true,
+  );
+  const thread = doc.threads.find((t) => t.id === event.threadId)!;
+  const turn = thread.turns.find((t) => t.events.some((e) => e.key === event.key))!;
+  const selectedTrace = z.object({ selectionId: z.string() }).parse(
+    unpack(
+      await call(a.contextId, {
+        action: 'select_trace',
+        session: 'parent',
+        scope: { thread: thread.id, turn: turn.id, event: event.key, reviews: false },
+      }),
+    ),
+  );
+  const traceArgs = { selectionId: selectedTrace.selectionId };
+  const traceEvents = await client.callTool({
+    name: 'trace_events',
+    arguments: { ...traceArgs, limit: 1 },
+  });
+  assert.doesNotMatch(JSON.stringify(traceEvents), /sha256|source/);
+  assert.equal(
+    (await client.callTool({ name: 'usage_summary', arguments: traceArgs })).isError,
+    true,
+  );
+  assert.equal(
+    (
+      await client.callTool({
+        name: 'trace_event_text',
+        arguments: { ...traceArgs, eventId: 'outside', field: 'text' },
+      })
+    ).isError,
+    true,
+  );
+  const exactText = await client.callTool({
+    name: 'trace_event_text',
+    arguments: { ...traceArgs, eventId: event.key, field: 'text' },
+  });
+  assert.equal(exactText.isError, undefined);
   const refreshed = z
     .object({ binding: bindingSchema })
     .parse(unpack(await call(a.contextId, { action: 'refresh' })));
   assert.equal(refreshed.binding.revision, 1);
   assert.equal((await call(a.contextId, { action: 'snapshot' })).isError, true);
   assert.deepEqual(
-    await client.callTool({ name: 'report_read', arguments: { requestId: capture.requestId } }),
+    await client.callTool({
+      name: 'usage_summary',
+      arguments: { selectionId: selection.selectionId },
+    }),
     frozen,
   );
   assert.deepEqual(await readFile(resolve(logs, 'parent.jsonl')), before);
@@ -137,11 +197,147 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
     pinnedBytes.replace('PRIVATE_PROMPT_SENTINEL', 'MUTATED_PROMPT_SENTINEL'),
   );
   assert.equal((await call(reopened.contextId, request)).isError, true);
+  assert.equal(
+    (
+      await client.callTool({
+        name: 'trace_event_text',
+        arguments: { ...traceArgs, eventId: event.key, field: 'text' },
+      })
+    ).isError,
+    true,
+  );
   await appendFile(resolve(logs, 'parent.jsonl'), '\n');
   // Old trace capability is cleared by refresh; stale bodies cannot silently remap.
   assert.equal((await call(a.contextId, request, 1)).isError, true);
   assert.equal(
     (await client.callTool({ name: 'trace_open', arguments: { roots: [logs] } })).isError,
     true,
+  );
+});
+
+void test('cached overview is usable during refresh failure, with explicit retry and revision-pinned lazy evidence', async (t) => {
+  const temp = await mkdtemp(resolve(tmpdir(), 'reports-cache-'));
+  t.after(() => rm(temp, { recursive: true, force: true }));
+  const logs = resolve(temp, 'logs'),
+    cache = resolve(temp, 'cache');
+  await mkdir(logs);
+  await createFixture(logs);
+  const client = new Client({ name: 'cache-test', version: '1' });
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('dist/reports-server.mjs')],
+      stderr: 'pipe',
+      env: { ...(process.env as Record<string, string>), XDG_CACHE_HOME: cache },
+    }),
+  );
+  t.after(() => client.close());
+  const open = async () =>
+    bindingSchema.parse(
+      (await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } }))
+        .structuredContent,
+    );
+  const call = (id: string, request: object, expectedRevision = 0) =>
+    client.callTool({
+      name: 'report_app',
+      arguments: { contextId: id, expectedRevision, request },
+    });
+  const seeded = await open();
+  const original = z
+    .object({ snapshot: overviewSchema, refreshing: z.boolean() })
+    .parse(unpack(await call(seeded.contextId, { action: 'snapshot' })));
+  assert.equal(original.refreshing, false);
+  assert.ok(original.snapshot.records.every((r) => !('line' in r)));
+
+  // A real persistence failure must preserve the prior summary, not become an endless spinner.
+  const manifest = resolve(
+    usageIndexPath([logs], resolve(cache, 'repo-workbench/usage')),
+    'manifest.json',
+  );
+  const manifestBytes = await readFile(manifest);
+  await rm(manifest);
+  await mkdir(manifest);
+  const warm = await open();
+  const cached = z
+    .object({ snapshot: overviewSchema, refreshing: z.boolean() })
+    .parse(unpack(await call(warm.contextId, { action: 'snapshot' })));
+  assert.equal(cached.refreshing, true);
+  assert.deepEqual(cached.snapshot, original.snapshot);
+  assert.equal(
+    (
+      await call(warm.contextId, {
+        action: 'evidence',
+        ids: cached.snapshot.records.map((r) => r.id),
+      })
+    ).isError,
+    true,
+  );
+  let status = statusSchema.parse(unpack(await call(warm.contextId, { action: 'status' })));
+  for (let i = 0; status.refreshing && i < 100; i++) {
+    await delay(10);
+    status = statusSchema.parse(unpack(await call(warm.contextId, { action: 'status' })));
+  }
+  assert.equal(status.refreshing, false);
+  assert.match(status.error ?? '', /EISDIR|directory/);
+  assert.equal((await call(warm.contextId, { action: 'refresh' })).isError, true);
+  assert.deepEqual(
+    z
+      .object({ snapshot: overviewSchema })
+      .parse(unpack(await call(warm.contextId, { action: 'snapshot' }))).snapshot,
+    cached.snapshot,
+  );
+
+  await rm(manifest, { recursive: true });
+  await writeFile(manifest, manifestBytes);
+  const fresh = z
+    .object({ binding: bindingSchema, snapshot: overviewSchema })
+    .parse(unpack(await call(warm.contextId, { action: 'refresh' })));
+  assert.equal(fresh.binding.revision, 1);
+  assert.equal(
+    (
+      await call(warm.contextId, {
+        action: 'evidence',
+        ids: cached.snapshot.records.map((r) => r.id),
+      })
+    ).isError,
+    true,
+  );
+  const evidence = z
+    .object({ records: recordsSchema })
+    .parse(
+      unpack(
+        await call(
+          warm.contextId,
+          { action: 'evidence', ids: fresh.snapshot.records.map((r) => r.id) },
+          1,
+        ),
+      ),
+    ).records;
+  assert.ok(evidence.length > 0 && evidence.length <= 100);
+  assert.ok(evidence.every((r) => typeof r.line === 'number'));
+  const exported = z.object({ records: recordsSchema }).parse(
+    unpack(
+      await call(
+        warm.contextId,
+        {
+          action: 'export',
+          filters: {
+            from: '',
+            to: '',
+            model: '',
+            project: '',
+            effort: '',
+            search: '',
+            timezone: 'Asia/Shanghai',
+            ignoreAutoReview: false,
+          },
+        },
+        1,
+      ),
+    ),
+  ).records;
+  assert.equal(
+    exported.length,
+    fresh.snapshot.records.reduce((n, r) => n + r.events, 0),
   );
 });

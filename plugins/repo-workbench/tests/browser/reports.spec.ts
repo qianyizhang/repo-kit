@@ -59,10 +59,18 @@ test.afterAll(async () => {
   await client?.close();
   await rm(temp, { recursive: true, force: true });
 });
-async function openHost(page: Page, result: unknown, limited = false) {
-  await page.exposeFunction('reportCall', (params: Parameters<Client['callTool']>[0]) =>
-    client.callTool(params),
-  );
+async function openHost(
+  page: Page,
+  result: unknown,
+  limited = false,
+  beforeCall?: (params: Parameters<Client['callTool']>[0]) => Promise<void>,
+  beforeMessage: () => Promise<void> = () => Promise.resolve(),
+) {
+  await page.exposeFunction('reportMessage', beforeMessage);
+  await page.exposeFunction('reportCall', async (params: Parameters<Client['callTool']>[0]) => {
+    await beforeCall?.(params);
+    return client.callTool(params);
+  });
   await page.route('**/reports-host', (route) =>
     route.fulfill({
       contentType: 'text/html',
@@ -77,15 +85,31 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
-  await openHost(page, result);
+  const calls: string[] = [];
+  await openHost(page, result, false, async (params) => {
+    calls.push(JSON.stringify(params));
+    await Promise.resolve();
+  });
   const app = page.frameLocator('iframe');
   await expect(app.locator('#report-status')).toContainText('Connected');
   await expect(app.locator('#from')).toHaveValue('');
   await expect(app.locator('#updated')).toContainText('2026-05-09');
   await app.getByRole('button', { name: 'All time', exact: true }).click();
+  await app.locator('#report-question').fill('hi');
+  const before = calls.length;
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('#sent')).toContainText('hi');
+  expect(
+    (JSON.parse((await page.locator('#sent').textContent())!) as { content: unknown }).content,
+  ).toEqual([{ type: 'text', text: 'hi' }]);
+  expect(calls.slice(before).some((c) => c.includes('select_'))).toBe(false);
   await app.locator('#report-question').fill('Explain these totals');
-  await app.getByRole('button', { name: 'Discuss', exact: true }).click();
-  await expect(page.locator('#sent')).toContainText('report_read');
+  await app.getByLabel('Attach selection').check();
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('#sent')).toContainText('selectionId');
+  await expect(page.locator('#sent')).toContainText('Explain these totals');
+  await expect(page.locator('#sent')).not.toContainText('sha256');
+  await expect(page.locator('#sent')).not.toContainText('report_read');
   await expect(app.locator('#report-status')).toContainText('Sent');
   await app.getByRole('button', { name: 'Refresh logs' }).click();
   await expect(app.locator('#message')).toContainText('Refreshed');
@@ -111,7 +135,7 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   await app.locator('#close-evidence').click();
   await page.locator('#delivery').selectOption('reject');
   await app.locator('#report-question').fill('Keep this question');
-  await app.getByRole('button', { name: 'Discuss', exact: true }).click();
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
   await expect(app.locator('#report-question')).toHaveValue('Keep this question');
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
@@ -150,8 +174,71 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   await page.screenshot({ path: 'test-results/reports-narrow.png' });
   await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(app.locator('#report-status')).toContainText('closed');
-  await expect(app.getByRole('button', { name: 'Discuss', exact: true })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
+});
+
+test('cached summary renders before refresh finishes and retains filters and discussion draft', async ({
+  page,
+}) => {
+  const seed = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  const contextId = (seed.structuredContent as { contextId: string }).contextId;
+  // Force the seed scan to finish, including persistence, through the real protocol.
+  await client.callTool({
+    name: 'report_app',
+    arguments: { contextId, expectedRevision: 0, request: { action: 'refresh' } },
+  });
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const actions: string[] = [];
+  await openHost(page, result, false, async (params) => {
+    const action = (params.arguments?.request as { action?: string } | undefined)?.action;
+    if (action) actions.push(action);
+    if (action === 'status') await gate;
+  });
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#report-status')).toContainText('Cached summary');
+  await expect(app.locator('#total')).not.toHaveText('—');
+  await app.locator('#search').fill('parent');
+  await app.locator('#report-question').fill('Keep my draft while refreshing');
+  expect(actions).not.toContain('evidence');
+  expect(actions).not.toContain('export');
+  await page.screenshot({ path: 'test-results/reports-cached.png' });
+  release();
+  await expect(app.locator('#report-status')).toContainText('Connected');
+  await expect(app.locator('#search')).toHaveValue('parent');
+  await expect(app.locator('#report-question')).toHaveValue('Keep my draft while refreshing');
+  await app.locator('#timezone').selectOption('UTC');
+  await expect(app.locator('#footer-count')).toContainText('UTC');
+  await app.locator('#sessions tbody tr').first().click();
+  await expect(app.locator('#evidence .record').first()).toBeVisible();
+  expect(actions).toContain('evidence');
+});
+
+test('late message acceptance preserves a newer draft and attachment choice', async ({ page }) => {
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await openHost(page, result, false, undefined, () => gate);
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#total')).not.toHaveText('—');
+  await app.locator('#report-question').fill('First question');
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(page.locator('#sent')).toContainText('First question');
+  await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
+  await app.locator('#report-question').fill('Next question');
+  await app.getByLabel('Attach selection').check();
+  release();
+  await expect(app.locator('#report-status')).toContainText('Sent');
+  await expect(app.locator('#report-question')).toHaveValue('Next question');
+  await expect(app.getByLabel('Attach selection')).toBeChecked();
+  await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeEnabled();
+  await expect(page.locator('#sent')).not.toContainText('Next question');
 });
 
 test('direct trace works when conversation capability is absent', async ({ page }) => {
@@ -163,10 +250,54 @@ test('direct trace works when conversation capability is absent', async ({ page 
   const app = page.frameLocator('iframe');
   await expect(app.locator('#report-status')).toContainText('Trace · parent');
   await app.locator('#report-question').fill('Unavailable conversation');
-  await expect(app.getByRole('button', { name: 'Discuss', exact: true })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
   await expect(app.getByRole('button', { name: 'Back to usage' })).toBeHidden();
   await app.getByRole('button', { name: 'Recorded actions', exact: true }).click();
   await expect(app.locator('#event-list')).toBeVisible();
+});
+
+test('background refresh preserves an unconfirmed discussion and its draft', async ({ page }) => {
+  const seed = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  await client.callTool({
+    name: 'report_app',
+    arguments: {
+      contextId: (seed.structuredContent as { contextId: string }).contextId,
+      expectedRevision: 0,
+      request: { action: 'refresh' },
+    },
+  });
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  const contextId = (result.structuredContent as { contextId: string }).contextId;
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await openHost(page, result, false, async (params) => {
+    if ((params.arguments?.request as { action?: string } | undefined)?.action === 'status')
+      await gate;
+  });
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#report-status')).toContainText('Cached summary');
+  await page.locator('#delivery').selectOption('reject');
+  await app.locator('#report-question').fill('Keep this unconfirmed question');
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
+  release();
+  await expect
+    .poll(
+      async () =>
+        (
+          await client.callTool({
+            name: 'report_app',
+            arguments: { contextId, expectedRevision: 0, request: { action: 'status' } },
+          })
+        ).isError,
+    )
+    .toBe(true);
+  await app.locator('#sessions tbody tr').first().click();
+  await expect(app.locator('#evidence .record').first()).toBeVisible();
+  await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
+  await expect(app.locator('#report-question')).toHaveValue('Keep this unconfirmed question');
 });
 
 test('failed opening tool is visible instead of an endless connecting state', async ({ page }) => {
@@ -178,5 +309,5 @@ test('failed opening tool is visible instead of an endless connecting state', as
   await openHost(page, result);
   const app = page.frameLocator('iframe');
   await expect(app.locator('#report-status')).toContainText('Session is not in these log roots');
-  await expect(app.getByRole('button', { name: 'Discuss', exact: true })).toBeDisabled();
+  await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
 });

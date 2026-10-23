@@ -19,6 +19,16 @@ export type UsageRecord = {
   line: number;
   method: 'response' | 'snapshot' | 'delta';
 };
+// A dashboard bucket preserves counts and pricing bands; it is never a source record.
+export type UsageBucket = Omit<UsageRecord, 'line' | 'method' | 'reasoningReported'> & {
+  events: number;
+  missingReasoning: number;
+  lastAt: string;
+  longContext: boolean;
+};
+export type UsageRow = UsageRecord | UsageBucket;
+export const eventCount = (row: UsageRow) => ('events' in row ? row.events : 1);
+export const lastActivity = (row: UsageRow) => ('lastAt' in row ? row.lastAt : row.at);
 export type Source = {
   encoding?: 'zstd';
   storedBytes?: number;
@@ -54,6 +64,12 @@ export type Snapshot = {
   reindexedFiles: number;
   scannedBytes: number;
 };
+export type UsageOverview = Omit<Snapshot, 'records'> & {
+  overviewVersion: 1;
+  timezone: string;
+  records: UsageBucket[];
+};
+export type UsageData = Snapshot | UsageOverview;
 export type Price = {
   input: number;
   cached: number;
@@ -96,7 +112,7 @@ export function dateKey(at: string, timezone: string): string {
   const part = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
-export function selectRecords(records: UsageRecord[], filters: Filters): UsageRecord[] {
+export function selectRecords<T extends UsageRow>(records: T[], filters: Filters): T[] {
   const autoReview = new Set<string>();
   if (filters.ignoreAutoReview) {
     const ordinary = new Set<string>();
@@ -106,7 +122,7 @@ export function selectRecords(records: UsageRecord[], filters: Filters): UsageRe
   }
   return records.filter((r) => {
     if (autoReview.has(r.session)) return false;
-    const day = dateKey(r.at, filters.timezone);
+    const day = filters.from || filters.to ? dateKey(r.at, filters.timezone) : '';
     return (
       (!filters.from || day >= filters.from) &&
       (!filters.to || day <= filters.to) &&
@@ -120,10 +136,10 @@ export function selectRecords(records: UsageRecord[], filters: Filters): UsageRe
     );
   });
 }
-export function estimate(r: UsageRecord, prices: Prices): number | null {
+export function estimate(r: UsageRow, prices: Prices): number | null {
   const p = Object.hasOwn(prices, r.model) ? prices[r.model] : undefined;
   if (!p || (p.writeUnpublished && r.tokens.write > 0)) return null;
-  const long = p.longContext && r.tokens.input > 272_000;
+  const long = p.longContext && ('longContext' in r ? r.longContext : r.tokens.input > 272_000);
   return (
     (((r.tokens.input - r.tokens.cached - r.tokens.write) * p.input +
       r.tokens.cached * p.cached +
@@ -133,7 +149,7 @@ export function estimate(r: UsageRecord, prices: Prices): number | null {
     1_000_000
   );
 }
-export function summarize(records: UsageRecord[], prices: Prices) {
+export function summarize(records: UsageRow[], prices: Prices) {
   const tokens = emptyTokens();
   let knownCost = 0;
   let priced = 0;
@@ -142,18 +158,24 @@ export function summarize(records: UsageRecord[], prices: Prices) {
     const cost = estimate(r, prices);
     if (cost !== null) {
       knownCost += cost;
-      priced++;
+      priced += eventCount(r);
     }
   }
   return {
     tokens,
     total: tokens.input + tokens.output,
     sessions: new Set(records.map((r) => r.session)).size,
-    events: records.length,
+    events: records.reduce((n, r) => n + eventCount(r), 0),
     knownCost,
     reasoningShare: tokens.output ? tokens.reasoning / tokens.output : null,
-    missingReasoning: records.filter((r) => r.reasoningReported === false && r.tokens.output > 0)
-      .length,
+    missingReasoning: records.reduce(
+      (n, r) =>
+        n +
+        ('missingReasoning' in r
+          ? r.missingReasoning
+          : Number(r.reasoningReported === false && r.tokens.output > 0)),
+      0,
+    ),
     priced,
   };
 }
