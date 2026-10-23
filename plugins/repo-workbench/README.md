@@ -1,30 +1,24 @@
 # Repo Workbench
 
-An optional repo-kit plugin for repository architecture and recorded coding-session review. Canvas, trace analysis and usage are MCP Apps in the current Codex chat. Each also runs standalone; session review and usage retain their offline HTML exports. No model process, API key, account, or network service is required by the runtime.
+Repository architecture and recorded coding-session review. Canvas, usage and
+trace are MCP Apps in the current Codex chat and also work standalone. Session
+review and usage retain offline HTML exports. Runtime needs no model process,
+API key, account or network service.
 
-## Report modes
+## Entry points
 
-| Task                   | Codex MCP App                                                                               | Standalone                                               |
-| ---------------------- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| Usage                  | `usage_open({roots?: ["/absolute/log-root"]})`                                              | `repo-workbench usage --serve` or offline export         |
-| Recorded trace         | `trace_open({session: "SESSION_ID", roots?: [...]})`, or open a row's full trace from usage | Full trace from the local usage server                   |
-| Authored evidence case | Use its standalone export                                                                   | `repo-workbench trace --repo ... --input ... --case ...` |
+| Task                   | Codex MCP App                                                                 | Standalone                                               |
+| ---------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Architecture           | `canvas_open({repo: "/absolute/repo"})`                                       | `repo-workbench canvas --repo /absolute/repo`            |
+| Usage                  | `usage_open({roots?: ["/absolute/log-root"]})`                                | `repo-workbench usage --serve` or offline export         |
+| Recorded trace         | `trace_open({session: "SESSION_ID", roots?: [...]})` or full trace from usage | Full trace from local usage                              |
+| Authored evidence case | Open its standalone export                                                    | `repo-workbench trace --repo ... --input ... --case ...` |
 
-The embedded views reuse the standalone renderers and indexed source reader.
-Full bodies and images travel through `report_app`; the iframe does not fetch
-localhost. **Send** delivers the user's text directly. **Attach selection** adds a
-small frozen summary of the current usage filters/open evidence, or a selected
-trace turn/action. An unchecked attachment sends no evidence and creates no
-selection. Additional totals, rows, events, event text and provenance use separate
-scoped tools; the message never requires an initial read. Selections retain the
-captured data and source identity through refresh. Up to 40 are retained; an
-expired selection must be attached again. Unconfirmed delivery keeps the draft;
-check the chat before resending.
-
-Contexts expire on server restart or after 12 newer opens; up to 8 traces per
-context are retained in memory. Reopen an expired report.
-Builds identify both UI and server; a freshly
-built package does not refresh an already attached Codex server.
+Canvas proposals require Apply to draft, then Save; source edits have a separate
+reviewed save. Reports read recorded evidence. See [Canvas](docs/canvas-design.md),
+[session review](docs/session-review.md), and [usage](docs/usage.md) for behavior.
+[MCP integration](docs/mcp-apps.md) owns message attachments, context expiry,
+connection recovery and diagnostics.
 
 ## Install
 
@@ -60,7 +54,7 @@ Setup merges the repository's `.agents/plugins/marketplace.json` and `.codex/con
 
 New repo catalogs receive distinct names. Existing names are preserved; a name shared with a user Workbench identity is rejected with instructions to choose a distinct name. Invalid TOML, unsupported inline/dotted plugin layouts, symlinked configuration paths, or concurrent file changes stop setup instead of replacing unrelated settings. Changed existing files are backed up in a private OS temporary directory printed as `backup`; retain that path if recovery is needed. Both files are validated first, and each is replaced atomically. An interruption between the two replacements is recoverable by rerunning setup; the pair is not a filesystem transaction.
 
-Keep the catalog, project enablement, and npm lockfile in source control if sharing setup. Codex loads project settings only in trusted repositories. Open the trusted repository and refresh plugins or start a fresh chat; the runtime cache remains user-scoped. **Effective configuration and catalog discovery are verified with CLI 0.147.0; automatic materialization/activation is not yet verified.** Its model-free refresh still reported `installed=false` and `enabled=false`. The collective checklist in repo-kit at `docs/migrations/repo-workbench.md` tracks native activation, restart-dependent acceptance, and the final fix round. Do not use user-wide `plugin add` as a workaround for repo-only activation.
+Keep the catalog, project enablement, and npm lockfile in source control if sharing setup. Codex loads project settings only in trusted repositories. Open the trusted repository and refresh plugins or start a fresh chat; the runtime cache remains user-scoped. **The historical CLI 0.147.0 check verified configuration/discovery but not repo-scoped activation:** model-free refresh reported `installed=false` and `enabled=false`. The collective checklist in repo-kit at `docs/migrations/repo-workbench.md` tracks native activation, restart-dependent acceptance, and the final fix round. Do not use user-wide `plugin add` as a workaround for repo-only activation.
 
 For a Markdown-only repository that should not acquire a root npm manifest, install with `npm install --prefix .cache/repo-workbench-runtime /absolute/package.tgz --ignore-scripts`, then invoke that installation's CLI with `setup --scope repo --repo /absolute/repo`. This runtime cache can be recreated; the saved architecture is elsewhere.
 
@@ -70,19 +64,21 @@ After installation or an update, open a fresh Codex chat; restart the app if it 
 
 ## Repository identity and storage
 
-| Material                 | Location and authority                                                                                                                          |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Saved architecture       | `{repo}/.repo-canvas/architecture.json`; durable, optionally Git-tracked                                                                        |
-| Unsaved canvas draft     | Browser-tab recovery plus the opened canvas's in-memory context                                                                                 |
-| Canvas discussion        | Private state under `$XDG_STATE_HOME/repo-workbench/discussions` or `~/.local/state/repo-workbench/discussions`; partitioned by repository/chat |
-| Source logs              | Existing Codex session locations or explicit `--root`; read-only                                                                                |
-| Rebuildable usage index  | `$XDG_CACHE_HOME/repo-workbench/usage` or `~/.cache/repo-workbench/usage`; override `--cache`                                                   |
-| Generated usage report   | Fresh OS temporary directory; override `--out` for retained output                                                                              |
-| Generated curated review | `{repo}/.cache/repo-workbench/reviews`; override `--out` for retained output                                                                    |
+| Material             | Location and authority                                                                                                           |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Saved architecture   | `{repo}/.repo-canvas/architecture.json`; durable, optionally Git-tracked                                                         |
+| Unsaved canvas draft | Browser-tab recovery and opened canvas context; export before replacing a panel                                                  |
+| Canvas discussion    | Private `$XDG_STATE_HOME/repo-workbench/discussions` or `~/.local/state/repo-workbench/discussions`; repository/chat partitioned |
+| Repository registry  | `$XDG_CONFIG_HOME/repo-workbench/repositories.json` or `~/.config/repo-workbench/repositories.json`; folder references only      |
+| Source logs          | Existing Codex session locations or explicit `--root`; read-only                                                                 |
+| Usage index          | `$XDG_CACHE_HOME/repo-workbench/usage` or `~/.cache/repo-workbench/usage`; rebuildable, `--cache` override                       |
+| Usage export         | Fresh OS temporary directory, or explicit `--out` for retained output                                                            |
+| Curated review       | Fresh `{repo}/.cache/repo-workbench/reviews` directory, or explicit `--out`                                                      |
 
-Call `canvas_open({repo: "/absolute/repository"})`. Every open returns an opaque context ID; subsequent app operations retain it. Each context owns its map draft. Panels in the same repository/chat share durable discussion history; different repositories/chats have separate mailboxes. Two repositories or chats never share a mutable global target. Opening from the app menu without a target resolves the calling chat’s workspace from native request metadata and connects directly, without submitting a chat message. No repository is guessed from the plugin installation directory. Registered folders and manual path entry are fallbacks. A cancelled or expired request cannot retarget a panel. The user-level registry is optional and stores folder references, never maps or a global active target. The canonical path stays visible in the canvas.
-
-Saved maps use v3 only; old/invalid files require offline repair or a new draft, then explicit Save. Source blocks use `path#L10-L25`; editing existing Git-visible text requires diff review and a revision-checked source-file save, separate from map Save. Proposals require Apply to draft, then Save; stale revisions are rejected. A plugin installation location is never used as the repository default. The standalone CLI alone defaults `--repo` to the invoking working directory.
+Embedded Canvas resolves the calling chat's workspace; registered folders and
+manual entry are fallbacks. It never guesses from the plugin directory or another
+panel. The standalone CLI defaults `--repo` to its invoking working directory.
+Maps use v3; older/invalid files need offline repair or a new draft and explicit Save.
 
 ## Registered repositories and standalone server
 
@@ -93,85 +89,53 @@ repo-workbench serve --port 4317
 repo-workbench repos remove /absolute/repo
 ```
 
-Successfully opened embedded canvases remember their repository on this device. Both pickers offer searchable saved repositories and an **Add another repository** form that opens and remembers a folder. No filesystem scan is performed; existing Codex projects can be registered through `repos add`.
+Successful embedded opens remember canonical Git roots. Both pickers support
+search and Add another repository; no filesystem scan is performed. Concurrent
+registrations are serialized and preserve existing display names. Removing an
+entry leaves repository files and already-open targets untouched.
 
-The registry lives at `$XDG_CONFIG_HOME/repo-workbench/repositories.json`, defaulting to `~/.config/repo-workbench/repositories.json`. Registration resolves the Git checkout root and deduplicates canonical paths. Concurrent chat/server registrations are serialized; existing display names survive automatic remembering. Removing an entry leaves repository files untouched. The hosted picker and the standalone launch page reload the list every five seconds. Missing folders stay visible as unavailable; active canvases never switch when the list changes.
-
-`serve` starts a loopback-only, headless-capable process without opening a browser or model. Visit its printed URL to select a registered repository. Each repository route keeps its own state and source access, and browser drafts remain tab-local. Removing a registration hides it from new selections; existing server routes remain usable until that server restarts. This is a local trusted-user tool, not an authenticated remote service.
+`serve` prints a loopback URL without opening a browser or model. Registered
+folders refresh while choosing; missing folders remain visible as unavailable.
+Each route keeps its own state/source access; removing a registration leaves an
+existing route usable until server restart. This is a local trusted-user service.
 
 ## Use without Codex
 
 ```sh
-repo-workbench canvas --repo /absolute/repo
 repo-workbench canvas --repo /absolute/repo --validate
 repo-workbench usage --serve
 repo-workbench usage --root /logs --cache /cache --out /fresh/report
 repo-workbench trace --repo /repo --input exports --case case.json --out reviews/new
 ```
 
-A curated case declares `assetRoot`, `captureSubjects`, and `captureViews` (view names mapped to filename patterns containing `{subject}`) when collecting images. Those project conventions live in the case, not the generic renderer. Existing recorded identities, hash navigation, source hashes, lazy body checks, and review uncertainty remain intact. See [session review](docs/session-review.md), [usage](docs/usage.md), and [Canvas design](docs/canvas-design.md).
+The [session-review guide](docs/session-review.md) owns case authoring, capture
+patterns and evidence limits. Project conventions stay in the authored case.
 
 ## Maintain and verify
 
-`npm run check` covers formatting, typed lint, types, synthetic parser/export/usage tests, repository/MCP tests, and the packaged build. `npm run test:browser` exercises Canvas's hosted/standalone flow and the review/usage journeys. On macOS run browser-launching commands outside the restricted sandbox from the first launch; the startup guard uses disposable Chrome profiles and stops on startup failure.
+Author TypeScript/TSX and CSS; the ESLint `.mjs` configuration is also source.
+`dist/` is Git-ignored package output, rebuilt by `prepack`.
 
-The optional `REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node --test tests/codex.test.ts` checks native configuration precedence, catalog isolation and package rediscovery after server restart. It uses a disposable Codex configuration and starts no model turn; desktop activation remains a separate check.
+```sh
+npm run check
+npm run test:browser
+npm run test:package
+```
 
-Build before tests because runtime renderers use the same prebuilt assets delivered to users. Run `npm run test:package` to pack and install into a fresh temporary consumer with lifecycle scripts disabled, then verify the CLI, MCP resource, two repositories, and offline export without this source checkout's dependencies.
+`check` covers formatting, lint, types, build and synthetic/unit tests. Build
+before browser tests because they use delivered assets. On this Mac, launch the
+browser suite with approved execution outside the restricted sandbox; its startup
+guard uses disposable profiles and stops on launch failure. Package checks install
+into a fresh consumer with scripts disabled and verify CLI/MCP, two maps and export.
 
-Source extracted from Card Workshop commit `2db3b0d` (2026-10-20 review). Project maps, authored case specifications, private session logs, retained evidence, and game policy review remain owned by their repositories. Repo-kit's existing shared skills and Copier governance delivery are independent products.
+The optional `REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node --test tests/codex.test.ts`
+checks configuration precedence, catalog isolation and rediscovery with disposable
+configuration and no model turn. Desktop activation remains separate.
 
-Automatic connection uses the host-provided `_meta.threadId` (or matching `thread_id` alias),
-then an exact-ID, read-only lookup of `cwd` in the newest `state_N.sqlite` under
-`CODEX_HOME` (default `~/.codex`). This is a Codex-specific adapter, not a portable
-MCP guarantee. Missing metadata, unknown database schemas, missing workspaces and
-non-Git tasks fall back to the picker. It never scans conversation bodies or
-chooses the last-used repository. The desktop-bundled Codex 0.163.0-alpha.10.2
-was probed through `mcpServer/tool/call`: it provided `threadId` and no workspace
-path. Empty new chats can have an ID before their workspace is persisted. The picker explains this gap, retries automatically every five seconds while visible, and reports the outcome of manual retry. Choosing a repository explicitly works immediately and is not overridden when the chat is later persisted. The plugin cannot read the project selector when Codex does not supply it. Repeat the isolated, model-free probe with
-`REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node tests/probe-metadata.ts`.
+[Canvas](docs/canvas-design.md#implementation-owners) owns model/draft boundaries;
+[MCP integration](docs/mcp-apps.md) owns host and transport boundaries. For
+connection failures, use the [diagnostic procedure](docs/mcp-apps.md#connection-diagnostics).
 
-Each mounted panel has its own identity. After a server restart, a confirmed
-missing-context response reconnects to that panel’s selected repository and
-restores its in-memory draft/view. A transport timeout does not replay mutations.
-Closing/recreating a panel has a different recovery boundary: browser storage may
-be unavailable, so export unsaved drafts before replacing the whole panel.
-Connection uses the typed `connect` operation. Panels never send automatic chat messages.
-After upgrading from an earlier app protocol, reopen the panel after refreshing the server.
-
-## Connection diagnostics
-
-The **ⓘ Connection information** control beside the header shows panel/server versions and build fingerprints, server start time and process/instance IDs, repository, caller chat, context, and local log path. It warns when builds differ. Its compact symbol controls copy details, refresh status, and download the connection log; tooltips and accessible names identify each action. The JSON report
-includes the last 200 browser bridge events and server connection events, versions,
-server identity, caller metadata key names and thread ID, panel/context IDs, errors, and timings. If the host is unavailable,
-the download still includes the browser history after a five-second collection timeout.
-Initialization failures can be retried without reloading the panel.
-
-The stdio MCP server also keeps local JSONL logs at
-`$XDG_CACHE_HOME/repo-workbench/canvas/connection.jsonl` (default
-`~/.cache/repo-workbench/canvas/connection.jsonl`; an explicit `XDG_CONFIG_HOME` is
-used as the fallback for isolated installations/tests). Rotation retains the current
-file and one previous `.1` file, approximately 512 KiB each. New files are private
-(mode 0600). Logging failure does not block opening; it appears in the report.
-`canvas_diagnostics` lets the owning chat read recent server events and the log path.
-Logs include repository paths and operational errors, but no source bodies, map/draft
-payloads, or chat messages. Review paths before sharing a downloaded report.
-
-Directory discovery supports filesystem names such as Astro/Next dynamic routes, Unicode, spaces,
-and long paths without treating them as document IDs; saved maps keep their existing IDs.
-
-## Maintained application contracts
-
-Author `.ts`/`.tsx` and CSS; `dist/` is generated, Git-ignored, and explicitly included in the npm package. `prepack` rebuilds it. The authored ESLint `.mjs` configuration stays tracked.
-
-`model/contracts.ts` owns operation inputs and results for HTTP and MCP. The client infers results from the action and validates external JSON; saved-map semantic validation remains in `model/document.ts`. The MCP app tool carries `{contextId?, request: {action, args}}`. Removed binding-ticket routes have no compatibility layer.
-
-The UI uses the official MCP Apps SDK through `ui/host-client.ts`; `ui/host.ts` owns repository selection and restart recovery. `useCanvasDocument` owns drafts, revision conflicts, history and saves; `RepositoryPicker` owns selection UI. Codex is the acceptance target. Later Pi/DeepSeek harness experiments should adapt host capabilities, not duplicate application semantics or assume Codex's SQLite layout.
-
-The draft transition module owns document history and valid navigation for both
-human actions and agent commands. Undo restores the document while preserving
-current navigation where valid. The shared proposal review module compares the
-captured basis, binds migration consent to the proposal, and applies only to the
-draft; MCP proposals and discussion replies use the same policy. Save remains explicit.
-
-MCP Apps SDK 1.7.5 is pinned to stay compatible with MCP SDK 1.x. SDK 2.x requires a separate coordinated server migration. The packaged UI URI includes the build fingerprint, which covers source, static assets, build configuration and the dependency lockfile. Both server and UI report the same identity; this does not refresh an already running server process.
+Source was extracted from Card Workshop commit `2db3b0d` (2026-10-20 review).
+Project maps, cases, private logs, retained evidence and game policy stay with
+their repositories. Shared skills and Copier governance are separate products.

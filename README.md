@@ -91,6 +91,19 @@ update. When moving from a Claude-owned baseline, follow the
 before updating: preserve local policy in `AGENTS.md` and reduce `CLAUDE.md` to
 its discovery pointer.
 
+## Local artifacts
+
+Build output (`plugins/*/dist/`) and test fixtures are generated; installed apps
+and active tests may still need them. Fixture creators remove their own temporary
+directories at teardown. Retain failure captures through the test harness.
+
+`.cache/` holds rebuildable tool caches and legacy local output; review exact
+paths before cleanup. `.recovery/` is a temporary home for patches, migration snapshots and
+installation rollback packages, with original manifests preserved. Keep recovery
+bytes until their obligations are resolved. Tracked design rounds and source-pinned
+evidence stay with their owning documents. Never use a blanket cache deletion as
+a substitute for this classification.
+
 ## Verify repo-kit
 
 Enable the tracked pre-push gate once per clone:

@@ -31,7 +31,7 @@ Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`
 ## Views and analytics
 
 - **Overview**: Token metrics (input, output, cache share, reasoning share), daily trends, 182-day activity heatmap, model/project breakdowns, and sortable session tables.
-- **Filters**: Date range (defaults to last 30 days), model, project, effort, and search. Auto-review sessions (`codex-auto-review`) are excluded by default.
+- **Filters**: Date range, model, project, effort, and search. Auto-review sessions (`codex-auto-review`) are excluded by default.
 - **Pricing**: Standard rates (as of 2026-10-09) with configurable USD/million token rates. Applies 2× input / 1.5× output modifiers above 272K request tokens for eligible models.
 - **Evidence & Trace**: Links to physical file lines and SHA-256 hashes. In `--serve` mode, links directly into the trace visualizer. Exports filtered rows to CSV.
 

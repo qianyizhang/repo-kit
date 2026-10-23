@@ -127,6 +127,16 @@ adaptation does not add or claim verification of a light theme.
 Run the normal repository gate and the Repo Canvas browser suite. Report actual
 Codex host integration separately from protocol and simulated-host browser tests.
 
+## Implementation owners
+
+`useCanvasDocument` owns drafts, revision conflicts, history and saves;
+`RepositoryPicker` owns selection UI. The draft transition module keeps navigation
+valid for human and agent commands; Undo restores document history while retaining
+current navigation where valid. Shared proposal review compares the captured
+basis, binds migration consent to that proposal and applies only to the draft.
+MCP proposals and discussion replies share that policy; Save remains explicit.
+[MCP integration](mcp-apps.md) owns connection, transport and diagnostic behavior.
+
 ## Architecture and agent controls
 
 A folder scaffold is incomplete discovery, not a semantic claim. Discover breadth

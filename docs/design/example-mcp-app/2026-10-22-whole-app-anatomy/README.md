@@ -47,3 +47,9 @@ selection, inventory, journey highlights and frozen comment targets. The origina
 findings inside the map remain the dated discussion record; the accepted design
 above supersedes their proposed directions. Current runtime checks belong to the
 app's outcome matrix. Source/package/SDK checks do not establish native acceptance.
+
+Maintenance check, 2026-10-23: JSON serialization was compacted without changing
+its values, captures or source hashes. The current ready-stage validator reports
+one pre-existing reference gap: finding 9 names `T8`, which is not marked on its
+referenced screen. This is a limitation of the preserved discussion record, not
+a new validation pass or a correction to the historical observation.

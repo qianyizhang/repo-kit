@@ -1,16 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { reviewFixture } from '../../packages/trace/review-fixture.ts';
 import { renderReview } from '../../packages/session-review/build.ts';
 let url = '';
+let root = '';
 test.beforeAll(async () => {
-  const root = await mkdtemp(resolve('test-results/action-review-'));
+  root = await mkdtemp(resolve('test-results/action-review-'));
   const document = await reviewFixture(root);
   const html = resolve(root, 'index.html');
   await writeFile(html, await renderReview(document));
   url = pathToFileURL(html).href;
+});
+test.afterAll(async () => {
+  if (root) await rm(root, { recursive: true, force: true });
 });
 test('full exchanges, semantic actions and recorded metrics stay readable with interleaved activity', async ({
   page,

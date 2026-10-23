@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { resolve } from 'node:path';
 let file = '';
+let root = '';
 test.beforeAll(() => {
+  root = mkdtempSync(resolve('test-results/minimap-fixture-'));
   file = execFileSync(
     process.execPath,
     [
@@ -11,18 +14,22 @@ test.beforeAll(() => {
       '-e',
       `
     import {renderReview} from './packages/session-review/build.ts';
-    import {mkdtemp,writeFile} from 'node:fs/promises';
+    import {writeFile} from 'node:fs/promises';
     import {resolve} from 'node:path';
-    const root = await mkdtemp(resolve('test-results/minimap-fixture-'));
+    const root = process.argv[1];
     const events = Array.from({length:240},(_,i) => ({id:'e'+i,key:JSON.stringify(['session','turn','e'+i]),threadId:'session',turnId:'turn',ordinal:i+1,role:'Main',status:'completed',paths:[],relatedThreads:[],sourceTruncated:false,displayTruncated:false,kind:i%2 ? 'edit' : 'command',title:'work '+i,preview:'work '+i,text:'work '+i+'\\n'+('line\\n'.repeat(i%7 ? 2 : 45))}));
     const document = {version:3,title:'Minimap fixture',collectedAt:'2026-10-09',inputs:[],threads:[{id:'session',title:'Fixture',role:'Main',source:{name:'fixture',format:'synthetic',version:1,rawSchemaVersion:1},coverage:{totalItems:240,normalizedItems:240,unsupportedItems:[],excludedItems:[],truncatedItems:0,displayTruncatedItems:0},turns:[{id:'turn',threadId:'session',events}]}],documents:[],media:[]};
     const file = resolve(root,'index.html'); await writeFile(file,await renderReview(document)); console.log(file);
   `,
+      root,
     ],
     { encoding: 'utf8' },
   ).trim();
   expect(readFileSync(file, 'utf8')).not.toContain('__review-fixture');
   expect(readFileSync(file, 'utf8')).not.toContain('fixture-gallery');
+});
+test.afterAll(() => {
+  if (root) rmSync(root, { recursive: true, force: true });
 });
 test('offline minimap follows scroll and resized cards, including non-first bucket members', async ({
   page,

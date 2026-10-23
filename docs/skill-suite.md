@@ -1,19 +1,15 @@
 # Shared skill suite
 
-`skills/` is the canonical shared bundle. The [lock](../skills-lock.json) declares
-its selection, delivered hashes, upstream revision/original hashes and any local
-entrypoint adaptations with their reasons. Repo-kit owns those adaptations and
-local skills; upstream attribution and the MIT license remain intact.
-
-Skills are installed once for the user account. Project-specific rules and skills
-stay in their owning repository. This product is separate from `template/`:
-Copier distributes governance, not the shared skills.
-Repo-kit's local discovery directory contains only `maintain-repo-kit`; shared
-skills use the user installation, without repository-local aliases.
+`skills/` is the canonical shared bundle. [skills-lock.json](../skills-lock.json)
+owns selection, delivered hashes, upstream revisions and original hashes, and
+local adaptations with their reasons. Preserve upstream attribution and licenses.
+Skills install once per user; repository-specific skills and contracts stay local.
+Copier delivers `template/` governance separately. Local discovery here contains
+only `maintain-repo-kit`.
 
 ## Install and check
 
-From the repo-kit root, with Python 3.12:
+From repo-kit with Python 3.12:
 
 ```sh
 python3.12 scripts/skills.py check --source-only
@@ -22,137 +18,93 @@ python3.12 scripts/skills.py sync
 python3.12 scripts/skills.py check
 ```
 
-The default destination is `~/.agents/skills`; `--installed-root PATH` supports
-another discovery location or a disposable verification directory. Existing
-parent discovery symlinks are respected. Only managed skill directories and the
-license are updated; unrelated skills stay untouched. The installation receipt
-records the applied lock. It is generated state, not another source to maintain.
+The default destination is `~/.agents/skills`; `--installed-root PATH` selects
+another discovery location or a disposable verification directory. Parent
+discovery symlinks are respected. Sync changes only managed skills and their
+license; its generated receipt records the applied lock.
 
-Sync refuses unmanaged collisions, edited or missing installed files, and
-symlinks inside managed directories. Preserve and reconcile such changes before
-retrying. Updates retain the previous managed installation under
-`.repo-kit-skill-backups/` beside the resolved destination, outside skill discovery.
-The source lock must match before sync.
+The source lock must match. Sync refuses unmanaged collisions (including empty
+directories), edited or missing installed files, and symlinks inside managed
+skills. Additions require absent destinations and an unchanged prior installation.
+Preserve and reconcile local edits or retired skills before retrying.
 
-If a write failure or process exit interrupts replacement, the installer retains
-one interrupted-update record alongside the receipt. `check` and `diff` report
-the interruption without writing. The next explicit `sync` verifies the recorded
-old/new hashes and backups, restores the previous installation, then retries the
-requested update. A completed update only needs its leftover record removed.
-Unexpected edits or changed backups stop recovery before any paths move; preserve
-and reconcile those files manually. This covers process interruption, not a
-power-loss durability guarantee.
+## Recovery
+
+Previous managed files and their receipt remain under `.repo-kit-skill-backups/`
+beside the resolved destination, outside skill discovery. An interrupted update
+leaves a record: `check` and `diff` report it without writing. The next explicit
+`sync` verifies old/new hashes and backups, restores the previous installation,
+then retries. A completed update only needs its leftover record removed.
+Unexpected edits or changed backups stop recovery before paths move; preserve
+and reconcile them manually. This handles process interruption, not power loss.
+
+To roll back, restore a reviewed bundle and lock in repo-kit, review the diff,
+then sync. Restore independently edited installations from their recovery copies
+before applying another lock.
 
 ## Review an update
 
-Fetch Matt's repository into a disposable checkout and inspect the selected
-skills, their dependencies and invocation policy. Use its exact reviewed commit:
+Inspect selected upstream skills, dependencies and invocation policy in a clean,
+disposable checkout. Use its exact reviewed commit:
 
 ```sh
 python3.12 scripts/skills.py refresh --upstream-checkout /path/to/clean/checkout --revision FULL_COMMIT
 git diff -- skills skills-lock.json
 python3.12 scripts/skills.py check --source-only
 python3.12 -m unittest discover -s tests -p 'test_skills.py' -v
-python3.12 scripts/skills.py diff
-python3.12 scripts/skills.py sync
 ```
 
-Refresh reads committed Git blobs, excludes ignored generated files, performs no
-network request and installs nothing. It preserves declared adaptations only when
-the corresponding upstream baseline is unchanged. If an adapted file changed or
-disappeared upstream, refresh stops before source writes and names the conflict.
-Reconcile that adaptation and its exact upstream provenance in a reviewed source
-change; no automatic rebase is attempted. Review upstream monthly
-or when friction appears; changed instructions need a representative invocation
-in addition to structural checks. No background updater is installed.
+Refresh reads committed blobs, excludes ignored generated files, and neither
+fetches nor installs. It preserves declared adaptations only against unchanged
+upstream baselines. A changed or removed adapted file stops refresh before
+writes; reconcile the adaptation and exact provenance explicitly.
 
-For edits to local skills or declared adaptations, run
-`python3.12 scripts/skills.py lock` after review. The lock permits only declared
-entrypoint differences; upstream supporting files, metadata and license stay
-unchanged. Use the current repository script for refresh; older refresh code did
-not read the existing lock and can overwrite adaptations. Schema 2 makes older
-check/sync/lock commands reject adapted bundles; legacy unadapted locks remain
-readable by the current script. Installation receipts and recovery remain schema 1.
-Git history owns local change
-history. To roll back, restore the previous reviewed bundle and lock in repo-kit,
-review the diff, then sync it. Restore independently edited installations from
-their recovery copies before applying a different lock.
+For reviewed local-skill or adaptation edits, run
+`python3.12 scripts/skills.py lock`. Only declared entrypoint adaptations may
+differ; upstream supporting files, metadata and license stay unchanged. Use the
+current script: schema 2 makes older check/sync/lock commands reject adapted
+bundles, while the current script still reads legacy unadapted locks. Installation
+receipts and recovery remain schema 1.
 
-## Invocation and local bindings
+Review upstream monthly or when friction appears; no background updater is
+installed. Test changed instructions on a representative task as well as through
+structural checks. Finish with `diff`, explicit `sync`, then `check` as above.
+Git owns local change history.
 
-`retro` and `improve-codebase-architecture` require explicit invocation. The other
-skills can be selected for relevant requests. Keep upstream metadata as-is;
-add host metadata only when required, recording that exception separately.
+## Invocation and repository bindings
 
-Each project's guidance routes upstream names such as `GLOSSARY.md`, `docs/adr/`
-and `CODING_STANDARDS.md` to its existing owners. Local authority governs those
-destinations, meaningful test selection, and already accepted decisions. A clear
-acceptance needs no repeated confirmation. Use existing authorizations and ask
-only for material unresolved choices. Skills confer no additional write scope.
+`retro` and `improve-codebase-architecture` require explicit invocation. Other
+skills may be selected for relevant tasks. Retain upstream metadata; record any
+required host exception in the lock.
 
-## Migration — 2026-10-14
+Repository guidance maps names such as `GLOSSARY.md`, `docs/adr/` and
+`CODING_STANDARDS.md` to existing owners. Local contracts, tests, language and
+accepted decisions govern that binding. Skills add no write authority and need
+no copied local rules, mandatory ledger or repeated confirmation.
 
-The eight-skill suite replaces repo-kit's generic wrappers. `glossary-drill` and
-the maintained `explain-layman` framework are retired, including their runtime and
-validator. Older Copier consumers are not updated by this migration. Reconcile
-their recorded baseline before any later governance update or skill retirement.
+## Selection and provenance
 
-Pre-migration repo-kit working files, staged patch and unstaged patch are preserved
-locally under `.cache/skill-migration-20261014/`, with SHA-256 manifests. This
-includes uncommitted deprecated work. It is recovery material, not active delivery.
-The initial personal rollout covers game, EZ, Saul, TB3 and project-index; their
-specialized skills and domain contracts remain locally owned.
+The lock owns the current selection. These records explain local additions:
 
-## Finish-work adoption — 2026-10-14
+- [Shared delivery decision](adr/0006-shared-skill-delivery.md): the initial
+  2026-10-14 migration retired generic wrappers, `glossary-drill` and the maintained
+  `explain-layman` runtime/validator. Older Copier consumers still need separate
+  baseline reconciliation. Specialized consumer skills remain locally owned.
+- [Finish-work study and trial](reviews/2026-10-14-finish-work.md): adoption was
+  approved on 2026-10-14; [the skill](../skills/finish-work/SKILL.md) owns closeout.
+- [Simplify-repository](../skills/simplify-repository/SKILL.md): imported on
+  2026-10-19 from the [user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
+  version 2, retaining its workflow, references, host metadata and icon.
+- [UI discussion correction](reviews/2026-10-22-ui-discussion.md): the
+  [Canvas round](design/repo-canvas/2026-10-21/README.md) and
+  [Example trial](design/example-mcp-app/2026-10-22-presentation/README.md)
+  informed [ui-discussion](../skills/ui-discussion/SKILL.md). App indexes route
+  current owners and source-pinned rounds.
+- [MCP construction review](reviews/2026-10-22-practice-library.md):
+  [mcp-app](../skills/mcp-app/SKILL.md) owns the construction workflow;
+  [the practice guide](../user/practices/mcp-apps.md) owns portable principles.
+  Its executable starter is copied and adapted, not automatically upgraded.
 
-The user approved [finish-work](../skills/finish-work/SKILL.md) as the ninth skill,
-following [session review and a controlled trial](reviews/2026-10-14-finish-work.md).
-It reviews a completed slice, fixes supported findings, verifies the intended
-commit, and commits when requested. No further edits is a valid outcome.
-
-Sync supports additions to a previously managed selection when old files still
-match their receipt and each new destination is absent. Even an empty unmanaged
-directory is a collision. Retiring skills still requires explicit reconciliation.
-The previous installation and receipt remain in the normal recovery directory.
-
-Repository bindings point to existing contracts, testing and retention owners.
-They do not install local copies, run Copier, or require a new rulebook or ledger.
-
-## Simplify-repository adoption — 2026-10-19
-
-[simplify-repository](../skills/simplify-repository/SKILL.md) is imported from the
-[user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
-version 2. Its workflow, references, host metadata, and icon retain the account
-source content. It supports evidence-based repository simplification while
-preserving behavior and public contracts; it does not authorize unrelated rewrites.
-
-Sync accepts additions to an existing managed selection when prior files match
-their receipt and new destinations are absent. Unmanaged collisions, including
-empty directories, and retired skills still require explicit reconciliation.
-
-## UI discussion
-
-[ui-discussion](../skills/ui-discussion/SKILL.md) owns spatial UI decomposition, shared component vocabulary,
-temporal journey mapping and the review-round scaffold. It was derived from the Repo Canvas
-[review round](design/repo-canvas/2026-10-21/README.md) and the Example MCP App
-[discussion seed](design/example-mcp-app/2026-10-22-presentation/README.md).
-Each app keeps source, design intent and terminology in its existing owners;
-`docs/design/<app>/README.md` routes to them and dated review rounds. The skill
-does not install app changes or require a review round for a simple cosmetic fix.
-
-The [22 October correction](reviews/2026-10-22-ui-discussion.md) replaces the
-journey-led generic scaffold with a current-layout map. Complete the component
-inventory before journey analysis; proposals remain separate from the baseline.
-
-## MCP App construction and observability
-
-[mcp-app](../skills/mcp-app/SKILL.md) packages the shared construction procedure,
-interaction/logging references, a dual-mode TypeScript starter and boundary tests.
-The [MCP Apps guide](../user/practices/mcp-apps.md) retains portable principles.
-`ui-discussion --mcp` adds a linked integration review page and validator for tool
-coverage, payload fixtures and conversation sequences. App-specific domain rules
-and actual deployment authority remain in each product repository.
-
-The starter is a copied, reviewable starting point, not an automatically upgraded
-runtime dependency. New app work should run its behavioral tests after adapting
-the domain; existing apps adopt only the relevant mechanisms through their owners.
+Pre-migration working files and staged/unstaged patches, including uncommitted
+retired work, remain in `.recovery/skill-migration-20261014/` with SHA-256 manifests.
+Keep this recovery material until its remaining obligations are resolved.
