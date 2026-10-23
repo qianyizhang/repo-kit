@@ -58,9 +58,11 @@ the policy explicitly when a product needs different retention or a remote serve
 ## Payload limits and privacy
 
 Record application-boundary requests/results as observed, not reconstructed from
-current UI state. The starter masks credential-named fields before live inspection
-or explicit capture and retains up to 64 KiB per payload. It marks redacted and truncated
-payloads; a prefix is never labeled “full”. Free text may still contain sensitive
+current UI state. The starter matches known credential names exactly, ignoring
+case, hyphens and underscores, so token-count fields remain inspectable. It masks
+these fields before live inspection or explicit capture and retains up to 64 KiB
+per payload. It marks redacted and truncated payloads; a prefix is never labeled
+“full”. Free text may still contain sensitive
 content: use synthetic fixtures for tests, disclose retention, and adapt domain
 redaction before handling private datasets. Do not log auth headers or transport
 credentials. User-visible exports follow the same policy.

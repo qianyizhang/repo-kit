@@ -1,6 +1,21 @@
 import { z } from "zod";
 
 export const PAYLOAD_LIMIT = 64 * 1024;
+const credentialNames = new Set([
+  "authorization",
+  "proxyauthorization",
+  "cookie",
+  "setcookie",
+  "password",
+  "secret",
+  "clientsecret",
+  "token",
+  "accesstoken",
+  "refreshtoken",
+  "idtoken",
+  "apikey",
+  "privatekey",
+]);
 export const payloadSchema = z.object({
   text: z.string().max(PAYLOAD_LIMIT),
   originalBytes: z.number().int().nonnegative(),
@@ -18,9 +33,7 @@ export function snapshot(
     JSON.stringify(
       value,
       (key, item: unknown) => {
-        if (
-          /authorization|cookie|password|secret|token|api[-_]?key/i.test(key)
-        ) {
+        if (credentialNames.has(key.replace(/[-_]/g, "").toLowerCase())) {
           redacted = true;
           return "[redacted]";
         }

@@ -91,6 +91,46 @@ test("payload masking, truncation and omission are explicit", () => {
   assert.equal(snapshot("private prose", true).omitted, true);
   assert.doesNotMatch(snapshot("private prose", true).text, /private prose/);
 });
+test("credential names are masked without hiding token usage metrics", () => {
+  const usage = {
+    input_tokens: 120,
+    outputTokens: 30,
+    totalTokens: 150,
+    tokens: { cached: 40 },
+    tokenization: "reported",
+  };
+  const metrics = snapshot({ usage });
+  assert.equal(metrics.redacted, false);
+  assert.deepEqual(JSON.parse(metrics.text), { usage });
+  const credentials = Object.fromEntries(
+    [
+      "Authorization",
+      "Proxy-Authorization",
+      "Cookie",
+      "Set-Cookie",
+      "PASSWORD",
+      "secret",
+      "client_secret",
+      "TOKEN",
+      "access_token",
+      "refreshToken",
+      "id-token",
+      "api_key",
+      "privateKey",
+    ].map((key) => [key, "credential-sentinel"]),
+  );
+  const masked = snapshot({ usage, nested: [credentials] });
+  assert.equal(masked.redacted, true);
+  assert.doesNotMatch(masked.text, /credential-sentinel/);
+  assert.deepEqual(JSON.parse(masked.text), {
+    usage,
+    nested: [
+      Object.fromEntries(
+        Object.keys(credentials).map((key) => [key, "[redacted]"]),
+      ),
+    ],
+  });
+});
 test("logs are bounded, private, inspectable and non-recursive", () => {
   const root = mkdtempSync(join(tmpdir(), "mcp-log-test-")),
     store = new LogStore(root);
