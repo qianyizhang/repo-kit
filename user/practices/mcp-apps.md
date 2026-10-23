@@ -5,42 +5,39 @@ Share domain operations, state rules and views; adapt transport and host control
 A development host can exercise integration, but simulated chat is not native
 Codex acceptance. Read the repository's design and runtime contracts first.
 
-## Build sequence
+## Build and review
 
-1. **Name the roles.** Distinguish the main conversation (user/assistant exchange),
-   app panel (interactive UI), host (harness routing, capabilities and lifecycle),
-   and MCP server (tools/resources). These are roles, not necessarily four
-   processes. Explain where Send goes and what runs each operation. Include
-   relevant user-visible roles even when their internals are not observable.
-2. **Own the state.** Identify durable data, drafts, proposals and per-panel view
-   state. Use explicit canonical targets and opaque context IDs; an installation
-   directory or process-global “current target” is not the user's workspace.
-3. **Define operations.** Share typed request/result schemas across local HTTP
-   and MCP. Validate at both boundaries; enforce revisions and authority on the
-   server. App-only visibility is discovery metadata, not authorization.
-4. **Add the host adapter.** Use the compatible pinned MCP Apps SDK. Register
-   handlers before connecting; feature-detect message, tool, link and display
-   capabilities. Handle theme, size, teardown and failed initialization. Keep
-   standalone operation useful when chat is unavailable.
-5. **Scaffold observability.** Capture real boundary events from the start, with
-   source, connection/run IDs and timestamps. Feed the graph, log and export from
-   one bounded record store; deduplicate overlapping captures and keep original
-   observations separate from derived views. Incremental payloads and live drawing
-   follow observed events. Make absent instrumentation explicit.
-6. **Package the UI.** Deliver complete HTML with bundled assets and a build-based
-   resource URI. Only opening tools attach a UI resource; data calls should not
-   remount it. Prefer stdio for local companions, protocol-only stdout, and exit
-   on host disconnect. Keep startup cheap and runtime paths explicit.
-7. **Capture discussion.** On explicit Send, freeze the selected evidence, draft,
-   revision and question under an ID; then send that ID to the owning chat.
-   Replies target that capture. Apply changes to drafts; keep Save or external
-   mutation a separate reviewed action. Treat source text as data.
-8. **Prove both modes.** Use the UI/UX guide's action/route/outcome matrix; include
-   capability denial, missing evidence, disconnect and teardown. Test the delivered
-   package through real tools/resources, then an SDK host with opaque iframe
-   origin and restrictive CSP. Exercise
-   failures, two contexts, stale reads, refresh, narrow layout, keyboard and
-   themes. Finally verify the installed build and actual Codex round trip.
+Use the `mcp-app` skill for implementation and integration debugging. It owns the
+build sequence, observability starter, payload/status contracts and boundary tests.
+Use `ui-discussion --mcp` for a visual review with a tool catalog, conversation
+fixtures, data-flow sequence and standalone/logging coverage. Keep domain-specific
+commands and exceptions in the product repository.
+
+## Action and evidence principles
+
+- **Honor the action.** Send the user's text directly to the owning conversation.
+  Context attachment is explicit, frozen and bounded; ordinary messages require
+  no evidence lookup. Summaries, exact source reads and provenance have distinct
+  scoped APIs. Fetch provenance only when needed. Apply and Save remain separate.
+- **Make the boundary visible.** Name the app, host, main conversation and server.
+  Show destination, scope and meaningful status. An acknowledgment is evidence of
+  acceptance, not an assistant reply or a completed external effect.
+- **Keep one owner.** Domain operations and schemas serve both HTTP and MCP;
+  server validation enforces authority. Generate the catalog from registrations.
+  App-only visibility is discovery metadata, not authorization.
+- **Make interactions inspectable.** Keep App info (ⓘ) available. Expose build,
+  mode, connection/capabilities and canonical log location. Let users inspect the
+  frozen request/result of each action, including failure. Label redaction,
+  truncation, missing observations and recording failure. Logs remain outside
+  ordinary model context; inspection must not repeat the action. Persist metadata
+  by default, inspect payloads live, and save payloads only for an explicitly
+  selected diagnostic capture. Explain that uncaptured payloads can be lost.
+- **Keep evidence honest.** Correlate observed boundaries through explicit IDs.
+  Local receipt order is not proof of cross-process causality. Distinguish live
+  observations, deterministic fixtures and unobserved host/model work.
+- **Prove the delivered route.** Source, package, installed server and active panel
+  are different acceptance layers. Test standalone operation and the real host
+  adapter, then report exactly which layers were verified.
 
 ## Footguns
 
@@ -49,7 +46,8 @@ Codex acceptance. Read the repository's design and runtime contracts first.
   storage, and route external links through the host when embedded.
 - **False success:** transport success can contain `isError`. Parse the result.
   Message acknowledgment means accepted delivery, not a completed model reply.
-  On timeout, show uncertain delivery and preserve the capture; never auto-resend.
+  On timeout, show uncertain delivery and preserve the draft and selected context;
+  never auto-resend.
 - **Invented traces:** a host acknowledgment is not an observed conversation/model
   event. Wire IDs and clocks may be local to a boundary; correlate across boundaries
   only with explicit evidence and label inferred links. Preserve receipt order in

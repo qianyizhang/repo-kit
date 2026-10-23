@@ -116,3 +116,50 @@ from pstack; upstream skill bodies and examples are not vendored into these page
 Delivery tests exercise sync behavior. The walkthroughs check written routing and
 consistency with these cases, not observed agent compliance. Neither measures
 future agent quality or establishes UI, iOS or accessibility acceptance.
+
+## 2026-10-23: direct MCP App messages
+
+User review of Repo Workbench showed that an ordinary `hi` created a frozen
+report and required an ID-based read of unrelated source records. The accepted
+contract is now in `user/practices/mcp-apps.md`: direct user text, explicit bounded
+selection context, purpose-scoped reads, and provenance only when needed. Apply
+and Save remain separate. Local application owners are Workbench Reports/Canvas,
+Blog Writer and Saul's board; the example app already sends text directly.
+
+## 2026-10-23: executable MCP App practice
+
+The user asked to turn these principles into a skill with a shared observability
+scaffold: persistent App info, canonical logs, truthful status, tool contracts,
+inspectable payloads, conversation fixtures and standalone operation.
+[mcp-app](../../skills/mcp-app/SKILL.md) now owns the construction procedure and
+starter; the practice guide retains portable principles. The
+[UI discussion supplement](../../skills/ui-discussion/references/mcp-integration.md)
+adds a tool/operation catalog and data-flow review page with readiness checks.
+
+The starter reuses the local Example MCP App's tested SDK versions and the
+[official MCP Apps protocol roles](https://modelcontextprotocol.io/extensions/apps/overview).
+It records SDK/application-boundary evidence; host internals remain explicitly
+unobserved. A generated app passed a clean locked dependency install, 9 unit and
+stdio protocol tests, and 7 standalone/SDK-host browser tests. The populated
+integration review passed a separate browser check for payload display, frozen
+feedback and narrow layout. These establish fixture behavior, not a live Codex
+round trip or retroactive adoption in existing apps.
+
+The initial installation used an isolated skill candidate containing this task's
+additions over the installed UI-discussion baseline. The independent UI readiness
+changes were still pending in their source worktree. That installation replaced
+no product runtime and made no commit or publication.
+
+### Retention follow-up
+
+The user selected metadata-only disk logs, bounded live payload inspection, and
+explicit capture of one interaction. The starter and guide now implement that
+policy. Captures retain masked observations only, with limits of eight captures
+per session and 2 MiB per capture; startup retention excludes live processes.
+The shared bundle also includes the separately reviewed UI readiness changes.
+
+Closeout corrected two capture failures: the disk-writing capture tool advertised
+itself as read-only, and a failed event lookup left the previous interaction
+eligible for capture. Protocol and browser regressions reproduce both defects
+before their fixes. Generated-app checks verify fixture behavior; adoption and
+live conversation acceptance in existing products remain separate work.
