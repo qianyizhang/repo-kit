@@ -1,8 +1,8 @@
 # Shared skill suite
 
 `skills/` is the canonical shared bundle. Six directories are copied unchanged
-from Matt Pocock; `next-slice`, `show-me`, `finish-work`, and
-`simplify-repository` are maintained here. The single
+from Matt Pocock; `next-slice`, `show-me`, `finish-work`,
+`simplify-repository`, and `ui-discussion` are maintained here. The single
 [lock](../skills-lock.json) records the upstream revision, original paths and all
 delivered file hashes. The MIT licenses are retained in the bundle.
 
@@ -25,7 +25,7 @@ python3.12 scripts/skills.py check
 
 The default destination is `~/.agents/skills`; `--installed-root PATH` supports
 another discovery location or a disposable verification directory. Existing
-parent discovery symlinks are respected. Only ten managed directories and the
+parent discovery symlinks are respected. Only managed skill directories and the
 license are updated; unrelated skills stay untouched. The installation receipt
 records the applied lock. It is generated state, not another source to maintain.
 
@@ -63,7 +63,7 @@ network request and installs nothing. Review upstream monthly
 or when friction appears; changed instructions need a representative invocation
 in addition to structural checks. No background updater is installed.
 
-For edits to the four local skills, run `python3.12 scripts/skills.py lock` after
+For edits to local skills, run `python3.12 scripts/skills.py lock` after
 review; it refuses changes to upstream bytes. Git history owns local change
 history. To roll back, restore the previous reviewed bundle and lock in repo-kit,
 review the diff, then sync it. Restore independently edited installations from
@@ -72,7 +72,7 @@ their recovery copies before applying a different lock.
 ## Invocation and local bindings
 
 `retro` and `improve-codebase-architecture` require explicit invocation. The other
-eight skills can be selected for relevant requests. Keep upstream metadata as-is;
+skills can be selected for relevant requests. Keep upstream metadata as-is;
 add host metadata only when required, recording that exception separately.
 
 Each project's guidance routes upstream names such as `GLOSSARY.md`, `docs/adr/`
@@ -120,3 +120,17 @@ preserving behavior and public contracts; it does not authorize unrelated rewrit
 Sync accepts additions to an existing managed selection when prior files match
 their receipt and new destinations are absent. Unmanaged collisions, including
 empty directories, and retired skills still require explicit reconciliation.
+
+## UI discussion
+
+[ui-discussion](../skills/ui-discussion/SKILL.md) owns spatial UI decomposition, shared component vocabulary,
+temporal journey mapping and the review-round scaffold. It was derived from the Repo Canvas
+[review round](design/repo-canvas/2026-10-21/README.md) and the Example MCP App
+[discussion seed](design/example-mcp-app/2026-10-22-presentation/README.md).
+Each app keeps source, design intent and terminology in its existing owners;
+`docs/design/<app>/README.md` routes to them and dated review rounds. The skill
+does not install app changes or require a review round for a simple cosmetic fix.
+
+The [22 October correction](reviews/2026-10-22-ui-discussion.md) replaces the
+journey-led generic scaffold with a current-layout map. Complete the component
+inventory before journey analysis; proposals remain separate from the baseline.

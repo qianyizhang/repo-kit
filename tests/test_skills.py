@@ -35,12 +35,12 @@ class SkillSyncTest(unittest.TestCase):
     def install_previous_selection(self) -> None:
         previous = Path(self.temp.name) / "previous"
         shutil.copytree(self.root, previous)
-        shutil.rmtree(previous / "skills/simplify-repository")
+        shutil.rmtree(previous / "skills/ui-discussion")
         lock = json.loads((previous / "skills-lock.json").read_text())
-        lock["skills"].remove("simplify-repository")
-        lock["files"] = {p: h for p, h in lock["files"].items() if not p.startswith("simplify-repository/")}
+        lock["skills"].remove("ui-discussion")
+        lock["files"] = {p: h for p, h in lock["files"].items() if not p.startswith("ui-discussion/")}
         MODULE.write_json(previous / "skills-lock.json", lock)
-        with patch.object(MODULE, "LOCAL_SKILLS", ("next-slice", "show-me", "finish-work")):
+        with patch.object(MODULE, "LOCAL_SKILLS", tuple(n for n in MODULE.LOCAL_SKILLS if n != "ui-discussion")):
             with contextlib.redirect_stdout(io.StringIO()):
                 MODULE.sync(previous, self.target, apply=True)
 
@@ -58,8 +58,8 @@ class SkillSyncTest(unittest.TestCase):
                 self.assertEqual(data, (self.target / path).read_bytes())
         self.assertEqual("independent workflow", other.read_text())
         self.assertEqual(
-            (self.root / "skills/simplify-repository/SKILL.md").read_bytes(),
-            (self.target / "simplify-repository/SKILL.md").read_bytes(),
+            (self.root / "skills/ui-discussion/SKILL.md").read_bytes(),
+            (self.target / "ui-discussion/SKILL.md").read_bytes(),
         )
         recovery = self.target.parent / ".repo-kit-skill-backups"
         self.assertTrue(any(MODULE.files(path) == before for path in recovery.iterdir()))
@@ -172,7 +172,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
 
     def test_additive_upgrade_rejects_empty_or_populated_unmanaged_destination(self) -> None:
         self.install_previous_selection()
-        collision = self.target / "simplify-repository"
+        collision = self.target / "ui-discussion"
         collision.mkdir()
         for populated in (False, True):
             with self.subTest(populated=populated):
@@ -191,7 +191,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         with self.assertRaisesRegex(ValueError, "local edits or missing files"):
             self.sync(apply=True)
         self.assertEqual(before, MODULE.files(self.target))
-        self.assertFalse((self.target / "simplify-repository").exists())
+        self.assertFalse((self.target / "ui-discussion").exists())
 
     def test_retired_selection_requires_explicit_reconciliation(self) -> None:
         self.sync(apply=True)
@@ -320,7 +320,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
 
     def test_source_and_invocation_selection(self) -> None:
         lock, content = MODULE.bundle(ROOT)
-        self.assertEqual(10, len(lock["skills"]))
+        self.assertEqual(11, len(lock["skills"]))
         for name in MODULE.UPSTREAM_SKILLS:
             expected = {p: h for p, h in lock["upstream"]["files"].items() if p.startswith(name + "/")}
             actual = {p: MODULE.digest(data) for p, data in content.items() if p.startswith(name + "/")}

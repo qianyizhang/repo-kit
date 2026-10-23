@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI/UX anatomy review"
+  short_description: "Map visual parts, trace journeys, discuss improvements"
+  default_prompt: "Use $ui-discussion to map this app’s current UI exhaustively, establish shared names, then trace primary journeys and review duplication and progressive disclosure."

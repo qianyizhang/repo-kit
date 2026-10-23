@@ -29,6 +29,14 @@
     "simplify-repository/agents/openai.yaml": "27eab88f6d984ed5873e355f75eb03fe6bda0081874d4a62d253d2701e4ce6c7",
     "simplify-repository/assets/icon.svg": "72343cc4b66256ae7de8474c7cad14e711ad84a94c473732a44f96a56124c42d",
     "simplify-repository/references/principles.md": "124c2ed2a22246c01781d9d1a0bf715a3487d9af7f34044e8dbce7f2b791866e",
+    "ui-discussion/SKILL.md": "f06747442aef3df4fad2a39139189e084cc8621d9f49d1ea2ec13473648d12cf",
+    "ui-discussion/agents/openai.yaml": "98a05567898f30b7059df6433752c62d725754e425591a606118ef05b93e6cc6",
+    "ui-discussion/assets/app.md": "88ca9ca759f22fa958bbe3fa7fd6243e93b87e892a358f04b8adc3c9cd5d69a7",
+    "ui-discussion/assets/index.html": "9919b248764939f9aeab4fcba4065bc5ab35ee6c747124e1fa65f92ba8650374",
+    "ui-discussion/assets/round.md": "fc11dee0d6dd726e3b192ce744f4aed8fc835f667f691432147627fb4f4ee2e6",
+    "ui-discussion/references/review-surface.md": "f5528f1e38869791ee83b1126214d7647f1b459f8c28c62a0d384994ae6c6511",
+    "ui-discussion/scripts/scaffold.py": "d1ecef60de956ca1bed7fd88bb469876e2ad784bbcfd2146b39819095c19e872",
+    "ui-discussion/scripts/validate.py": "3d11b19a0ccbeeb0fef5869b6697404424794e4218f8d7498ad89c79bc76b5a0",
     "writing-for-agents/SKILL-MECHANICS.md": "c768e6307c7c10728c401c213f2c4ba71c542127eeb7ad2956aabd15a0fa0059",
     "writing-for-agents/SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
     "writing-for-agents/agents/openai.yaml": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
@@ -44,7 +52,8 @@
     "next-slice",
     "show-me",
     "finish-work",
-    "simplify-repository"
+    "simplify-repository",
+    "ui-discussion"
   ],
   "upstream": {
     "files": {

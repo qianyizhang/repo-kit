@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{APP}} · UI/UX anatomy review</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font:
+        15px/1.5 system-ui,
+        sans-serif;
+      --bg: #f5f4ef;
+      --card: #fff;
+      --ink: #25342e;
+      --line: #cbd2cb;
+      --accent: #176f5c;
+      --mark: #eedca5;
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    h1 {
+      font-size: 1.5rem;
+    }
+    h2 {
+      font-size: 1.1rem;
+    }
+    h3 {
+      font-size: 1rem;
+    }
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0 0 0.7rem;
+    }
+    button,
+    select,
+    textarea {
+      font: inherit;
+      color: inherit;
+    }
+    button,
+    select {
+      padding: 0.45rem 0.7rem;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--card);
+      cursor: pointer;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    button[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    :focus-visible {
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
+    }
+    header {
+      padding: 1.25rem 1.6rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .tag {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+    nav {
+      margin-top: 1rem;
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 1.2rem;
+      padding: 1.3rem;
+      max-width: 1800px;
+      margin: auto;
+    }
+    article,
+    aside {
+      min-width: 0;
+    }
+    .panel,
+    aside {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .toolbar {
+      margin-bottom: 1rem;
+    }
+    #viewport {
+      overflow: auto;
+    }
+    #stage.actual {
+      width: max-content;
+    }
+    #stage.actual #capture {
+      width: auto;
+      max-width: none;
+    }
+    #stage {
+      position: relative;
+      border: 1px solid var(--line);
+      line-height: 0;
+    }
+    #capture {
+      width: 100%;
+      display: block;
+    }
+    #blank {
+      line-height: 1.6;
+      padding: 3rem 1rem;
+    }
+    #marks {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .mark {
+      position: absolute;
+      pointer-events: auto;
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 0;
+      padding: 0;
+      line-height: 1;
+    }
+    .mark span {
+      position: absolute;
+      top: 0;
+      left: 0;
+      background: var(--mark);
+      color: #302916;
+      border: 1px solid #806f42;
+      padding: 4px;
+      font-size: 11px;
+      border-radius: 3px;
+    }
+    .mark:hover,
+    .mark.selected {
+      border: 2px solid var(--accent);
+      background: #29876b22;
+    }
+    .mark.participant {
+      border: 2px dashed var(--accent);
+    }
+    #coverage {
+      margin-top: 0.6rem;
+      font-size: 0.85rem;
+    }
+    dl {
+      margin: 0;
+    }
+    dt {
+      font-weight: 650;
+      margin-top: 0.7rem;
+    }
+    dd {
+      margin: 0.15rem 0;
+      overflow-wrap: anywhere;
+    }
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      background: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.6rem;
+    }
+    form {
+      margin-top: 1.2rem;
+    }
+    details {
+      margin-top: 1rem;
+    }
+    summary {
+      cursor: pointer;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+    .table-wrap {
+      overflow: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+    }
+    td,
+    th {
+      text-align: left;
+      padding: 0.6rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    .finding {
+      border-bottom: 1px solid var(--line);
+      padding: 1rem 0;
+    }
+    .step {
+      margin-bottom: 1rem;
+    }
+    .muted {
+      font-size: 0.85rem;
+    }
+    .empty {
+      padding: 1rem;
+      border: 1px dashed var(--line);
+    }
+    [hidden] {
+      display: none !important;
+    }
+    #inventory-count {
+      margin: 0.5rem 0;
+    }
+    #notice {
+      margin-top: 0.7rem;
+      font-size: 0.85rem;
+    }
+    #provenance {
+      font-size: 0.85rem;
+    }
+    #element-list {
+      max-height: 260px;
+      overflow: auto;
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    @media (max-width: 1050px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+      header {
+        padding: 1rem;
+      }
+      aside {
+        max-height: none;
+      }
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1b211e;
+        --card: #242d27;
+        --ink: #e4e9e3;
+        --line: #4d5c51;
+        --accent: #94d5b8;
+      }
+    }
+  </style>
+  <header>
+    <p class="tag">Review frame · <span id="revision"></span></p>
+    <h1>{{APP}} · UI/UX anatomy</h1>
+    <p id="scope"></p>
+    <details>
+      <summary>Baseline and coverage scope</summary>
+      <p id="provenance"></p>
+    </details>
+    <nav class="row" aria-label="Review dimensions">
+      <button data-view="layout" aria-pressed="true">1 · Spatial UI</button>
+      <button data-view="inventory" aria-pressed="false">
+        Component inventory
+      </button>
+      <button data-view="journey" aria-pressed="false">2 · Temporal UX</button>
+      <button data-view="audit" aria-pressed="false">
+        3 · Audit and proposals
+      </button>
+    </nav>
+  </header>
+  <main>
+    <article>
+      <section id="layout-panel" class="panel">
+        <div class="row toolbar">
+          <label for="screen">Layout state</label
+          ><select id="screen"></select
+          ><button id="labels" aria-pressed="true">Element labels</button
+          ><button id="size" aria-pressed="false">Actual size</button>
+        </div>
+        <section id="journey-panel" hidden>
+          <div class="row toolbar">
+            <label for="journey">Primary journey</label
+            ><select id="journey"></select
+            ><button id="previous">Previous step</button
+            ><button id="next">Next step</button>
+          </div>
+          <h2 id="journey-title"></h2>
+          <p id="goal"></p>
+          <p id="endpoints" class="muted"></p>
+          <div class="step">
+            <h3 id="step-title"></h3>
+            <p id="step-summary"></p>
+            <details>
+              <summary>Cues, deferred detail and recovery</summary>
+              <dl id="step-detail"></dl>
+            </details>
+          </div>
+        </section>
+        <h2 id="screen-title">Current layout</h2>
+        <div id="viewport">
+          <div id="stage">
+            <img id="capture" alt="" hidden />
+            <div id="blank">
+              No inspected layout has been added. Capture the actual scoped
+              screens and map their components before defining journeys or
+              proposing a redesign.
+            </div>
+            <div id="marks"></div>
+          </div>
+        </div>
+        <p id="coverage"></p>
+        <div id="element-list" aria-label="Components in this state"></div>
+      </section>
+      <section id="inventory-panel" class="panel" hidden>
+        <h2>Shared component vocabulary</h2>
+        <p id="inventory-count"></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID / name</th>
+                <th>Parent / location</th>
+                <th>Facts</th>
+                <th>Actions</th>
+                <th>Reveal / instances</th>
+              </tr>
+            </thead>
+            <tbody id="inventory"></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="audit-panel" class="panel" hidden>
+        <h2>Evidence-led findings</h2>
+        <p>
+          Compare shared facts and actions, then trace navigation and disclosure
+          through the journey. Overlap candidates need judgment; repeated access
+          may be useful.
+        </p>
+        <div id="findings"></div>
+        <h2>Same-state overlap candidates</h2>
+        <div id="overlaps"></div>
+      </section>
+    </article>
+    <aside aria-label="Element commentary">
+      <h2>Element commentary</h2>
+      <p class="muted">
+        Select a badge on the actual layout or a component in the inventory.
+      </p>
+      <dl id="commentary"></dl>
+      <form id="feedback">
+        <label for="comment">Feedback on this element or journey step</label
+        ><textarea id="comment" required></textarea>
+        <p id="draft-context" class="muted"></p>
+        <button id="keep" type="submit">Keep comment</button>
+      </form>
+      <details>
+        <summary id="comment-count">Comments (0)</summary>
+        <div id="comments"></div>
+      </details>
+      <button id="export" type="button">Export comments</button>
+      <p id="notice" role="status">
+        Comments stay in this page until exported. No app operations are
+        performed.
+      </p>
+      <details id="export-preview" hidden>
+        <summary>Selectable JSON</summary>
+        <pre id="export-text"></pre>
+      </details>
+    </aside>
+  </main>
+  <script id="review-data" type="application/json">
+    {
+      "revision": "inventory-draft-1",
+      "scope": "Incomplete scaffold. Define scoped screens, states and exclusions, then populate from inspected evidence. No product layout or user journey has been inferred.",
+      "baseline": "Record source revision/build, capture origin and time, viewport, and fixture/live status.",
+      "screens": [],
+      "elements": [],
+      "journeys": [],
+      "findings": []
+    }
+  </script>
+  <script>
+    const model = JSON.parse(
+      document.getElementById("review-data").textContent,
+    );
+    const $ = (id) => document.getElementById(id);
+    let view = "layout",
+      screenId = model.screens[0]?.id ?? "",
+      selected = "",
+      journeyId = model.journeys[0]?.id ?? "",
+      stepIndex = 0,
+      draftTarget = null;
+    const comments = [];
+    const screen = () => model.screens.find((s) => s.id === screenId);
+    const journey = () => model.journeys.find((j) => j.id === journeyId);
+    const step = () => journey()?.steps[stepIndex];
+    function node(tag, text) {
+      const n = document.createElement(tag);
+      n.textContent = text;
+      return n;
+    }
+    function entry(list, name, value) {
+      list.append(node("dt", name), node("dd", value || "Not recorded"));
+    }
+    function context() {
+      return {
+        revision: model.revision,
+        view,
+        screen: screenId,
+        kind: screen()?.kind ?? "",
+        element: selected || null,
+        journey: view === "journey" ? journeyId : null,
+        step: view === "journey" ? stepIndex : null,
+      };
+    }
+    function inspect(id, scroll = false) {
+      selected = id;
+      const e = model.elements.find((e) => e.id === id);
+      $("commentary").replaceChildren();
+      if (e) {
+        for (const [key, value] of Object.entries({
+          "ID / shared name": `${e.id} · ${e.name}`,
+          Parent: e.parent || "Root",
+          Location: e.location,
+          Purpose: e.purpose,
+          Facts:
+            (e.facts || []).join("; ") ||
+            "None; child components may own facts",
+          Actions: (e.actions || []).join("; ") || "None",
+          "Visibility / reveal": e.reveal,
+          "Instances / exceptions": e.instances,
+          "Source owner": e.source,
+        }))
+          entry($("commentary"), key, value);
+      } else
+        $("commentary").append(
+          node(
+            "p",
+            model.elements.length
+              ? "Select a component to inspect its shared name and contract."
+              : "No components mapped. Coverage is incomplete.",
+          ),
+        );
+      document
+        .querySelectorAll(".mark")
+        .forEach((n) =>
+          n.classList.toggle("selected", n.dataset.element === id),
+        );
+      if (scroll)
+        document.querySelector("aside").scrollIntoView({ block: "nearest" });
+    }
+    function choose(id) {
+      inspect(id, true);
+    }
+    function renderScreen() {
+      const s = screen();
+      $("screen").value = screenId;
+      $("screen-title").textContent = s
+        ? `${s.kind === "proposed" ? "Proposed" : "Current"} · ${s.name}`
+        : "Current layout";
+      $("capture").hidden = !s?.image;
+      $("blank").hidden = !!s?.image;
+      if (s?.image) {
+        $("capture").src = s.image;
+        $("capture").alt = `${s.kind} layout: ${s.name}`;
+      } else $("capture").removeAttribute("src");
+      $("marks").replaceChildren();
+      $("element-list").replaceChildren();
+      const participants = view === "journey" ? step()?.elements || [] : [];
+      if (selected && !(s?.marks || []).some((m) => m.element === selected))
+        selected = "";
+      for (const mark of s?.marks || []) {
+        const e = model.elements.find((e) => e.id === mark.element);
+        const button = node("button", "");
+        button.type = "button";
+        button.className = "mark";
+        button.dataset.element = mark.element;
+        button.setAttribute(
+          "aria-label",
+          `${mark.element} · ${e?.name || "Unmapped component"}`,
+        );
+        button.style.cssText = `left:${mark.x}%;top:${mark.y}%;width:${mark.w}%;height:${mark.h}%;`;
+        const badge = node("span", mark.element);
+        badge.style.left = `${mark.labelX ?? 0}%`;
+        badge.style.top = `${mark.labelY ?? 0}%`;
+        button.append(badge);
+        button.classList.toggle(
+          "participant",
+          participants.includes(mark.element),
+        );
+        button.onclick = () => choose(mark.element);
+        $("marks").append(button);
+      }
+      for (const id of [...new Set((s?.marks || []).map((m) => m.element))]) {
+        const e = model.elements.find((e) => e.id === id);
+        const b = node("button", `${id} · ${e?.name || "Unmapped"}`);
+        b.onclick = () => choose(id);
+        $("element-list").append(b);
+      }
+      $("marks").hidden = $("labels").getAttribute("aria-pressed") !== "true";
+      $("coverage").textContent = s
+        ? `${new Set(s.marks.map((m) => m.element)).size} component types mapped in this state. ${s.coverage || "Visual reconciliation not recorded; completeness unverified."}`
+        : "Coverage: no inspected screens or components.";
+      inspect(selected);
+    }
+    function renderJourney() {
+      const j = journey(),
+        s = step();
+      $("journey").value = journeyId;
+      $("journey-title").textContent = j?.name || "No journey mapped";
+      $("goal").textContent =
+        j?.goal ||
+        "Complete the spatial inventory, then define a primary goal and its observed steps.";
+      $("endpoints").textContent = j
+        ? `Start: ${j.start} · Success: ${j.success}`
+        : "";
+      $("step-title").textContent = s
+        ? `${stepIndex + 1} / ${j.steps.length} · ${s.name}`
+        : "";
+      $("step-summary").textContent = s ? `${s.action} → ${s.after}` : "";
+      $("step-detail").replaceChildren();
+      if (s) {
+        for (const [key, value] of Object.entries({
+          Before: s.before,
+          "Visible cue": s.cue,
+          "Still deferred": s.deferred,
+          "Back / recovery": s.recovery,
+        }))
+          entry($("step-detail"), key, value);
+        screenId = s.screen;
+        selected = s.elements[0] || "";
+      }
+      $("previous").disabled = !s || stepIndex === 0;
+      $("next").disabled = !s || stepIndex >= j.steps.length - 1;
+      renderScreen();
+    }
+    function setView(next) {
+      view = next;
+      document
+        .querySelectorAll("[data-view]")
+        .forEach((b) =>
+          b.setAttribute("aria-pressed", String(b.dataset.view === view)),
+        );
+      $("layout-panel").hidden = !["layout", "journey"].includes(view);
+      $("journey-panel").hidden = view !== "journey";
+      $("inventory-panel").hidden = view !== "inventory";
+      $("audit-panel").hidden = view !== "audit";
+      $("screen").disabled = view === "journey";
+      if (view === "journey") renderJourney();
+      else renderScreen();
+    }
+    function renderInventory() {
+      $("inventory-count").textContent =
+        `${model.elements.length} component types · ${model.screens.length} captured states. Counts do not prove completeness; reconcile each state visually.`;
+      for (const e of model.elements) {
+        const tr = document.createElement("tr"),
+          td = document.createElement("td"),
+          b = node("button", `${e.id} · ${e.name}`);
+        b.onclick = () => {
+          const s = model.screens.find((s) =>
+            s.marks.some((m) => m.element === e.id),
+          );
+          if (s) screenId = s.id;
+          choose(e.id);
+        };
+        td.append(b);
+        tr.append(td);
+        for (const text of [
+          `${e.parent || "Root"} · ${e.location || ""}`,
+          (e.facts || []).join("; "),
+          (e.actions || []).join("; "),
+          `${e.reveal || ""} · ${e.instances || ""}`,
+        ])
+          tr.append(node("td", text));
+        $("inventory").append(tr);
+      }
+    }
+    function renderAudit() {
+      for (const f of model.findings) {
+        const block = node("section", "");
+        block.className = "finding";
+        block.append(node("h3", `${f.id} · ${f.kind} · ${f.status}`));
+        const list = node("dl", "");
+        for (const [key, value] of Object.entries({
+          Evidence: f.evidence,
+          Effect: f.effect,
+          Proposal: f.proposal,
+        }))
+          entry(list, key, value);
+        block.append(list);
+        const b = node("button", `Locate ${f.elements.join(", ")}`);
+        b.onclick = () => {
+          screenId = f.screen;
+          if (f.journey) {
+            journeyId = f.journey;
+            stepIndex = f.step ?? 0;
+            setView("journey");
+          } else setView("layout");
+          inspect(f.elements[0] || "");
+        };
+        block.append(b);
+        $("findings").append(block);
+      }
+      if (!model.findings.length)
+        $("findings").append(
+          node("p", "No findings recorded. This is not a passing audit."),
+        );
+      let count = 0;
+      for (const s of model.screens.filter((s) => s.kind === "current")) {
+        for (const field of ["facts", "actions"]) {
+          const groups = new Map();
+          for (const id of new Set(s.marks.map((m) => m.element))) {
+            const e = model.elements.find((e) => e.id === id);
+            for (const value of new Set(e?.[field] || [])) {
+              const ids = groups.get(value) || [];
+              ids.push(id);
+              groups.set(value, ids);
+            }
+          }
+          for (const [value, ids] of groups) {
+            if (ids.length < 2) continue;
+            count++;
+            const p = node(
+              "p",
+              `${s.name} · ${field}: ${value} → ${ids.join(", ")}. Review whether this overlap is necessary.`,
+            );
+            $("overlaps").append(p);
+          }
+        }
+      }
+      if (!count)
+        $("overlaps").append(
+          node(
+            "p",
+            "No named overlaps detected. Semantic duplication and repeated instances still require visual review.",
+          ),
+        );
+    }
+    $("revision").textContent = model.revision;
+    $("scope").textContent = model.scope;
+    $("provenance").textContent = model.baseline;
+    model.screens.forEach((s) =>
+      $("screen").add(new Option(`${s.kind} · ${s.name}`, s.id)),
+    );
+    model.journeys.forEach((j) => $("journey").add(new Option(j.name, j.id)));
+    $("screen").disabled = !model.screens.length;
+    $("screen").onchange = () => {
+      screenId = $("screen").value;
+      renderScreen();
+    };
+    $("journey").onchange = () => {
+      journeyId = $("journey").value;
+      stepIndex = 0;
+      renderJourney();
+    };
+    $("previous").onclick = () => {
+      stepIndex--;
+      renderJourney();
+    };
+    $("next").onclick = () => {
+      stepIndex++;
+      renderJourney();
+    };
+    document
+      .querySelectorAll("[data-view]")
+      .forEach((b) => (b.onclick = () => setView(b.dataset.view)));
+    $("labels").onclick = () => {
+      const show = $("labels").getAttribute("aria-pressed") !== "true";
+      $("labels").setAttribute("aria-pressed", String(show));
+      $("marks").hidden = !show;
+    };
+    $("capture").onerror = () => {
+      $("capture").hidden = true;
+      $("marks").hidden = true;
+      $("blank").hidden = false;
+      $("blank").textContent =
+        "Capture failed to load. Repair this evidence link before reviewing the layout.";
+    };
+    $("size").onclick = () => {
+      const actual = $("size").getAttribute("aria-pressed") !== "true";
+      $("size").setAttribute("aria-pressed", String(actual));
+      $("stage").classList.toggle("actual", actual);
+    };
+    $("comment").oninput = () => {
+      if (!$("comment").value.trim()) draftTarget = null;
+      else if (!draftTarget) draftTarget = context();
+      $("draft-context").textContent = draftTarget
+        ? `Draft target: ${draftTarget.element || "whole state"} · ${draftTarget.screen || "unmapped"} · ${draftTarget.view}${draftTarget.journey ? " · " + draftTarget.journey + " / step " + (draftTarget.step + 1) : ""}`
+        : "";
+    };
+    $("feedback").onsubmit = (event) => {
+      event.preventDefault();
+      const text = $("comment").value.trim();
+      if (!text) return;
+      const record = { ...(draftTarget || context()), comment: text };
+      comments.push(record);
+      $("comments").append(
+        node(
+          "p",
+          `${record.element || "whole state"} / ${record.screen}: ${text}`,
+        ),
+      );
+      $("comment-count").textContent = `Comments (${comments.length})`;
+      $("comment").value = "";
+      draftTarget = null;
+      $("draft-context").textContent = "";
+      $("notice").textContent =
+        "Comment kept. Export before closing or reloading.";
+    };
+    $("export").onclick = () => {
+      const output = JSON.stringify(
+        { title: document.title, revision: model.revision, comments },
+        null,
+        2,
+      );
+      $("export-text").textContent = output;
+      $("export-preview").hidden = false;
+      $("export-preview").open = true;
+      $("export-preview").scrollIntoView({ block: "nearest" });
+      const url = URL.createObjectURL(
+          new Blob([output], { type: "application/json" }),
+        ),
+        link = document.createElement("a");
+      link.href = url;
+      link.download = "ui-discussion-comments.json";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+    renderInventory();
+    renderAudit();
+    renderScreen();
+  </script>
+</html>

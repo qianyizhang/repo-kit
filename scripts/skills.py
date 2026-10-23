@@ -23,7 +23,7 @@ UPSTREAM_SKILLS = (
     "grilling",
     "writing-for-agents",
 )
-LOCAL_SKILLS = ("next-slice", "show-me", "finish-work", "simplify-repository")
+LOCAL_SKILLS = ("next-slice", "show-me", "finish-work", "simplify-repository", "ui-discussion")
 RECEIPT = ".repo-kit-skills.json"
 INTERRUPTED = ".repo-kit-skills-interrupted.json"
 

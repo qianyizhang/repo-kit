@@ -2,7 +2,7 @@
 
 Personal Codex instructions, shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
 governance template, plus the optional [Repo Workbench
-plugin](plugins/repo-workbench/README.md). `skills/` owns the ten-skill bundle;
+plugin](plugins/repo-workbench/README.md). `skills/` owns the shared skill bundle;
 `template/` owns portable governance; `plugins/` owns executable development tools. Root
 [AGENTS.md](AGENTS.md) governs maintenance here. `user/` owns the personal working
 core and on-demand [practice guides](docs/user-instructions.md#sources).
@@ -23,8 +23,8 @@ Unmanaged existing files require reviewed adoption first. See
 
 ## Shared skills
 
-Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, `finish-work`, and
-`simplify-repository` are installed once for your user account. From this repository:
+Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, `finish-work`,
+`simplify-repository`, and `ui-discussion` are installed once for your user account. From this repository:
 
 ```sh
 python3.12 scripts/skills.py diff
