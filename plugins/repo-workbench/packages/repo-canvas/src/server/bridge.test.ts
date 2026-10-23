@@ -60,7 +60,7 @@ describe('current-chat MCP bridge', () => {
       const exchange = (sent.structuredContent as { value: { id: string } }).value;
       expect(exchange.id).toBeTruthy();
       const read = await client.callTool({
-        name: 'canvas_read',
+        name: 'canvas_request',
         arguments: { requestId: exchange.id },
       });
       expect(JSON.stringify(read.content)).toContain('Explain this module');
@@ -97,7 +97,7 @@ describe('current-chat MCP bridge', () => {
     await client.connect(b);
     try {
       const read = await client.callTool({
-        name: 'canvas_read',
+        name: 'canvas_request',
         arguments: { requestId: first.id },
       });
       expect(JSON.stringify(read.content)).toContain('Unsaved architecture');

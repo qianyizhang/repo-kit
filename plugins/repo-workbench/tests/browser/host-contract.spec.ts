@@ -129,6 +129,7 @@ test('an uncertain message is never sent twice automatically', async ({ page }) 
     await page.evaluate(() => {
       window.dropMessages = true;
     });
+    await ui.getByLabel('Attach selection and notes').check();
     await ui.getByRole('textbox', { name: 'Message Codex' }).fill('One deliberate request');
     await ui.getByRole('button', { name: 'Send to chat' }).click();
     await expect.poll(() => page.evaluate(() => window.chatRequests.length)).toBe(1);

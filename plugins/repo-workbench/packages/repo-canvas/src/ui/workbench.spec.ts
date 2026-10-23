@@ -174,25 +174,25 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await page.screenshot({ path: 'test-results/repo-canvas/initialize-before.png' });
   await ui.getByRole('button', { name: 'Initialize architecture', exact: true }).click();
   await expect.poll(() => messages.length).toBe(1);
-  const initializationId = messages[0].content[0].text.match(/request ([a-f0-9-]+)/)![1];
+  const initializationId = messages[0].content[0].text.match(/"requestId":"([a-f0-9-]+)"/)![1];
   const initializationResult = await client.callTool({
-    name: 'canvas_read',
+    name: 'canvas_map',
     arguments: { requestId: initializationId },
   });
-  const initialization = (
-    JSON.parse((initializationResult.content as { text: string }[])[0].text) as {
-      request: CanvasExchange;
-    }
-  ).request;
-  expect(initialization.context.messages.at(-1)!.text).toContain('recent commits');
-  expect(initialization.context.messages.at(-1)!.text).toContain('previous sessions');
+  const initialization = JSON.parse(
+    (initializationResult.content as { text: string }[])[0].text,
+  ) as {
+    document: CanvasExchange['context']['document'];
+  };
+  expect(messages[0].content[0].text).toContain('recent commits');
+  expect(messages[0].content[0].text).toContain('previous sessions');
   expect(((await (await request.get('/api/state')).json()) as Snapshot).saved).toBe(false);
   await client.callTool({
     name: 'canvas_reply',
     arguments: {
       requestId: initializationId,
       reply: 'A concise architecture candidate is ready for review.',
-      proposal: initialization.context.document,
+      proposal: initialization.document,
     },
   });
   await expect(ui.getByRole('button', { name: 'Apply to draft', exact: true })).toBeEnabled();
@@ -313,6 +313,11 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await ui.getByRole('button', { name: 'Create module', exact: true }).click();
   await ui.getByRole('button', { name: 'Inspect core', exact: true }).click();
   await ui.getByRole('button', { name: 'Side chat' }).click();
+  await ui.getByRole('textbox', { name: 'Message Codex' }).fill('hi');
+  await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
+  await expect.poll(() => messages.length).toBe(1);
+  expect(messages.pop()!.content[0].text).toBe('hi');
+  await ui.getByLabel('Attach selection and notes').check();
   await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Annotate this module');
   await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
   await expect(ui.getByText('Awaiting the main chat')).toBeVisible();
@@ -323,20 +328,22 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await expect(ui.getByRole('textbox', { name: 'Message Codex' })).toBeInViewport();
   const answer = async (expectedCount: number) => {
     await expect.poll(() => messages.length).toBe(expectedCount);
-    const requestId = messages.at(-1)!.content[0].text.match(/request ([a-f0-9-]+)/)![1];
-    const result = await client.callTool({ name: 'canvas_read', arguments: { requestId } });
+    const requestId = messages.at(-1)!.content[0].text.match(/"requestId":"([a-f0-9-]+)"/)![1];
+    const result = await client.callTool({ name: 'canvas_map', arguments: { requestId } });
     const content = result.content as { type: string; text: string }[];
-    const exchange = (JSON.parse(content[0].text) as { request: CanvasExchange }).request;
-    expect(exchange.context.selection).toBe('src/core');
+    const exchange = JSON.parse(content[0].text) as {
+      document: CanvasExchange['context']['document'];
+    };
+    expect(messages.at(-1)!.content[0].text).toContain('src/core');
     const response = await client.callTool({
       name: 'canvas_reply',
       arguments: {
         requestId,
         reply: 'Current chat received the selected core module.',
         proposal: {
-          ...exchange.context.document,
+          ...exchange.document,
           annotations: [
-            ...exchange.context.document.annotations,
+            ...exchange.document.annotations,
             {
               id: crypto.randomUUID(),
               target: { kind: 'node', id: 'src/core' },
@@ -357,6 +364,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await expect(ui.getByText('✓ Shared document')).toBeVisible();
   // A proposal must not overwrite an edit made since its context was captured.
   await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Another proposal');
+  await ui.getByLabel('Attach selection and notes').check();
   await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
   await answer(2);
   await ui.getByRole('button', { name: 'Inspect', exact: true }).click();
@@ -415,6 +423,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   rejectMessage = true;
   await ui.getByRole('button', { name: 'Side chat' }).click();
   await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Rejected-message verification');
+  await ui.getByLabel('Attach selection and notes').check();
   // Exercise keyboard submission after resizing; pointer sends are covered above.
   await ui.getByRole('button', { name: 'Send to chat ↑' }).press('Enter');
   await expect(ui.locator('.side-chat').getByRole('alert')).toContainText(

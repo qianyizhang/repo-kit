@@ -130,7 +130,7 @@ test('native metadata binds without messages; picker and restart preserve select
     await expect
       .poll(
         async () => {
-          const result = await client.callTool({ name: 'canvas_read', arguments: {} });
+          const result = await client.callTool({ name: 'canvas_requests', arguments: {} });
           return (
             JSON.parse((result.content as Array<{ text: string }>)[0].text) as {
               canvases: unknown[];

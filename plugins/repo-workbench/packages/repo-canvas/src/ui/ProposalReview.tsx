@@ -1,27 +1,40 @@
 import { useState } from 'react';
 import { parseDocument, type Architecture } from '../model/document';
 import { typeChanges } from '../model/type-changes';
+import { ProposalComparison, type ProposalIntent } from './ProposalComparison';
 
 interface Props {
   current: Architecture;
   proposal: { id: string; baseDocument: Architecture; document: Architecture };
   explanation?: string;
+  intent?: ProposalIntent;
   origin: 'agent' | 'discussion';
   apply: (document: Architecture) => void;
   dismiss: () => void;
 }
 
 /** Both proposal origins use the same comparison, consent, and draft-only Apply policy. */
-export function ProposalReview({ current, proposal, explanation, origin, apply, dismiss }: Props) {
+export function ProposalReview({
+  current,
+  proposal,
+  explanation,
+  intent,
+  origin,
+  apply,
+  dismiss,
+}: Props) {
   const [accepted, setAccepted] = useState<string | null>(null);
+  const [reviewing, setReviewing] = useState<string | null>(null);
   const identity = JSON.stringify([proposal.id, proposal.baseDocument, proposal.document]);
   let stale = true;
   let document: Architecture | null = null;
+  let captured: Architecture | null = null;
   let impacts: string[] = [];
   try {
     const basis = parseDocument(current);
     document = parseDocument(proposal.document);
-    stale = JSON.stringify(basis) !== JSON.stringify(parseDocument(proposal.baseDocument));
+    captured = parseDocument(proposal.baseDocument);
+    stale = JSON.stringify(basis) !== JSON.stringify(captured);
     impacts = typeChanges(basis, document);
   } catch {
     stale = true;
@@ -31,11 +44,20 @@ export function ProposalReview({ current, proposal, explanation, origin, apply, 
   const canApply = !stale && document !== null && (!impacts.length || accepted === identity);
   const contents = (
     <>
-      {explanation && <p>{explanation}</p>}
-      <details>
-        <summary>Review proposed document</summary>
-        <pre>{JSON.stringify(proposal.document, null, 2)}</pre>
-      </details>
+      {origin === 'agent' && explanation && <p>{explanation}</p>}
+      <button disabled={!document || !captured} onClick={() => setReviewing(identity)}>
+        Review changes
+      </button>
+      {reviewing === identity && captured && document && (
+        <ProposalComparison
+          before={captured}
+          after={document}
+          stale={stale}
+          intent={intent}
+          explanation={explanation}
+          close={() => setReviewing(null)}
+        />
+      )}
       {impacts.length > 0 && (
         <>
           <ul>

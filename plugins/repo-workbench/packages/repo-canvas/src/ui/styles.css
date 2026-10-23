@@ -1960,3 +1960,280 @@ input[type='checkbox'] {
 .side-chat .chat-error {
   max-height: none;
 }
+
+/* One read-only review surface; draft controls remain in ProposalReview. */
+.proposal-comparison {
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: min(1200px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  height: min(880px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  overflow: auto;
+}
+.proposal-comparison::backdrop {
+  background: #0009;
+}
+.proposal-comparison > header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.proposal-comparison h2,
+.proposal-comparison header p {
+  margin: 0;
+}
+.proposal-comparison header p,
+.proposal-comparison small,
+.comparison-map-controls span,
+.comparison-toolbar > span {
+  color: var(--muted);
+}
+.proposal-comparison > footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.proposal-comparison pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: none;
+  margin: 6px 0;
+}
+.comparison-intent,
+.comparison-warning {
+  margin: 12px 20px;
+}
+.comparison-warning {
+  color: var(--warning-ink);
+  background: var(--warning-bg);
+  padding: 10px;
+  border-radius: 6px;
+}
+.comparison-intent p {
+  white-space: pre-wrap;
+}
+.comparison-workspace {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  min-height: 0;
+}
+.comparison-changes {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 6px;
+  border-right: 1px solid var(--line);
+  max-height: 650px;
+  overflow: auto;
+}
+.comparison-changes > button {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.comparison-changes > button[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--wash);
+}
+.change-status {
+  text-transform: capitalize;
+  font-size: 12px;
+}
+.change-status.added {
+  color: var(--positive-ink);
+}
+.change-status.removed {
+  color: var(--error-ink);
+}
+.change-status.changed,
+.change-status.moved {
+  color: var(--warning-ink);
+}
+.comparison-content {
+  min-width: 0;
+  padding: 12px 16px;
+}
+.comparison-toolbar,
+.comparison-map-controls,
+.comparison-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.comparison-toolbar button[aria-pressed='true'],
+.comparison-map-controls button[aria-pressed='true'] {
+  background: var(--wash);
+  border-color: var(--accent);
+}
+.comparison-scope button[aria-current='location'] {
+  font-weight: 600;
+}
+.comparison-map {
+  width: 100%;
+  height: 350px;
+  overflow: auto;
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.comparison-plane {
+  position: relative;
+  transform-origin: 0 0;
+}
+.comparison-plane svg {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.comparison-edge {
+  color: var(--edge);
+}
+.comparison-edge path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+}
+.comparison-edge.changed {
+  color: var(--accent);
+}
+.comparison-edge.changed path {
+  stroke-width: 3;
+  stroke-dasharray: 6 3;
+}
+.comparison-edge text {
+  fill: var(--ink);
+  font-size: 12px;
+  paint-order: stroke;
+  stroke: var(--canvas);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.comparison-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.comparison-node strong {
+  font-size: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comparison-node > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.comparison-node > div {
+  margin-top: auto;
+  display: flex;
+  gap: 6px;
+}
+.comparison-node.added {
+  border-color: var(--positive-ink);
+  border-width: 2px;
+}
+.comparison-node.removed {
+  border-color: var(--error-ink);
+  border-style: dashed;
+}
+.comparison-node.changed,
+.comparison-node.moved {
+  border-color: var(--warning-ink);
+  border-width: 2px;
+}
+.comparison-node.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.comparison-relationships {
+  margin: 10px 0;
+}
+.comparison-relationships p {
+  overflow-wrap: anywhere;
+}
+.comparison-relationships button {
+  margin-left: 8px;
+}
+.comparison-fields h3 {
+  overflow-wrap: anywhere;
+}
+.comparison-field {
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.comparison-field h4 {
+  margin: 0 0 8px;
+}
+.comparison-field h4 small {
+  margin-left: 8px;
+  font-weight: normal;
+}
+.comparison-field > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+.comparison-field section {
+  min-width: 0;
+  padding: 8px;
+  background: var(--canvas);
+  border-radius: 5px;
+}
+.comparison-absent {
+  padding: 24px;
+  background: var(--subtle);
+}
+.comparison-json {
+  margin-top: 16px;
+}
+@media (max-width: 740px) {
+  .proposal-comparison {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    height: calc(100dvh - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .comparison-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .comparison-changes {
+    max-height: 160px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .comparison-changes > button {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr);
+  }
+  .comparison-changes small {
+    grid-column: 2;
+  }
+  .comparison-content {
+    padding: 12px;
+  }
+  .comparison-field > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

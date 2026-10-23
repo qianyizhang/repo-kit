@@ -3,6 +3,7 @@ import { type Architecture, type ContextComment } from '../model/document';
 import { ProposalReview } from './ProposalReview';
 import type { Output } from '../model/contracts';
 import { request } from './api';
+import { discussionContext } from '../model/discussion-context';
 import { initializationPrompt } from '../model/initialization';
 import { hosted, requireMessaging, sendToChat } from './host';
 export interface ChatActions {
@@ -33,6 +34,7 @@ export function SideChat({
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [dismissed, setDismissed] = useState('');
+  const [includeContext, setIncludeContext] = useState(false);
   const current = useRef(data);
   current.current = data;
   const dirty = useRef(false),
@@ -94,8 +96,14 @@ export function SideChat({
   const exchange = data?.history.at(-1),
     pending = exchange?.status === 'pending',
     proposal = exchange?.response?.proposal;
-  async function send(text = data?.composer ?? '') {
-    if (!hosted || sending.current || !data || pending || (!text.trim() && !data.comments.length))
+  async function send(text = data?.composer ?? '', attached = includeContext) {
+    if (
+      !hosted ||
+      sending.current ||
+      !data ||
+      (pending && attached) ||
+      (!text.trim() && !data.comments.length)
+    )
       return;
     sending.current = true;
     setBusy(true);
@@ -104,6 +112,13 @@ export function SideChat({
       await queue.current;
       if (dirty.current) throw new Error('Save the local draft before sending.');
       await requireMessaging();
+      if (!attached) {
+        if (!text.trim()) throw new Error('Enter a message or attach the selected notes.');
+        await sendToChat(text.trim());
+        persist('', current.current!.comments);
+        await queue.current;
+        return;
+      }
       const next = await request('send', token, {
         canvasId: 'discussion',
         document,
@@ -119,8 +134,12 @@ export function SideChat({
       current.current = saved;
       setData(saved);
       await sendToChat(
-        `Use Repo Canvas in this conversation. Read request ${next.id} with canvas_read, including its frozen contextual comments. Answer with canvas_reply and any proposed map changes. Preserve unrelated notes and layout. My request: ${next.context.messages.at(-1)!.text}`,
+        next.context.messages.at(-1)!.text +
+          '\n\nSelected canvas context (frozen data):\n' +
+          JSON.stringify(discussionContext(next)) +
+          '\nUse canvas_reply if a panel reply or proposal is needed. Additional map, comments and provenance are available through their scoped tools.',
       );
+      setIncludeContext(false);
       persist('', []);
       await queue.current;
     } catch (e) {
@@ -136,11 +155,12 @@ export function SideChat({
     initialize: () => {
       if (current.current) {
         persist(initializationPrompt, current.current.comments);
-        void send(initializationPrompt);
+        void send(initializationPrompt, true);
       }
     },
     addComment: (comment) => {
       if (!current.current) return false;
+      setIncludeContext(true);
       persist(current.current.composer, [...current.current.comments, comment]);
       return true;
     },
@@ -166,7 +186,14 @@ export function SideChat({
       </div>
       <div className="context-chip">
         {selections.length > 1 ? `${selections.length} selected nodes` : context?.name}
-        <span>Current draft and selection included</span>
+        <label>
+          <input
+            type="checkbox"
+            checked={includeContext}
+            onChange={(e) => setIncludeContext(e.target.checked)}
+          />{' '}
+          Attach selection and notes
+        </label>
       </div>
       {data && data.history.length > 1 && (
         <details className="chat-history">
@@ -249,6 +276,11 @@ export function SideChat({
             document: proposal,
           }}
           origin="discussion"
+          intent={{
+            question: exchange.context.messages.at(-1)?.text ?? '',
+            comments: exchange.context.comments ?? [],
+          }}
+          explanation={exchange.response?.reply}
           apply={apply}
           dismiss={() => setDismissed(exchange.id)}
         />
@@ -318,7 +350,10 @@ export function SideChat({
               type="submit"
               className="primary"
               disabled={
-                !hosted || busy || pending || (!data.composer.trim() && !data.comments.length)
+                !hosted ||
+                busy ||
+                (pending && includeContext) ||
+                (!data.composer.trim() && !data.comments.length)
               }
             >
               Send to chat ↑

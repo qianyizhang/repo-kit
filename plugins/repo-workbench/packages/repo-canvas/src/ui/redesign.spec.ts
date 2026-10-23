@@ -325,6 +325,24 @@ test('each destructive agent proposal requires its own migration approval', asyn
     }
     await expect.poll(propose).toBe(true);
     await page.getByText('Review proposed map · 4 concepts', { exact: true }).click();
+    await page.getByRole('button', { name: 'Review changes', exact: true }).click();
+    const comparison = page.getByRole('dialog', { name: 'Review proposal changes' });
+    await expect(comparison).toBeVisible();
+    await comparison
+      .getByRole('navigation', { name: 'Proposed changes' })
+      .getByRole('button', { name: /removed Service/ })
+      .click();
+    await expect(comparison.getByRole('region', { name: 'Details for service' })).toContainText(
+      'Capacity',
+    );
+    await comparison
+      .getByRole('group', { name: 'Comparison view' })
+      .getByRole('button', { name: 'After', exact: true })
+      .click();
+    await expect(comparison).toContainText('This item is absent in after');
+    await page.keyboard.press('Escape');
+    await expect(comparison).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Review changes', exact: true })).toBeFocused();
     await expect(page.getByRole('button', { name: 'Apply to draft', exact: true })).toBeDisabled();
     await page.getByLabel('Accept these type migrations').check();
     await expect(page.getByRole('button', { name: 'Apply to draft', exact: true })).toBeEnabled();
@@ -381,23 +399,45 @@ test('discussion proposals require fresh consent and Apply leaves the saved map 
     const ui = page.frameLocator('iframe');
     const review = ui.getByRole('region', { name: 'Discussion map proposal' });
     for (let count = 1; count <= 2; count++) {
+      await ui
+        .getByRole('button', { name: 'Inspect Owner', exact: true })
+        .click({ button: 'right' });
+      await ui.getByRole('menuitem', { name: 'Comment to agent' }).click();
+      await ui.getByLabel('Contextual instruction').fill('Keep this ownership boundary explicit.');
+      await ui.getByRole('button', { name: 'Queue comment' }).click();
+      await ui.getByLabel('Attach selection and notes').check();
       await ui.getByRole('textbox', { name: 'Message Codex' }).fill('Review type removal');
       await ui.getByRole('button', { name: 'Send to chat ↑' }).click();
       await expect.poll(() => messages.length).toBe(count);
-      const requestId = messages.at(-1)!.content[0].text.match(/request ([a-f0-9-]+)/)![1];
-      const read = await client.callTool({ name: 'canvas_read', arguments: { requestId } });
-      const exchange = (
-        JSON.parse((read.content as { text: string }[])[0].text) as { request: CanvasExchange }
-      ).request;
+      const requestId = messages.at(-1)!.content[0].text.match(/"requestId":"([a-f0-9-]+)"/)![1];
+      const read = await client.callTool({ name: 'canvas_map', arguments: { requestId } });
+      const exchange = JSON.parse((read.content as { text: string }[])[0].text) as {
+        document: CanvasExchange['context']['document'];
+      };
+      const notes = await client.callTool({ name: 'canvas_comments', arguments: { requestId } });
+      const comments = (
+        JSON.parse((notes.content as { text: string }[])[0].text) as {
+          comments: { documentRevision: string }[];
+        }
+      ).comments;
       const response = await client.callTool({
         name: 'canvas_reply',
         arguments: {
           requestId,
           reply: 'Review removing the type.',
-          proposal: { ...exchange.context.document, nodeTypes: [] },
+          proposal: { ...exchange.document, nodeTypes: [] },
         },
       });
       expect(response.isError).not.toBe(true);
+      await review.getByRole('button', { name: 'Review changes', exact: true }).click();
+      const comparison = ui.getByRole('dialog', { name: 'Review proposal changes' });
+      await comparison.getByText(/^Request context ·/).click();
+      await expect(comparison).toContainText('Review type removal');
+      await expect(comparison.locator('.comparison-intent > details')).toHaveCount(comments.length);
+      await comparison.getByText('Owner · node owner', { exact: true }).last().click();
+      await expect(comparison).toContainText('Keep this ownership boundary explicit.');
+      await expect(comparison).toContainText(comments.at(-1)!.documentRevision);
+      await comparison.getByRole('button', { name: 'Close comparison' }).click();
       await expect(
         review.getByRole('button', { name: 'Apply to draft', exact: true }),
       ).toBeDisabled();
@@ -423,6 +463,187 @@ test('discussion proposals require fresh consent and Apply leaves the saved map 
     ).toEqual([]);
   } finally {
     await page.goto('about:blank');
+    await client.close();
+    writeFileSync(
+      join(original.repo, '.repo-canvas/architecture.json'),
+      JSON.stringify(original.document),
+    );
+    await request.put('/api/draft', { headers, data: { draft: null } });
+  }
+});
+
+test('visual comparison preserves nested changes, draft state and stale proposal basis', async ({
+  page,
+  request,
+}) => {
+  const original = (await (await request.get('/api/state')).json()) as Session;
+  const headers = { 'X-Repo-Canvas-Token': original.token };
+  await request.put('/api/state', {
+    headers,
+    data: { revision: original.revision, document: model },
+  });
+  await request.put('/api/draft', { headers, data: { draft: null } });
+  const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+  const { StreamableHTTPClientTransport } =
+    await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
+  const client = new Client({ name: 'visual-comparison-test', version: '1' });
+  await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
+  let proposalId: string | undefined;
+  async function snapshot() {
+    const result = await client.callTool({
+      name: 'canvas_snapshot',
+      arguments: { contextId: 'fixed', includeDocument: true },
+    });
+    return JSON.parse((result.content as { text: string }[])[0].text) as {
+      available: boolean;
+      revision: string;
+      document: Architecture;
+      scope: string;
+      selections: string[];
+    };
+  }
+  try {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Inspect Owner', exact: true }).click();
+    await expect.poll(async () => (await snapshot()).available).toBe(true);
+    await expect.poll(async () => (await snapshot()).selections).toEqual(['owner']);
+    const baseline = await snapshot();
+    const proposed = structuredClone(baseline.document);
+    proposed.title = 'Reviewed ownership';
+    proposed.modules.find((n) => n.id === 'owner')!.x += 80;
+    proposed.modules.find((n) => n.id === 'child')!.summary = 'Child now validates requests';
+    proposed.connections.push({ id: 'nested-edge', from: 'child', to: 'leaf', label: 'validates' });
+    proposed.annotations[0].text = 'Keep the human ownership constraint explicit.';
+    const sent = await client.callTool({
+      name: 'canvas_propose',
+      arguments: {
+        contextId: 'fixed',
+        expectedRevision: baseline.revision,
+        document: proposed,
+        explanation: 'Clarify responsibilities and preserve the review context.',
+      },
+    });
+    expect(sent.isError).not.toBe(true);
+    proposalId = (
+      (await (await request.get('/api/agent', { headers })).json()) as { proposal: { id: string } }
+    ).proposal.id;
+    await page.getByText('Review proposed map · 4 concepts', { exact: true }).click();
+    const trigger = page.getByRole('button', { name: 'Review changes', exact: true });
+    await trigger.click();
+    const dialog = page.getByRole('dialog', { name: 'Review proposal changes' });
+    const list = dialog.getByRole('navigation', { name: 'Proposed changes' });
+    await list.getByRole('button', { name: /moved Owner/ }).click();
+    await dialog
+      .getByRole('group', { name: 'Comparison view' })
+      .getByRole('button', { name: 'Before', exact: true })
+      .click();
+    const unchangedPosition = await dialog
+      .getByRole('article', { name: 'Node Leaf' })
+      .getAttribute('style');
+    await dialog.getByRole('button', { name: '100%', exact: true }).click();
+    await dialog
+      .getByRole('group', { name: 'Comparison view' })
+      .getByRole('button', { name: 'After', exact: true })
+      .click();
+    await expect(dialog.getByRole('article', { name: 'Node Leaf' })).toHaveAttribute(
+      'style',
+      unchangedPosition!,
+    );
+    await expect(dialog.getByRole('button', { name: '100%', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await list.getByRole('button', { name: /changed Child/ }).click();
+    await expect(dialog.getByRole('navigation', { name: 'Comparison scope' })).toContainText(
+      'Owner',
+    );
+    await expect(dialog.getByRole('region', { name: 'Details for child' })).toContainText(
+      'Child now validates requests',
+    );
+    await dialog
+      .getByRole('group', { name: 'Comparison view' })
+      .getByRole('button', { name: 'Before', exact: true })
+      .click();
+    await expect(dialog.getByRole('article', { name: 'Node Child' })).toBeVisible();
+    await dialog
+      .getByRole('group', { name: 'Comparison view' })
+      .getByRole('button', { name: 'Changes', exact: true })
+      .click();
+    await list.getByRole('button', { name: /added validates/ }).click();
+    await expect(dialog.locator('.comparison-relationships')).toContainText('nested-edge');
+    await expect(dialog.locator('.comparison-relationships')).toContainText('link');
+    await expect(dialog.locator('.comparison-relationships')).toContainText('child → leaf');
+    await page.screenshot({ path: 'test-results/comparison-desktop.png' });
+    await page.emulateMedia({ colorScheme: 'dark' });
+    await expect
+      .poll(() =>
+        dialog.getByRole('button', { name: 'Close comparison' }).evaluate((element) => {
+          const style = getComputedStyle(element);
+          const luminance = (color: string) =>
+            color
+              .match(/[\d.]+/g)!
+              .slice(0, 3)
+              .map(Number)
+              .map((value) => value / 255)
+              .map((value) => (value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4))
+              .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+          const foreground = luminance(style.color),
+            background = luminance(style.backgroundColor);
+          return (
+            (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+          );
+        }),
+      )
+      .toBeGreaterThanOrEqual(4.5);
+    await page.screenshot({ path: 'test-results/comparison-dark.png', animations: 'disabled' });
+    await page.emulateMedia({ colorScheme: 'light' });
+    for (const viewport of [
+      { width: 740, height: 950 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await expect(dialog.getByRole('button', { name: 'Close comparison' })).toBeVisible();
+      expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true);
+    }
+    await page.screenshot({ path: 'test-results/comparison-mobile.png' });
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    const afterReview = await snapshot();
+    expect(afterReview.document).toEqual(baseline.document);
+    expect(afterReview.scope).toBe(baseline.scope);
+    expect(afterReview.selections).toEqual(baseline.selections);
+    expect(((await (await request.get('/api/state')).json()) as Session).document).toEqual(
+      parseDocument(model),
+    );
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    // An external edit changes the current draft, but review still compares the captured pair.
+    const saved = (await (await request.get('/api/state')).json()) as Session;
+    await request.put('/api/state', {
+      headers,
+      data: { revision: saved.revision, document: { ...saved.document, title: 'External edit' } },
+    });
+    await expect(page.getByRole('button', { name: 'Apply to draft', exact: true })).toBeDisabled();
+    await trigger.click();
+    await expect(dialog).toContainText('comparison keeps the captured baseline');
+    await dialog
+      .getByRole('navigation', { name: 'Proposed changes' })
+      .getByRole('button', { name: /changed Reviewed ownership/ })
+      .click();
+    await expect(dialog.getByRole('region', { name: 'Details for document' })).toContainText(
+      'Reviewed model',
+    );
+    await expect(dialog.getByRole('region', { name: 'Details for document' })).not.toContainText(
+      'External edit',
+    );
+    await dialog.getByRole('button', { name: 'Close comparison' }).click();
+  } finally {
+    await page.goto('about:blank');
+    if (proposalId)
+      await request.post('/api/proposal/dismiss', { headers, data: { id: proposalId } });
     await client.close();
     writeFileSync(
       join(original.repo, '.repo-canvas/architecture.json'),
