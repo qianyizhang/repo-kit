@@ -1525,6 +1525,10 @@ summary:focus-visible {
   grid-template-columns: 90px minmax(0, 1fr);
   gap: 9px;
 }
+.connection-info nav {
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
 .connection-info dd {
   margin: 0;
   overflow-wrap: anywhere;

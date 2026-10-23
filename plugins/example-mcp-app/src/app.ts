@@ -1,4 +1,5 @@
 import { App, PostMessageTransport, applyDocumentTheme } from '@modelcontextprotocol/ext-apps';
+import { z } from 'zod';
 import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { TraceLog, observedTransport, boundedPayload } from './trace.ts';
 import { serverIdentitySchema, snapshotSchema, type JourneyId, type Run } from './contracts.ts';
@@ -44,6 +45,11 @@ const observations = new Observations();
 const lifetime = new AbortController(),
   options = { timeout: 10000, signal: lifetime.signal };
 let refreshFlight: Promise<void> | undefined, poll: ReturnType<typeof setTimeout> | undefined;
+let capturePending = false,
+  infoRevision = 0;
+const toolCatalog = z
+  .array(z.object({ name: z.string(), description: z.string().optional() }).passthrough())
+  .parse(JSON.parse(document.getElementById('tool-catalog')?.textContent ?? '[]'));
 const log = new TraceLog('app', () => {
   if (!scheduled) {
     scheduled = true;
@@ -55,7 +61,7 @@ const log = new TraceLog('app', () => {
   }
 });
 const app = new App(
-  { name: 'Example MCP App', version: '0.3.0' },
+  { name: 'Example MCP App', version: '0.4.0' },
   { availableDisplayModes: ['inline', 'fullscreen'] },
   { autoResize: true, strict: true },
 );
@@ -170,9 +176,17 @@ function controls() {
   text(
     'connection',
     mode === 'fixture'
-      ? 'Fixture · connection details'
-      : `${connection} · ${app.getHostVersion()?.name ?? 'Host'}`,
+      ? 'ⓘ Fixture · app info'
+      : `ⓘ ${connection} · ${app.getHostVersion()?.name ?? 'Host'}`,
   );
+  button('capture').disabled =
+    capturePending ||
+    busy ||
+    mode !== 'live' ||
+    !z.uuid().safeParse(run?.id).success ||
+    connection !== 'Connected' ||
+    serverBuild !== EXAMPLE_BUILD ||
+    !app.getHostCapabilities()?.serverTools;
   text(
     'mode-note',
     mode === 'fixture'
@@ -277,10 +291,31 @@ function renderEvidence() {
   if (!el('event-log', HTMLElement).hidden) renderLog(all, run, select('log-filter').value);
 }
 function connectionDetails() {
+  const revision = ++infoRevision;
   openDialog(
-    'Connection details',
-    `<p>Host identity, advertised capabilities and installed build. Use this when an operation is unavailable or the app/server builds differ.</p><pre>${escape(boundedPayload({ panelId, connection, appBuild: EXAMPLE_BUILD, serverBuild, serverInstance, evicted: { view: observations.dropped, app: log.dropped, server: serverDropped }, host: app.getHostVersion(), capabilities: app.getHostCapabilities(), visibility: 'App and server transport observations; no host internals or model execution.' }))}</pre>`,
+    'App info',
+    `<p>Host identity, capabilities and installed build. The existing scenarios explain each conversation/tool route; selecting a sequence event shows its frozen payload.</p><button id="tool-contracts">Tools and API contracts</button><pre>${escape(boundedPayload({ panelId, connection, mode, appBuild: EXAMPLE_BUILD, serverBuild, serverInstance, evicted: { view: observations.dropped, app: log.dropped, server: serverDropped }, host: app.getHostVersion(), capabilities: app.getHostCapabilities(), visibility: 'App and server transport observations; no host internals or model execution.' }))}</pre><p id="recording-info">${mode === 'fixture' ? 'Fixture mode makes no host calls. Standalone has no server or disk writer; session export is explicit. Live servers persist metadata by default under the canonical MCP App log root.' : 'Reading recording health…'}</p>`,
   );
+  button('tool-contracts').onclick = () =>
+    openDialog(
+      'Tools and API contracts',
+      `<p>${toolCatalog.length} tools, generated from this build’s actual MCP registrations. App-only snapshots feed the graph; conversation reads use summaries or one exact event.</p>${toolCatalog.map((tool) => `<details><summary>${escape(tool.name)}</summary><p>${escape(tool.description)}</p><pre>${escape(JSON.stringify(tool, null, 2))}</pre></details>`).join('')}`,
+    );
+  if (mode === 'live' && connection === 'Connected' && app.getHostCapabilities()?.serverTools)
+    void app
+      .callServerTool({ name: 'diagnostics_info', arguments: {} }, options)
+      .then((result) => {
+        const target = document.getElementById('recording-info');
+        if (revision !== infoRevision || !target) return;
+        target.textContent = result.isError
+          ? 'Recording status unavailable.'
+          : JSON.stringify(result.structuredContent, null, 2);
+      })
+      .catch((error) => {
+        const target = document.getElementById('recording-info');
+        if (revision === infoRevision && target)
+          target.textContent = `Recording status unavailable: ${String(error)}`;
+      });
 }
 async function refreshServer() {
   if (refreshFlight) return refreshFlight;
@@ -648,6 +683,37 @@ button('run').onclick = () => {
 };
 button('roles').onclick = explainRoles;
 button('connection').onclick = connectionDetails;
+button('capture').onclick = () => {
+  const run = currentRun();
+  if (!run || button('capture').disabled) return;
+  capturePending = true;
+  controls();
+  const feedback = el('capture-status', HTMLParagraphElement);
+  feedback.hidden = false;
+  feedback.textContent = `Saving retained observations for run ${run.ordinal}…`;
+  void (async () => {
+    await publishReport();
+    const result = await app.callServerTool(
+      { name: 'diagnostics_capture', arguments: { interaction: run.id } },
+      options,
+    );
+    if (result.isError)
+      throw new Error(
+        result.content?.find((item) => item.type === 'text')?.text ?? 'Capture rejected',
+      );
+    const saved = z
+      .object({ path: z.string(), eventCount: z.number() })
+      .parse(result.structuredContent);
+    feedback.textContent = `Saved run ${run.ordinal}: ${saved.eventCount} retained observations to ${saved.path}`;
+  })()
+    .catch((error) => {
+      feedback.textContent = `Capture not confirmed for run ${run.ordinal}: ${String(error)}. Check the log location before saving again.`;
+    })
+    .finally(() => {
+      capturePending = false;
+      controls();
+    });
+};
 select('history').onchange = () => {
   selectedRuns.set(journey, select('history').value);
   const run = currentRun();

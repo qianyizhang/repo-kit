@@ -1,5 +1,5 @@
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { ObservableServer } from '../diagnostics/server.ts';
 import {
   registerAppResource,
   registerAppTool,
@@ -37,7 +37,11 @@ function privateResult(value: unknown) {
   return { content: [], _meta: { build: BUILD, payload } };
 }
 export function reportsMcp() {
-  const server = new McpServer({ name: 'repo-workbench-reports', version: VERSION });
+  const server = new ObservableServer('workbench-reports', {
+    name: 'repo-workbench-reports',
+    version: VERSION,
+    build: BUILD,
+  });
   type Context = {
     binding: Binding;
     roots: string[];

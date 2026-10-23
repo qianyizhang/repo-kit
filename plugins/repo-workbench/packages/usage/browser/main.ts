@@ -1,4 +1,5 @@
 import { createCharts } from './charts.ts';
+import { standaloneReportInspection } from '../../reports/standalone-inspection.ts';
 import { createEvidenceDrawer } from './evidence.ts';
 import {
   element,
@@ -30,6 +31,9 @@ import {
   lastActivity,
 } from '../model.ts';
 async function main() {
+  document
+    .querySelector('.top .actions')
+    ?.append(standaloneReportInspection('Usage dashboard').button());
   const encoded = element('usage-data');
   const compressed = Uint8Array.from(atob(encoded.textContent ?? ''), (c) => c.charCodeAt(0));
   const data = await new Response(
@@ -582,14 +586,18 @@ export function mountUsage(initial: UsageData, host?: UsageHost) {
       try {
         const data = host
           ? await host.refresh()
-          : await (async () => {
-              const response = await fetch('/refresh', {
-                method: 'POST',
-                headers: { 'X-Usage-Refresh': '1' },
-              });
-              if (!response.ok) throw new Error(await response.text());
-              return (await response.json()) as Snapshot;
-            })();
+          : await standaloneReportInspection('Usage dashboard').observe(
+              'POST /refresh',
+              { scope: 'Configured local log roots' },
+              async () => {
+                const response = await fetch('/refresh', {
+                  method: 'POST',
+                  headers: { 'X-Usage-Refresh': '1' },
+                });
+                if (!response.ok) throw new Error(await response.text());
+                return (await response.json()) as Snapshot;
+              },
+            );
         if (data.schemaVersion !== 1 || !Array.isArray(data.records))
           throw new Error('Invalid usage snapshot');
         if (disposed) return;

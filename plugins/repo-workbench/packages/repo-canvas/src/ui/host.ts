@@ -32,6 +32,13 @@ const client = new HostClient((value) => {
     window.dispatchEvent(new Event('repo-canvas-target'));
   }
 });
+export const interactionDiagnostics = client.inspection;
+export function inspectLastMessage() {
+  client.inspection.show('Interactions', client.lastMessageInteraction);
+}
+export function hasMessageObservation() {
+  return !!client.lastMessageInteraction;
+}
 export function connectionStatus() {
   return {
     uiVersion: VERSION,

@@ -10,7 +10,7 @@ The source review is repo-kit's `docs/reviews/2026-10-22-mcp-apps.md`.
 
 The embedded views reuse the standalone renderers and indexed source reader.
 Full bodies and images travel through `report_app`; the iframe does not fetch
-localhost. **Send** delivers the user's text directly. **Attach selection** adds a
+localhost. **Send** delivers the user's text directly. **Attach filters or open evidence** (usage) or **Attach selected turn/action** (trace) adds a
 small frozen summary of the current usage filters/open evidence, or a selected
 trace turn/action. An unchecked attachment sends no evidence and creates no
 selection. Additional totals, rows, events, event text and provenance use separate
@@ -50,21 +50,25 @@ After upgrading from an earlier app protocol, reopen the panel after refreshing 
 
 ## Connection diagnostics
 
-The **ⓘ Connection information** control beside the header shows panel/server versions and build fingerprints, server start time and process/instance IDs, repository, caller chat, context, and local log path. It warns when builds differ. Its compact symbol controls copy details, refresh status, and download the connection log; tooltips and accessible names identify each action. The JSON report
-includes the last 200 browser bridge events and server connection events, versions,
-server identity, caller metadata key names and thread ID, panel/context IDs, errors, and timings. If the host is unavailable,
+The **ⓘ App info** control beside the header shows panel/server versions and build fingerprints, server start time and process/instance IDs, repository, caller chat, context, and local log path. It warns when builds differ. Its compact symbol controls copy details, refresh status, and download the connection log; tooltips and accessible names identify each action. The JSON report
+includes bounded browser and server connection metadata, versions,
+server identity, caller metadata key names and thread ID, panel/context IDs, event status and source-local timestamps. If the host is unavailable,
 the download still includes the browser history after a five-second collection timeout.
 Initialization failures can be retried without reloading the panel.
 
-The stdio MCP server also keeps local JSONL logs at
-`$XDG_CACHE_HOME/repo-workbench/canvas/connection.jsonl` (default
-`~/.cache/repo-workbench/canvas/connection.jsonl`; an explicit `XDG_CONFIG_HOME` is
-used as the fallback for isolated installations/tests). Rotation retains the current
-file and one previous `.1` file, approximately 512 KiB each. New files are private
-(mode 0600). Logging failure does not block opening; it appears in the report.
-`canvas_diagnostics` lets the owning chat read recent server events and the log path.
-Logs include repository paths and operational errors, but no source bodies, map/draft
-payloads, or chat messages. Review paths before sharing a downloaded report.
+App info also exposes generated tool contracts, conversation fixtures and individual
+frozen interactions. Inspect send opens only that send; server summaries and exact
+event payloads have separate bounded APIs. Metadata is written under
+`${XDG_STATE_HOME:-~/.local/state}/mcp-apps/<app-id>/<instance>/`, overridden by
+`MCP_APP_LOG_ROOT`. Each app/server file rotates at 2 MiB with one prior file.
+Startup keeps 8 inactive sessions for at most 7 days; live sessions are excluded.
+Only an explicit **Save diagnostic capture** persists payloads for one interaction
+(up to 2 MiB, 8 captures per session, same retention). Payloads are masked and
+bounded in live memory; restart/closure can lose uncaptured payloads. Logging
+failure does not block domain work. These observations are not host internals or
+proof of a model response. Standalone Canvas and the local report service share
+the same diagnostic handlers; offline exports have memory inspection and an
+explicit capture download, with no disk writer or conversation capability.
 
 ## Transport ownership
 

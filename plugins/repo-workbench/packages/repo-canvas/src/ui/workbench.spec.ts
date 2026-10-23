@@ -8,6 +8,22 @@ import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseDocument, type Snapshot } from '../model/document';
 
+test('standalone Canvas exposes the same scoped diagnostics without a host', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Standalone preview', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'App info', exact: true }).click();
+  const inspector = page.locator('dialog.mcp-observability');
+  await expect(inspector).toContainText('Metadata on disk');
+  await inspector.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(inspector).toContainText('canvas_app');
+  await inspector.getByRole('button', { name: 'Interactions', exact: true }).click();
+  await inspector.locator('ol button').first().click();
+  await inspector.getByRole('button', { name: 'Save diagnostic capture', exact: true }).click();
+  await expect(inspector.locator('[role="status"]').last()).toContainText('Saved');
+  await inspector.getByRole('button', { name: 'Close', exact: true }).click();
+  await expect(page.getByText('Standalone preview', { exact: true })).toBeVisible();
+});
+
 test('standalone edits and temporary requests share operation semantics with MCP', async ({
   page,
   request,
@@ -15,6 +31,10 @@ test('standalone edits and temporary requests share operation semantics with MCP
   const client = new Client({ name: 'canvas-http-parity-test', version: '1' });
   await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
   try {
+    const firstInfo = await client.callTool({ name: 'diagnostics_info', arguments: {} });
+    const nextInfo = await client.callTool({ name: 'diagnostics_info', arguments: {} });
+    expect(firstInfo.structuredContent).toMatchObject({ instance: expect.any(String) });
+    expect(nextInfo.structuredContent).toEqual(firstInfo.structuredContent);
     await page.goto('/');
     await expect(page.getByText('Standalone preview', { exact: true })).toBeVisible();
     await expect(page.getByText('Shared with Codex', { exact: true })).toHaveCount(0);
@@ -440,7 +460,7 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await expect(ui.getByRole('button', { name: 'Send to chat ↑' })).toBeInViewport();
   await page.screenshot({ path: 'test-results/repo-canvas/pending-error-mobile.png' });
 
-  await ui.getByRole('button', { name: 'Close request' }).click();
+  await ui.getByRole('button', { name: 'Close local request' }).click();
   await expect(ui.getByText('Request closed locally.')).toBeVisible();
   await page.setViewportSize({ width: 1440, height: 1000 });
   // Explicitly discarding a cached draft must survive an iframe reload.

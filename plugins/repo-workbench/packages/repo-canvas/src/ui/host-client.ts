@@ -1,6 +1,8 @@
 import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
 import { ErrorCode, McpError, type CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { VERSION } from '../model/build';
+import { BUILD, VERSION } from '../model/build';
+import { AppDiagnostics, plainMessageFlow } from '../../../diagnostics/client';
+import { eventMetadataSchema } from '../../../diagnostics/events';
 
 /** Standard host protocol only. Repository binding and recovery live in host.ts. */
 export class HostClient {
@@ -11,17 +13,46 @@ export class HostClient {
   );
   private initialization?: Promise<void>;
   private readonly lifetime = new AbortController();
-  private sequence = 0;
-  private readonly events: Array<{
-    time: string;
-    requestId: number;
-    method: string;
-    action?: string;
-    status: string;
-    elapsedMs: number;
-    error?: string;
-  }> = [];
+  readonly inspection = new AppDiagnostics({
+    name: 'Repo Canvas',
+    version: VERSION,
+    build: BUILD,
+    mode: 'hosted',
+    info: () => ({
+      host: this.app.getHostVersion(),
+      capabilities: this.app.getHostCapabilities(),
+      closed: this.lifetime.signal.aborted,
+    }),
+    flows: [
+      plainMessageFlow,
+      {
+        name: 'Selected map and notes · fixture',
+        steps: [
+          'App freezes selected map scope and notes',
+          'App → Server: create local discussion request',
+          'App → Host: text and bounded selected summary',
+          'Host acknowledgment is separate from conversation response',
+          'An agent reply can propose changes; Apply to draft and Save remain deliberate actions',
+        ],
+        request: { text: 'Review this module', selected: 'Chosen module and explicit notes only' },
+        reads: ['Request details, source and provenance are read separately only when needed'],
+      },
+    ],
+  });
+  lastMessageInteraction?: string;
   constructor(onTarget: (value: unknown) => void) {
+    this.inspection.remote = async (name, args) => {
+      await this.ready();
+      const result = await this.app.callServerTool(
+        { name, arguments: args },
+        { timeout: 5000, signal: this.lifetime.signal },
+      );
+      if (result.isError)
+        throw new Error(
+          result.content?.find((item) => item.type === 'text')?.text ?? 'Diagnostics unavailable',
+        );
+      return result.structuredContent;
+    };
     this.app.ontoolresult = (result) => onTarget(result.structuredContent);
     this.app.onhostcontextchanged = (context) => this.present(context);
     this.app.onteardown = () => {
@@ -47,46 +78,30 @@ export class HostClient {
   }
   private async observed<T extends { isError?: boolean }>(
     method: string,
-    action: string | undefined,
+    request: unknown,
     run: () => Promise<T>,
   ): Promise<T> {
-    const started = Date.now(),
-      requestId = ++this.sequence;
-    const record = (status: string, error?: string) => {
-      this.events.push({
-        time: new Date().toISOString(),
-        requestId,
-        method,
-        action,
-        status,
-        elapsedMs: Date.now() - started,
-        ...(error ? { error: error.slice(0, 2000) } : {}),
-      });
-      if (this.events.length > 200) this.events.shift();
-    };
-    record('sent');
-    try {
-      const result = await run();
-      record(result.isError ? 'tool-error' : 'received');
-      return result;
-    } catch (error) {
-      const closed = this.lifetime.signal.aborted;
-      const timeout =
-        !closed && error instanceof McpError && error.code === Number(ErrorCode.RequestTimeout);
-      const message = closed
-        ? 'Canvas closed'
-        : timeout
-          ? 'The host did not acknowledge the request. Delivery is uncertain; inspect the main chat before sending again.'
-          : String(error);
-      record(closed ? 'closed' : timeout ? 'timeout' : 'rpc-error', message);
-      throw new Error(message, { cause: error });
-    }
+    return this.inspection.observe(method, request, async () => {
+      try {
+        return await run();
+      } catch (error) {
+        const closed = this.lifetime.signal.aborted;
+        const timeout =
+          !closed && error instanceof McpError && error.code === Number(ErrorCode.RequestTimeout);
+        const message = closed
+          ? 'Canvas closed'
+          : timeout
+            ? 'The host did not acknowledge the request. Delivery is uncertain; inspect the main chat before sending again.'
+            : String(error);
+        throw new Error(message, { cause: error });
+      }
+    });
   }
   async call(request: object, contextId?: string, timeout = 30000): Promise<CallToolResult> {
     await this.ready();
     return this.observed(
       'tools/call',
-      'action' in request ? String(request.action) : undefined,
+      { name: 'canvas_app', arguments: { request, ...(contextId ? { contextId } : {}) } },
       () =>
         this.app.callServerTool(
           { name: 'canvas_app', arguments: { request, ...(contextId ? { contextId } : {}) } },
@@ -101,15 +116,15 @@ export class HostClient {
   }
   async sendMessage(text: string) {
     await this.requireMessaging();
-    const result = await this.observed('ui/message', undefined, () =>
-      this.app.sendMessage(
-        { role: 'user', content: [{ type: 'text', text }] },
-        { timeout: 30000, signal: this.lifetime.signal },
-      ),
+    const payload = { role: 'user' as const, content: [{ type: 'text' as const, text }] };
+    const pending = this.observed('ui/message', payload, () =>
+      this.app.sendMessage(payload, { timeout: 30000, signal: this.lifetime.signal }),
     );
+    this.lastMessageInteraction = this.inspection.lastInteraction;
+    const result = await pending;
     if (result.isError) throw new Error('The host did not accept the message.');
   }
   diagnostics() {
-    return [...this.events];
+    return this.inspection.log.events.map((event) => eventMetadataSchema.parse(event));
   }
 }

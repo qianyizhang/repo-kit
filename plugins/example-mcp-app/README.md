@@ -91,8 +91,10 @@ A teardown notification alone does not establish that a panel closed.
   instance and sequence. Receipt order does not establish cross-clock causality. The server trace
   belongs to one process and may include multiple panels. Per-run IDs isolate
   feature results; the startup page shows process-wide discovery evidence.
-- `example_trace` returns the server snapshot and a compact panel index. An
-  explicit `panelId` also returns that panel's self-reported UI evidence.
+- `example_status` returns build and panel identities. `example_events` lists up
+  to 20 summaries; `example_event` reads one exact event, pinned to the server
+  instance. `example_trace` is the app-only snapshot used by the graph; ordinary
+  messages never request or attach it.
 - The app uses `example_report` to publish bounded live evidence after actions.
   The server retains at most 12 panels for one hour, filters fixture events and
   rejects mismatched builds. Reports are diagnostic claims, not trusted proof of
@@ -100,9 +102,18 @@ A teardown notification alone does not establish that a panel closed.
 - Payloads are frozen and capped at 12,000 characters. HTML bodies are summarized.
   Common credential-named fields are redacted; **free text is recorded**. Use demo
   data. All payloads are rendered as text. No repository files are read.
-- Nothing is persisted. Server restart or iframe destruction clears its state.
-  Export evidence before closing. Export uses the host download capability when
-  available; browser downloads depend on the host sandbox.
+- Server metadata logs live at
+  `${XDG_STATE_HOME:-~/.local/state}/mcp-apps/example-mcp-app/<instance>/`, or
+  `MCP_APP_LOG_ROOT`. Each app/server file rotates at 2 MiB with one prior file;
+  startup retains 8 inactive sessions for at most 7 days, excluding live processes.
+  Payloads remain in bounded memory unless **Save interaction capture** explicitly
+  saves one selected run (2 MiB and 8 captures per session; same retention).
+  The capture stores existing frozen trace records; it never replays an action.
+  Restart/closure can lose uncaptured payloads. App info shows path and write health.
+- The existing **Export session log** explicitly downloads the wider retained
+  session, including its bounded payloads. Export uses the host download capability
+  when available; browser downloads depend on the host sandbox. Standalone fixture
+  mode has no disk writer or live capture, and its bundled tool catalog needs no host.
 - The HTML bundles SDK, application and CSS. The resource URI includes a build
   fingerprint, MIME type is `text/html;profile=mcp-app`, and CSP permits no
   external connections or resources. Browser storage and relative assets are

@@ -5,7 +5,13 @@ import type { Output } from '../model/contracts';
 import { request } from './api';
 import { discussionContext } from '../model/discussion-context';
 import { initializationPrompt } from '../model/initialization';
-import { hosted, requireMessaging, sendToChat } from './host';
+import {
+  hosted,
+  requireMessaging,
+  sendToChat,
+  hasMessageObservation,
+  inspectLastMessage,
+} from './host';
 export interface ChatActions {
   initialize: () => void;
   addComment: (comment: ContextComment) => boolean;
@@ -237,7 +243,9 @@ export function SideChat({
                 <p>{exchange.response.reply}</p>
               </article>
             )}
-            {exchange.status === 'cancelled' && <p>Request closed locally.</p>}
+            {exchange.status === 'cancelled' && (
+              <p>Request closed locally. Any active Codex turn continues.</p>
+            )}
           </>
         )}
         {!exchange && (
@@ -263,7 +271,7 @@ export function SideChat({
                 .catch((e) => setError(String(e)))
             }
           >
-            Close request
+            Close local request
           </button>
         </section>
       )}
@@ -346,6 +354,15 @@ export function SideChat({
             onChange={(e) => persist(e.target.value, data.comments)}
           />
           <footer>
+            {hosted && (
+              <button
+                type="button"
+                disabled={!hasMessageObservation()}
+                onClick={inspectLastMessage}
+              >
+                Inspect last send
+              </button>
+            )}
             <button
               type="submit"
               className="primary"

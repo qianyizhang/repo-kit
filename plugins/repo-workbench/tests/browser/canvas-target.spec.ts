@@ -108,7 +108,7 @@ test('native metadata binds without messages; picker and restart preserve select
       .getByRole('textbox', { name: 'Module responsibility' })
       .fill('Unsaved responsibility survives reconnect');
     await second.getByRole('button', { name: 'Apply edits', exact: true }).click();
-    await second.locator('summary[aria-label="Connection information"]').click();
+    await second.locator('summary[aria-label="App info"]').click();
     await expect(second.getByText('UI and server builds match.')).toBeVisible();
     await expect(second.getByText(ids[1], { exact: true })).toBeVisible();
     await second.getByRole('button', { name: 'Copy connection details' }).click();

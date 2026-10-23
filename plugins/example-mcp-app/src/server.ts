@@ -10,14 +10,16 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { TraceLog, observedTransport } from './trace.ts';
 import { PanelReports, reportSchema } from './contracts.ts';
+import { Diagnostics } from './diagnostics.ts';
 
 declare const EXAMPLE_BUILD: string;
 const build = EXAMPLE_BUILD,
   uri = `ui://example-mcp-app/app-${build}.html`;
 const instance = randomUUID(),
-  log = new TraceLog('server');
+  diagnostics = new Diagnostics();
+const log = new TraceLog('server', () => diagnostics.record(instance, log.events.at(-1)!));
 const reports = new PanelReports();
-const server = new McpServer({ name: 'example-mcp-app', version: '0.3.0' });
+const server = new McpServer({ name: 'example-mcp-app', version: '0.4.0' });
 log.local('server.started', { instance, build, pid: process.pid });
 registerAppTool(
   server,
@@ -81,10 +83,10 @@ registerAppTool(
   'example_trace',
   {
     description:
-      'Read real server transport evidence and a panel index. Pass panelId from the index to inspect that panel’s self-reported live bridge trace and grouped runs. App reports do not prove model delivery. Observer payloads are omitted from tracing.',
+      'App-only graph snapshot. Conversation investigations use example_status, example_events and example_event for scoped reads. App reports never prove model delivery.',
     inputSchema: { panelId: z.uuid().optional() },
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-    _meta: { ui: { visibility: ['app', 'model'] } },
+    _meta: { ui: { visibility: ['app'] } },
   },
   ({ panelId }) => ({
     content: [{ type: 'text', text: `${log.events.length} retained server events.` }],
@@ -123,16 +125,154 @@ registerAppTool(
         ],
       };
     // Only actual live captures belong in the server’s panel evidence.
+    const liveEvents = report.events.filter(
+      (event) => event.provenance === 'captured' && event.source === 'app',
+    );
+    liveEvents.forEach((event) => diagnostics.record(report.panelId, event));
     reports.put({
       ...report,
       runs: report.runs.filter((run) => run.mode === 'live'),
-      events: report.events.filter((event) => event.provenance === 'captured'),
+      events: liveEvents,
     });
     return {
-      content: [{ type: 'text', text: 'App-reported evidence stored.' }],
+      content: [{ type: 'text', text: 'App-reported evidence retained in memory.' }],
       structuredContent: { panelId: report.panelId, instance },
     };
   },
+);
+const readOnly = { readOnlyHint: true, destructiveHint: false, openWorldHint: false };
+registerAppTool(
+  server,
+  'example_status',
+  {
+    description:
+      'Read the active build and panel identities without event payloads. Ordinary messages need no diagnostic read.',
+    inputSchema: {},
+    annotations: readOnly,
+    _meta: { ui: { visibility: ['app', 'model'] } },
+  },
+  () => ({
+    content: [],
+    structuredContent: {
+      instance,
+      build,
+      uri,
+      panels: reports
+        .list()
+        .map(({ panelId, host, reportedAt }) => ({ panelId, host, reportedAt })),
+    },
+  }),
+);
+registerAppTool(
+  server,
+  'example_events',
+  {
+    description:
+      'List at most 20 retained event summaries from the server or one explicit panel. Filter by run ID when known; no payloads.',
+    inputSchema: {
+      panelId: z.uuid().optional(),
+      runId: z.string().max(100).optional(),
+      limit: z.number().int().min(1).max(20).default(20),
+    },
+    annotations: readOnly,
+    _meta: { ui: { visibility: ['app', 'model'] } },
+  },
+  ({ panelId, runId, limit }) => {
+    const events = panelId ? (reports.list(panelId)[0]?.events ?? []) : log.events;
+    return {
+      content: [],
+      structuredContent: {
+        instance,
+        panelId,
+        events: events
+          .filter((event) => !event.observer && (!runId || event.runId === runId))
+          .slice(-limit)
+          .map((event) => ({
+            sequence: event.sequence,
+            time: event.time,
+            source: event.source,
+            method: event.method,
+            kind: event.kind,
+            status: event.status,
+            runId: event.runId,
+          })),
+      },
+    };
+  },
+);
+registerAppTool(
+  server,
+  'example_event',
+  {
+    description:
+      'Read one exact frozen event payload by its source-local sequence and optional panel ID. App reports remain self-reported evidence.',
+    inputSchema: {
+      expectedInstance: z.uuid(),
+      panelId: z.uuid().optional(),
+      sequence: z.number().int().positive(),
+    },
+    annotations: readOnly,
+    _meta: { ui: { visibility: ['app', 'model'] } },
+  },
+  ({ expectedInstance, panelId, sequence }) => {
+    if (expectedInstance !== instance)
+      throw new Error('Server changed; read fresh event summaries.');
+    const events = panelId ? (reports.list(panelId)[0]?.events ?? []) : log.events;
+    const event = events.find((event) => event.sequence === sequence);
+    if (!event) throw new Error('Event unavailable or expired');
+    return { content: [], structuredContent: { instance, panelId, event } };
+  },
+);
+registerAppTool(
+  server,
+  'diagnostics_info',
+  {
+    description:
+      'Read build, canonical log location, recording health and retention. No event payloads.',
+    inputSchema: {},
+    annotations: readOnly,
+    _meta: { ui: { visibility: ['app'] } },
+  },
+  () => ({
+    content: [],
+    structuredContent: {
+      build,
+      instance,
+      ...diagnostics.store.status(),
+      coverage:
+        'Persisted metadata and explicit captures are projections of the existing app/server trace records; host internals remain unobserved.',
+    },
+  }),
+);
+registerAppTool(
+  server,
+  'diagnostics_tools',
+  {
+    description: 'Read the tool catalog generated from this bundled server during build.',
+    inputSchema: {},
+    annotations: readOnly,
+    _meta: { ui: { visibility: ['app'] } },
+  },
+  async () => ({
+    content: [],
+    structuredContent: {
+      tools: JSON.parse(
+        await readFile(new URL('./tool-catalog.json', import.meta.url), 'utf8'),
+      ) as unknown,
+    },
+  }),
+);
+registerAppTool(
+  server,
+  'diagnostics_capture',
+  {
+    description:
+      'Save diagnostic capture for one selected live interaction. Only currently retained masked observations are saved; no action is replayed.',
+    inputSchema: { interaction: z.uuid() },
+    annotations: { ...readOnly, readOnlyHint: false },
+    _meta: { ui: { visibility: ['app'] } },
+  },
+  ({ interaction }) => ({ content: [], structuredContent: diagnostics.store.capture(interaction) }),
 );
 server.registerResource(
   'example-run-data',

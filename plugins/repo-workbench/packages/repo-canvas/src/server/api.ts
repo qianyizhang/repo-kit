@@ -5,7 +5,7 @@ import { httpOperation, operations } from '../model/operations.ts';
 import { operate } from './operations.ts';
 import { Repository } from './repository.ts';
 import { CanvasBridge } from './bridge.ts';
-import { serveMcp } from './mcp.ts';
+import { canvasMcp, serveMcp } from './mcp.ts';
 
 async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
   const chunks: Buffer[] = [];
@@ -33,6 +33,7 @@ export function apiMiddleware(root: string) {
   const repository = new Repository(root),
     token = randomBytes(24).toString('hex');
   const bridge = new CanvasBridge({ repo: repository.root, chat: 'standalone' });
+  const observed = canvasMcp(bridge, repository);
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (!req.url?.startsWith('/api/') && req.url !== '/mcp') {
       next();
@@ -56,12 +57,15 @@ export function apiMiddleware(root: string) {
           req.method === 'POST' ? await body(req) : undefined,
           bridge,
           repository,
+          observed.diagnostics,
         );
         return;
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         json(res, {
-          ...operate('state', {}, repository, bridge),
+          ...(await observed.observeOperation('state', {}, () =>
+            operate('state', {}, repository, bridge),
+          )),
           token,
           plugin: 'Current Codex chat via MCP',
         });
@@ -69,6 +73,13 @@ export function apiMiddleware(root: string) {
       }
       if (req.headers['x-repo-canvas-token'] !== token) {
         json(res, { error: 'Missing local session token' }, 403);
+        return;
+      }
+      if (req.method === 'POST' && url.pathname.startsWith('/api/diagnostics/')) {
+        json(
+          res,
+          observed.callDiagnostics(url.pathname.slice('/api/diagnostics/'.length), await body(req)),
+        );
         return;
       }
       const action = httpOperation(req.method, url.pathname);
@@ -79,7 +90,12 @@ export function apiMiddleware(root: string) {
                 [...url.searchParams.keys()].map((key) => [key, url.searchParams.get(key)]),
               )
             : await body(req);
-        json(res, operate(action, args, repository, bridge));
+        json(
+          res,
+          await observed.observeOperation(action, args, () =>
+            operate(action, args, repository, bridge),
+          ),
+        );
         return;
       }
       json(res, { error: 'Unknown route' }, 404);

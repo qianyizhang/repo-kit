@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { connectionStatus, connectionDiagnostics, hosted } from './host';
-import { download } from './api';
+import { connectionStatus, connectionDiagnostics, hosted, interactionDiagnostics } from './host';
+import { download, standaloneInspection } from './api';
 import { Icon } from './Icon';
 
 export function ConnectionInfo() {
@@ -25,7 +25,17 @@ export function ConnectionInfo() {
     if (exportLog) download(report, 'repo-canvas-diagnostics.json');
     setBusy(false);
   }
-  if (!hosted) return null;
+  if (!hosted)
+    return (
+      <button
+        className="icon-button"
+        aria-label="App info"
+        title="App info"
+        onClick={() => standaloneInspection.show()}
+      >
+        <Icon name="info" />
+      </button>
+    );
   const server = info.server;
   const mismatch = server && (server.version !== info.uiVersion || server.build !== info.uiBuild);
   async function copy() {
@@ -66,7 +76,7 @@ export function ConnectionInfo() {
         if (event.currentTarget.open) void refresh();
       }}
     >
-      <summary aria-label="Connection information" title="Connection information">
+      <summary aria-label="App info" title="App info">
         <Icon name="info" />
       </summary>
       <div role="region" aria-label="Connection information">
@@ -101,6 +111,14 @@ export function ConnectionInfo() {
             </button>
           </div>
         </div>
+        <nav className="connection-actions" aria-label="App diagnostics">
+          <button onClick={() => interactionDiagnostics.show('Info')}>Recording</button>
+          <button onClick={() => interactionDiagnostics.show('Tools')}>Tools</button>
+          <button onClick={() => interactionDiagnostics.show('Conversation flow')}>
+            Conversation flow
+          </button>
+          <button onClick={() => interactionDiagnostics.show('Interactions')}>Interactions</button>
+        </nav>
         {copyStatus && <p role="status">{copyStatus}</p>}
         {copyFallback && (
           <textarea

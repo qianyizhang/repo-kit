@@ -3,7 +3,6 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CanvasBridge } from './bridge.ts';
 import { canvasMcp } from './mcp.ts';
 import { Repository } from './repository.ts';
-import { ConnectionDiagnostics, connectionLogPath } from './diagnostics.ts';
 
 // Codex owns this process; stdout is exclusively the MCP protocol.
 const args = process.argv.slice(2);
@@ -12,7 +11,6 @@ if (index >= 0 && !args[index + 1]) throw new Error('Provide --repo /absolute/re
 const server = canvasMcp(
   new CanvasBridge(),
   index >= 0 ? new Repository(resolve(args[index + 1])) : undefined,
-  new ConnectionDiagnostics(connectionLogPath()),
 );
 await server.connect(new StdioServerTransport());
 process.stdin.once('end', () => {

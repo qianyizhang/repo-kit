@@ -25,9 +25,15 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
     );
     const { tools } = await client.listTools();
     assert.deepEqual(tools.map((t) => t.name).sort(), [
+      'diagnostics_capture',
+      'diagnostics_info',
+      'diagnostics_tools',
       'example_echo',
+      'example_event',
+      'example_events',
       'example_open',
       'example_report',
+      'example_status',
       'example_trace',
     ]);
     const entry = tools.find((t) => t.name === 'example_open');
@@ -92,6 +98,40 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
     assert.ok(next.events.some((e) => e.payload.includes('HTML omitted')));
     assert.equal(snapshot.uri, ui.resourceUri);
     assert.equal(snapshot.events.filter((e) => e.runId === runId).length, 2);
+    const status = await client.callTool({ name: 'example_status', arguments: {} });
+    assert.doesNotMatch(JSON.stringify(status), /"events"|"payload"/);
+    const summaries = await client.callTool({
+      name: 'example_events',
+      arguments: { runId, limit: 20 },
+    });
+    assert.doesNotMatch(JSON.stringify(summaries), /"payload"|hello/);
+    const summary = z
+      .object({ events: z.array(z.object({ sequence: z.number() })) })
+      .parse(summaries.structuredContent).events[0]!;
+    const exact = await client.callTool({
+      name: 'example_event',
+      arguments: { expectedInstance: snapshot.instance, sequence: summary.sequence },
+    });
+    assert.match(JSON.stringify(exact), /hello/);
+    assert.equal(
+      (await client.callTool({ name: 'example_events', arguments: { limit: 21 } })).isError,
+      true,
+    );
+    const catalog = z
+      .object({ tools: z.array(z.object({ name: z.string() })) })
+      .parse(
+        (await client.callTool({ name: 'diagnostics_tools', arguments: {} })).structuredContent,
+      );
+    assert.deepEqual(
+      catalog.tools.map((tool) => tool.name),
+      tools.map((tool) => tool.name),
+    );
+    assert.deepEqual(
+      z
+        .object({ ui: z.object({ visibility: z.array(z.string()) }) })
+        .parse(tools.find((tool) => tool.name === 'example_trace')?._meta).ui.visibility,
+      ['app'],
+    );
     const resourceRun = '22222222-2222-4222-8222-222222222222';
     const correlated = await client.readResource({ uri: `example://sample/run/${resourceRun}` });
     assert.match(

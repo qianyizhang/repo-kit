@@ -1,4 +1,5 @@
 import type { ReviewDocument, TraceEvent } from './contracts.ts';
+import { standaloneReportInspection } from '../../../reports/standalone-inspection.ts';
 export interface TextBlock {
   text: string;
   offset: number;
@@ -36,14 +37,19 @@ export function recordSource(document: ReviewDocument): RecordSource {
         const value = event[field] ?? '';
         return { text: value, offset: 0, nextOffset: value.length, total: value.length };
       }
-      const response = await fetch(
+      const target =
         url(event, '/trace-record') +
-          '&' +
-          new URLSearchParams({ field, offset: String(offset) }).toString(),
-        { signal },
+        '&' +
+        new URLSearchParams({ field, offset: String(offset) }).toString();
+      return standaloneReportInspection('Trace analyzer').observe(
+        'GET /trace-record',
+        { target },
+        async () => {
+          const response = await fetch(target, { signal });
+          if (!response.ok) throw new Error(await response.text());
+          return (await response.json()) as TextBlock;
+        },
       );
-      if (!response.ok) throw new Error(await response.text());
-      return (await response.json()) as TextBlock;
     },
     image(event, index) {
       return delivery && event.body

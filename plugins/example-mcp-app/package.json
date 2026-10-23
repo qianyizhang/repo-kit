@@ -1,6 +1,6 @@
 {
   "name": "@repo-kit/example-mcp-app",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "An inspectable MCP App: real protocol traffic, resources and lifecycle",

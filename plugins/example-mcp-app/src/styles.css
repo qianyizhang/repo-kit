@@ -599,3 +599,6 @@ html[data-theme='dark'] .gap {
 button.primary:hover:not(:disabled) {
   background: var(--teal);
 }
+#capture-status {
+  overflow-wrap: anywhere;
+}

@@ -57,3 +57,9 @@ removal still require the installed, connected native UI.
   `a5697f54542b`. Installed desktop acceptance is pending installation/reconnection
   of the tested build; actual conversation arrival and panel removal are not
   claimed.
+
+Native v0.3.0 acceptance was completed on 23 October 2026 after installation and
+reconnection: active build `e0dbe92d7284`, the four-role sequence visible in Codex,
+live echo and resource paths, exact payload inspection, and a plain test message
+received in the owning conversation. The sequence UI was preserved. The later
+observability rollout is a separate build and requires its own installed acceptance.

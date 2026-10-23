@@ -111,7 +111,7 @@ test('teardown cancels pending tool calls instead of leaving UI work waiting', a
     await page.evaluate(() => {
       window.dropDiagnostics = true;
     });
-    await ui.locator('summary[aria-label="Connection information"]').click();
+    await ui.locator('summary[aria-label="App info"]').click();
     await expect
       .poll(() => page.evaluate(() => window.hostCalls.includes('diagnostics')))
       .toBe(true);
@@ -134,7 +134,7 @@ test('an uncertain message is never sent twice automatically', async ({ page }) 
     await ui.getByRole('button', { name: 'Send to chat' }).click();
     await expect.poll(() => page.evaluate(() => window.chatRequests.length)).toBe(1);
     await expect(ui.getByText(/Delivery is uncertain/)).toBeVisible({ timeout: 35000 });
-    await expect(ui.getByRole('button', { name: 'Close request' })).toBeVisible();
+    await expect(ui.getByRole('button', { name: 'Close local request' })).toBeVisible();
     expect(await page.evaluate(() => window.chatRequests.length)).toBe(1);
   });
 });

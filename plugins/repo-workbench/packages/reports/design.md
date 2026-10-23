@@ -31,3 +31,13 @@ are explicit filters. Compressed sources retain decoded-byte provenance.
 The worker records index, scan, summary and persistence timings. The panel status
 tooltip includes its initial load duration; protocol status exposes worker timings.
 Offline exports retain complete usage records and use the same aggregation rules.
+
+## Interaction inspection
+
+Preserve the report views and discussion toolbar. An App info (ⓘ) control opens
+server identity/log health, the actual registered tool catalog, conversation
+fixtures and individual interactions. Record frozen request/result observations;
+report results are inspected after decoding the transport compression. Plain
+messages attach no evidence. Persist metadata only; save payloads only through an
+explicit capture of one interaction. Offline exports keep inspection in memory
+and use an explicitly requested diagnostic download, with no background writer.

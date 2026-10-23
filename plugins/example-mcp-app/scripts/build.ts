@@ -1,7 +1,10 @@
 import { build } from 'rolldown';
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, readdir, writeFile, rm, lstat } from 'node:fs/promises';
+import { mkdir, readFile, readdir, writeFile, rm, lstat, mkdtemp } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 const root = resolve(import.meta.dirname, '..');
 const hash = createHash('sha256');
 for (const dir of ['src', 'scripts']) {
@@ -46,6 +49,27 @@ const html = (await readFile(resolve(root, 'src/app.html'), 'utf8'))
   .replace('/* SCRIPT */', () => app.replace(/<\/script/gi, '<\\/script'));
 await writeFile(resolve(root, 'dist/app.html'), html);
 await bundle('src/server.ts', 'node', 'server.mjs');
+const diagnosticRoot = await mkdtemp(resolve(tmpdir(), 'example-catalog-'));
+const catalogClient = new Client({ name: 'build-catalog', version: '1' });
+try {
+  await catalogClient.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve(dist, 'server.mjs')],
+      env: { PATH: process.env.PATH!, MCP_APP_LOG_ROOT: diagnosticRoot },
+      stderr: 'inherit',
+    }),
+  );
+  const catalog = JSON.stringify((await catalogClient.listTools()).tools);
+  await writeFile(resolve(dist, 'tool-catalog.json'), catalog + '\n');
+  await writeFile(
+    resolve(dist, 'app.html'),
+    html.replace('/* CATALOG */', () => catalog.replace(/</g, '\\u003c')),
+  );
+} finally {
+  await catalogClient.close();
+  await rm(diagnosticRoot, { recursive: true, force: true });
+}
 await bundle('src/preview.ts', 'node', 'preview.mjs');
 await writeFile(resolve(dist, 'build.json'), JSON.stringify({ build: fingerprint }) + '\n');
 console.log(`Built Example MCP App ${fingerprint}`);

@@ -18,8 +18,55 @@ import { mount, unmount } from '../session-review/src/mount.tsx';
 import { resetReviewNavigation, reviewSelection } from '../session-review/src/app/state.ts';
 import type { ReviewDocument } from '../session-review/src/model/contracts.ts';
 import type { RecordSource } from '../session-review/src/model/data-source.ts';
+import { AppDiagnostics, plainMessageFlow } from '../diagnostics/client.ts';
 
 const app = new App({ name: 'Repo Workbench reports', version: VERSION }, {});
+const inspection = new AppDiagnostics({
+  name: 'Workbench reports',
+  version: VERSION,
+  build: BUILD,
+  mode: 'hosted',
+  info: () => ({
+    binding,
+    connection: closed ? 'closed' : binding ? 'connected' : 'waiting',
+    capabilities: app.getHostCapabilities(),
+    responseFormat:
+      'Report results are inspected after gzip decoding; transport compression is not shown as domain data.',
+  }),
+  flows: [
+    plainMessageFlow,
+    {
+      name: 'Selected report context · fixture',
+      steps: [
+        'App freezes the selected turn/action or visible usage scope',
+        'App → Host → Server: select_usage or select_trace',
+        'Server → App: bounded selected summary',
+        'App → Host: text and frozen summary',
+        'Host → App: acknowledgment; conversation arrival remains separate',
+      ],
+      request: {
+        text: 'Explain this selection',
+        context: 'Only the selected summary and its scoped read handles',
+      },
+      reads: ['report_app select_usage OR select_trace only when Attach is checked'],
+    },
+  ],
+});
+inspection.remote = async (name, args) => {
+  const result = await app.callServerTool({ name, arguments: args }, { timeout: 5000 });
+  if (result.isError)
+    throw new Error(
+      result.content?.find((item) => item.type === 'text')?.text ?? 'Diagnostics unavailable',
+    );
+  return result.structuredContent;
+};
+document.getElementById('report-toolbar')!.append(inspection.button());
+const inspectSend = document.createElement('button');
+inspectSend.textContent = 'Inspect send';
+inspectSend.hidden = true;
+inspectSend.onclick = () => inspection.show('Interactions', lastSend);
+document.getElementById('report-toolbar')!.append(inspectSend);
+let lastSend: string | undefined;
 const status = document.getElementById('report-status')!;
 status.title = `Repo Workbench ${VERSION} · build ${BUILD}`;
 const question = document.querySelector<HTMLInputElement>('#report-question')!;
@@ -41,8 +88,12 @@ let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let refreshPromise: Promise<z.infer<typeof overviewSchema>> | undefined;
 let cachedAt = '';
 const lifetime = new AbortController();
-function message(text: string) {
-  if (!closed) status.textContent = text;
+let statusOwner: 'connection' | 'discussion' = 'connection';
+function message(text: string, owner: typeof statusOwner = 'connection') {
+  if (!closed) {
+    statusOwner = owner;
+    status.textContent = text;
+  }
 }
 function controls() {
   send.disabled =
@@ -72,6 +123,13 @@ app.onteardown = () => {
 app.onclose = close;
 app.onerror = (error) => message(String(error));
 async function call(request: Request): Promise<unknown> {
+  return inspection.observe(
+    'report_app · decoded',
+    { contextId: binding?.contextId, expectedRevision: binding?.revision, request },
+    () => perform(request),
+  );
+}
+async function perform(request: Request): Promise<unknown> {
   if (!binding || closed) throw new Error('Report is not connected. Reopen it.');
   const current = binding;
   const result = await app.callServerTool(
@@ -107,6 +165,10 @@ function view(kind: 'usage' | 'trace') {
   (document.querySelector('#trace-style') as HTMLStyleElement).media =
     kind === 'trace' ? 'all' : 'not all';
   document.documentElement.dataset.report = kind;
+  const label = document.getElementById('report-context-label');
+  if (label)
+    label.textContent =
+      kind === 'trace' ? 'Attach selected turn/action' : 'Attach filters or open evidence';
 }
 function showTrace(data: ReviewDocument, id: string) {
   session = id;
@@ -180,8 +242,7 @@ const currentTimezone = () =>
   timezoneSchema.parse((document.querySelector('#timezone') as HTMLSelectElement).value);
 function refreshMessage(text: string, error = false) {
   // Background completion must not erase an explicit send's outcome or retry information.
-  if (!sending && !/^(Captured |Sent ·|Delivery unconfirmed)/.test(status.textContent ?? ''))
-    message(text);
+  if (!sending && statusOwner !== 'discussion') message(text);
   else if (error) {
     const feedback = document.querySelector<HTMLElement>('#message');
     if (feedback) {
@@ -377,32 +438,41 @@ send.onclick = () => {
         : text + '\n\nSelected report context (frozen data):\n' + JSON.stringify(context);
     if (textToSend.length > 20000)
       throw new Error('Selection summary is too large. Narrow the selection.');
-    message('Sending to this chat…');
+    message('Sending to this chat…', 'discussion');
     try {
-      const result = await app.sendMessage(
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: textToSend,
-            },
-          ],
-        },
-        { timeout: 10000, signal: lifetime.signal },
+      const payload = {
+        role: 'user' as const,
+        content: [
+          {
+            type: 'text' as const,
+            text: textToSend,
+          },
+        ],
+      };
+      const pending = inspection.observe('ui/message', payload, () =>
+        app.sendMessage(payload, { timeout: 10000, signal: lifetime.signal }),
       );
-      if (result.isError) throw new Error('Host did not accept the message.');
+      lastSend = inspection.lastInteraction;
+      inspectSend.hidden = false;
+      const result = await pending;
+      if (result.isError) {
+        message('Host rejected the message. Your draft is preserved.', 'discussion');
+        return;
+      }
       if (closed || binding?.contextId !== contextId) return;
       if (composerRevision === sentRevision) {
         question.value = '';
         attach.checked = false;
       }
-      message('Sent · The answer will appear in this chat.');
+      message('Accepted by host · Check this chat for arrival and a response.', 'discussion');
     } catch (error) {
-      message(`Delivery unconfirmed. Check the chat before sending again. ${String(error)}`);
+      message(
+        `Delivery unconfirmed. Check the chat before sending again. ${String(error)}`,
+        'discussion',
+      );
     }
   })()
-    .catch((error) => message(String(error)))
+    .catch((error) => message(String(error), 'discussion'))
     .finally(() => {
       sending = false;
       controls();

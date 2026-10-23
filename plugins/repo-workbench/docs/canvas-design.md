@@ -255,3 +255,13 @@ in accessible link controls and relationship inspection when an inline label can
 fit. The renderer clips and ellipsizes text within those bounds, including wide
 Unicode glyphs. Hover details render at screen scale and stay within the drawing pane; they
 close when selecting. Dense maps disclose labels on selection/focus.
+
+## Interaction inspection
+
+Keep the existing connection popover and map/chat layout. Its App info control
+also opens tool contracts, conversation fixtures and interaction inspection.
+The same inspection is available in standalone mode. App SDK/HTTP observations
+and server wire observations retain separate identities; they do not invent host
+processing or model responses. Metadata is persisted by default. Saving payloads
+requires an explicit capture of one selected interaction. Closing a discussion
+request cancels the local request only; it cannot cancel an active Codex turn.

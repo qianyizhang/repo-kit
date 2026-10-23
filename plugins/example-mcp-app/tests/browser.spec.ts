@@ -1,4 +1,6 @@
 import { test, expect, type Page, type FrameLocator } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+import { z } from 'zod';
 async function ready(page: Page, path = '/') {
   await page.goto(path);
   const ui = page.frameLocator('iframe');
@@ -58,6 +60,10 @@ test('fixture variants never call the host, preserve drafts, and fit a narrow ke
   });
   await page.goto('/fixtures');
   await expect(page.locator('#live-mode')).toBeDisabled();
+  await page.getByRole('button', { name: 'App info', exact: true }).click();
+  await page.getByRole('button', { name: 'Tools and API contracts', exact: true }).click();
+  await expect(page.locator('#detail-body details')).toHaveCount(10);
+  await page.locator('#detail-close').click();
   await page.locator('[data-journey="tool"]').click();
   await page.locator('#demo-text').fill('Retained draft');
   await page.locator('#run').click();
@@ -76,6 +82,38 @@ test('fixture variants never call the host, preserve drafts, and fit a narrow ke
   expect(await page.locator('html').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/sequence-narrow.png', fullPage: true });
   expect(posts).toEqual([]);
+});
+test('live sequence capture saves only the selected run and exposes recording health', async ({
+  page,
+}) => {
+  const ui = await ready(page);
+  await scenario(ui, 'tool');
+  await ui.locator('#demo-text').fill('Selected capture marker');
+  await run(ui);
+  await expect(ui.locator('#actors > div')).toHaveCount(4);
+  await expect(ui.locator('#sequence [data-event]')).toHaveCount(4);
+  await ui.getByRole('button', { name: 'App info', exact: true }).click();
+  await expect(ui.locator('#recording-info')).toContainText('Metadata on disk');
+  await ui.locator('#detail-close').click();
+  await ui.getByRole('button', { name: 'Save interaction capture', exact: true }).click();
+  await expect(ui.locator('#capture-status')).toContainText('Saved run');
+  const path = (await ui.locator('#capture-status').textContent())!.split(' to ')[1]!;
+  const body = await readFile(path, 'utf8');
+  const capture = z
+    .object({
+      interaction: z.string(),
+      events: z.array(
+        z.object({ interaction: z.string(), payload: z.object({ text: z.string() }) }),
+      ),
+    })
+    .parse(JSON.parse(body));
+  expect(capture.events).toHaveLength(4);
+  expect(capture.events.every((event) => event.interaction === capture.interaction)).toBe(true);
+  expect(body).toContain('Selected capture marker');
+  await ui.locator('#fixture-mode').click();
+  await expect(
+    ui.getByRole('button', { name: 'Save interaction capture', exact: true }),
+  ).toBeDisabled();
 });
 test('missing capabilities and trace failures are distinct from operation success', async ({
   page,

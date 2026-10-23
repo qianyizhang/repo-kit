@@ -7,6 +7,8 @@ import { basename, resolve, sep } from 'node:path';
 
 import { createServer, type Server } from 'node:http';
 import { gzipSync } from 'node:zlib';
+import { randomUUID } from 'node:crypto';
+import { reportsMcp } from '../reports/server.ts';
 import {
   scan,
   defaultRoots,
@@ -95,6 +97,13 @@ export function startServer(
   let currentSnapshot = initial.snapshot;
   const fullTrace = createTraceReader(() => currentSnapshot);
   let refreshing = false;
+  const diagnostics = reportsMcp(),
+    diagnosticNonce = randomUUID();
+  const withDiagnostics = (value: string) =>
+    value.replace(
+      '<head>',
+      `<head><meta name="workbench-diagnostics" content="${diagnosticNonce}">`,
+    );
   const server = createServer((request, response) => {
     void (async () => {
       const address = server.address();
@@ -111,6 +120,34 @@ export function startServer(
         return;
       }
       const target = new URL(request.url ?? '/', origin);
+      if (request.method === 'POST' && target.pathname.startsWith('/diagnostics/')) {
+        if (
+          request.headers['x-workbench-diagnostics'] !== diagnosticNonce ||
+          request.headers.origin !== origin ||
+          request.headers['sec-fetch-site'] === 'cross-site'
+        ) {
+          response.writeHead(403).end('Same-origin diagnostics required');
+          return;
+        }
+        let body = '';
+        for await (const chunk of request) {
+          body += String(chunk);
+          if (Buffer.byteLength(body) > 192 * 1024)
+            throw new Error('Diagnostic input exceeds limit');
+        }
+        const value = diagnostics.callDiagnostics(
+          target.pathname.slice('/diagnostics/'.length),
+          JSON.parse(body),
+        );
+        response.setHeader('Content-Type', 'application/json');
+        response.end(JSON.stringify(value));
+        return;
+      }
+      const completed = diagnostics.httpStatus(
+        `${request.method ?? 'GET'} ${target.pathname}`.slice(0, 120),
+        { path: target.pathname, query: target.search },
+      );
+      response.once('finish', () => completed(response.statusCode));
       if (request.method === 'GET' && ['/trace-record', '/trace-image'].includes(target.pathname)) {
         const trace = await fullTrace(target.searchParams.get('session') ?? '');
         const key = target.searchParams.get('event');
@@ -173,7 +210,7 @@ export function startServer(
         }
         if (target.pathname === '/trace') {
           response.setHeader('Content-Type', 'text/html; charset=utf-8');
-          response.end(trace.html);
+          response.end(withDiagnostics(trace.html));
         } else {
           response.setHeader('Content-Type', 'application/json');
           response.end(
@@ -193,7 +230,7 @@ export function startServer(
       }
       if (request.method === 'GET' && request.url === '/') {
         response.setHeader('Content-Type', 'text/html; charset=utf-8');
-        response.end(html);
+        response.end(withDiagnostics(html));
         return;
       }
       if (request.method === 'POST' && request.url === '/refresh') {

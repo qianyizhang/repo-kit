@@ -68,3 +68,16 @@ The real-server SDK harness lives only under `tests/`.
 
 Native plugin installation, active panel rendering, actual message arrival and
 model responses remain separate acceptance checks. See `tests/OUTCOMES.md`.
+
+## Shared diagnostics adoption
+
+Keep the four-role sequence, scenario navigation, phase focus and payload previews.
+The existing connection control is App info (ⓘ); its tool catalog comes from the
+bundled server’s registrations and works in standalone fixture mode without host
+calls. Recording health and the canonical log location are live-only details.
+The trace recorder remains the observation owner. Disk logs contain metadata by
+default; **Save interaction capture** persists one selected live run. The existing
+explicit session export remains available and labels its wider scope.
+Model-facing diagnostics provide compact status, bounded event summaries and one
+exact event. The full graph snapshot is app-only and never an ordinary message
+attachment.

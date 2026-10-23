@@ -1,6 +1,7 @@
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { TraceEvent } from './contracts.ts';
+import { isCredentialField } from './diagnostic-events.ts';
 
 /** Payloads are frozen, bounded and visibly abbreviated. This is a demo recorder,
  * not a production secrets filter: free text is deliberately inspectable. */
@@ -9,8 +10,7 @@ export function boundedPayload(value: unknown): string {
     JSON.stringify(
       value,
       (key, value: unknown) => {
-        if (/authorization|cookie|password|secret|token|api[-_]?key/i.test(key))
-          return '[redacted]';
+        if (isCredentialField(key)) return '[redacted]';
         if (typeof value === 'string' && value.includes('<!DOCTYPE html>'))
           return `[HTML omitted: ${value.length} characters; read the registered resource for source]`;
         return value;
@@ -67,7 +67,14 @@ export class TraceLog {
       method = message.method;
       observer =
         method === 'tools/call' &&
-        ['example_trace', 'example_report'].includes(String(message.params?.name));
+        ([
+          'example_trace',
+          'example_report',
+          'example_status',
+          'example_events',
+          'example_event',
+        ].includes(String(message.params?.name)) ||
+          String(message.params?.name).startsWith('diagnostics_'));
       const args = message.params?.arguments;
       const supplied = args && typeof args === 'object' && 'runId' in args ? args.runId : undefined;
       if (

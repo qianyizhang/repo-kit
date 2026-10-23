@@ -1,4 +1,6 @@
 import { zstdCompressSync } from 'node:zlib';
+import { z } from 'zod';
+import { eventSchema } from '../../packages/diagnostics/events.ts';
 import { scan } from '../../packages/usage/scan.ts';
 import { render, runtime } from '../../packages/usage/build.ts';
 import { test, expect, type Page } from '@playwright/test';
@@ -36,7 +38,11 @@ test.beforeAll(async () => {
       command: process.execPath,
       args: [resolve('dist/reports-server.mjs')],
       stderr: 'pipe',
-      env: { ...(process.env as Record<string, string>), XDG_CACHE_HOME: resolve(temp, 'cache') },
+      env: {
+        ...(process.env as Record<string, string>),
+        XDG_CACHE_HOME: resolve(temp, 'cache'),
+        MCP_APP_LOG_ROOT: resolve(temp, 'diagnostics'),
+      },
     }),
   );
   const archived = (await readFile(resolve(logs, 'parent.jsonl'), 'utf8'))
@@ -104,13 +110,13 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   ).toEqual([{ type: 'text', text: 'hi' }]);
   expect(calls.slice(before).some((c) => c.includes('select_'))).toBe(false);
   await app.locator('#report-question').fill('Explain these totals');
-  await app.getByLabel('Attach selection').check();
+  await app.getByLabel('Attach filters or open evidence').check();
   await app.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(page.locator('#sent')).toContainText('selectionId');
   await expect(page.locator('#sent')).toContainText('Explain these totals');
   await expect(page.locator('#sent')).not.toContainText('sha256');
   await expect(page.locator('#sent')).not.toContainText('report_read');
-  await expect(app.locator('#report-status')).toContainText('Sent');
+  await expect(app.locator('#report-status')).toContainText('Accepted by host');
   await app.getByRole('button', { name: 'Refresh logs' }).click();
   await expect(app.locator('#message')).toContainText('Refreshed');
   await app.locator('#sessions tbody tr').first().click();
@@ -136,7 +142,7 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   await page.locator('#delivery').selectOption('reject');
   await app.locator('#report-question').fill('Keep this question');
   await app.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
+  await expect(app.locator('#report-status')).toContainText('Host rejected');
   await expect(app.locator('#report-question')).toHaveValue('Keep this question');
   await page.getByRole('button', { name: 'Theme', exact: true }).click();
   await expect(app.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -232,11 +238,11 @@ test('late message acceptance preserves a newer draft and attachment choice', as
   await expect(page.locator('#sent')).toContainText('First question');
   await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
   await app.locator('#report-question').fill('Next question');
-  await app.getByLabel('Attach selection').check();
+  await app.getByLabel('Attach filters or open evidence').check();
   release();
-  await expect(app.locator('#report-status')).toContainText('Sent');
+  await expect(app.locator('#report-status')).toContainText('Accepted by host');
   await expect(app.locator('#report-question')).toHaveValue('Next question');
-  await expect(app.getByLabel('Attach selection')).toBeChecked();
+  await expect(app.getByLabel('Attach filters or open evidence')).toBeChecked();
   await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeEnabled();
   await expect(page.locator('#sent')).not.toContainText('Next question');
 });
@@ -281,7 +287,7 @@ test('background refresh preserves an unconfirmed discussion and its draft', asy
   await page.locator('#delivery').selectOption('reject');
   await app.locator('#report-question').fill('Keep this unconfirmed question');
   await app.getByRole('button', { name: 'Send', exact: true }).click();
-  await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
+  await expect(app.locator('#report-status')).toContainText('Host rejected');
   release();
   await expect
     .poll(
@@ -296,7 +302,7 @@ test('background refresh preserves an unconfirmed discussion and its draft', asy
     .toBe(true);
   await app.locator('#sessions tbody tr').first().click();
   await expect(app.locator('#evidence .record').first()).toBeVisible();
-  await expect(app.locator('#report-status')).toContainText('Delivery unconfirmed');
+  await expect(app.locator('#report-status')).toContainText('Host rejected');
   await expect(app.locator('#report-question')).toHaveValue('Keep this unconfirmed question');
 });
 
@@ -310,4 +316,52 @@ test('failed opening tool is visible instead of an endless connecting state', as
   const app = page.frameLocator('iframe');
   await expect(app.locator('#report-status')).toContainText('Session is not in these log roots');
   await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
+});
+
+test('plain report message has a frozen inspector and an explicit one-interaction capture', async ({
+  page,
+}) => {
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  await openHost(page, result);
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#total')).not.toHaveText('—');
+  await app.locator('#report-question').fill('diagnostic plain message');
+  await app.getByRole('button', { name: 'Send', exact: true }).click();
+  await expect(app.locator('#report-status')).toContainText('Accepted by host');
+  await app.getByRole('button', { name: 'Inspect send', exact: true }).click();
+  const inspector = app.locator('dialog.mcp-observability');
+  await expect(inspector.locator('ol button')).toHaveCount(2);
+  await inspector.locator('ol button').first().click();
+  const event = eventSchema.parse(JSON.parse((await inspector.locator('pre').textContent())!));
+  expect(JSON.parse(event.payload.text)).toEqual({
+    role: 'user',
+    content: [{ type: 'text', text: 'diagnostic plain message' }],
+  });
+  const info = z
+    .object({ directory: z.string() })
+    .parse((await client.callTool({ name: 'diagnostics_info', arguments: {} })).structuredContent);
+  const before = await readFile(resolve(String(info.directory), 'app.jsonl'), 'utf8');
+  expect(before).not.toContain('diagnostic plain message');
+  await inspector.getByRole('button', { name: 'Save diagnostic capture', exact: true }).click();
+  const saved = inspector.locator('[role="status"]').last();
+  await expect(saved).toContainText('Saved 2 observations');
+  const path = (await saved.textContent())!.split(' to ')[1];
+  const capture = z
+    .object({ events: z.array(eventSchema) })
+    .parse(JSON.parse(await readFile(path, 'utf8')));
+  expect(capture.events).toHaveLength(2);
+  expect(
+    capture.events.every((item: { interaction: string }) => item.interaction === event.interaction),
+  ).toBe(true);
+  await inspector.getByRole('button', { name: 'Tools', exact: true }).click();
+  await expect(inspector.locator('details')).toHaveCount(14);
+  await inspector.getByRole('button', { name: 'Conversation flow', exact: true }).click();
+  await expect(inspector).toContainText('Plain message · fixture');
+  await page.locator('#theme').click();
+  await expect(inspector).toHaveCSS(
+    'color',
+    await app.locator('body').evaluate((body) => getComputedStyle(body).color),
+  );
+  await page.setViewportSize({ width: 390, height: 950 });
+  await page.screenshot({ path: 'test-results/browser/report-observability-narrow.png' });
 });

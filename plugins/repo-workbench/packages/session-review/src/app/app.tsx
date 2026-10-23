@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { standaloneReportInspection } from '../../../reports/standalone-inspection.ts';
 import { useReview } from './context.tsx';
 import { Conversation } from '../conversation/conversation.tsx';
 import { ActionView } from '../actions/action-view.tsx';
@@ -116,6 +117,15 @@ export function App() {
   return (
     <>
       <header className="app-header">
+        {!document.documentElement.dataset.report && (
+          <button
+            aria-label="App info"
+            title="App info"
+            onClick={() => standaloneReportInspection('Trace analyzer').show()}
+          >
+            ⓘ
+          </button>
+        )}
         <div className="header-title">
           <span className="eyebrow">SESSION REVIEW</span>
           <h1 id="title" aria-label={curation ? undefined : data.threads[0]?.id.slice(0, 8)}>

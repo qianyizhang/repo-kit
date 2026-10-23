@@ -41,12 +41,22 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
       command: process.execPath,
       args: [resolve(delivered, 'reports-server.mjs')],
       stderr: 'pipe',
-      env: { ...(process.env as Record<string, string>), XDG_CACHE_HOME: resolve(temp, 'cache') },
+      env: {
+        ...(process.env as Record<string, string>),
+        XDG_CACHE_HOME: resolve(temp, 'cache'),
+        MCP_APP_LOG_ROOT: resolve(temp, 'diagnostics'),
+      },
     }),
   );
   t.after(() => client.close());
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((t) => t.name).sort(), [
+    'diagnostics_append',
+    'diagnostics_capture',
+    'diagnostics_event',
+    'diagnostics_events',
+    'diagnostics_info',
+    'diagnostics_tools',
     'report_app',
     'report_provenance',
     'trace_event_text',

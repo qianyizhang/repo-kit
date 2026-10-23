@@ -18,7 +18,7 @@
             ><button id="live-mode" aria-pressed="false">Live</button>
           </div>
           <button id="roles">Explain the 4 roles</button
-          ><button id="connection" aria-label="Connection details">Checking host</button>
+          ><button id="connection" aria-label="App info">ⓘ Checking host</button>
         </div>
       </header>
       <div class="shell">
@@ -80,8 +80,10 @@
           <div class="log-toolbar">
             <button id="log-toggle" aria-expanded="false">Event log</button
             ><button id="export">Export session log</button
+            ><button id="capture" disabled>Save interaction capture</button
             ><span id="log-count" class="small muted"></span>
           </div>
+          <p id="capture-status" class="small muted" role="status" hidden></p>
           <section id="event-log" hidden>
             <label
               >Show
@@ -105,6 +107,9 @@
       </header>
       <div id="detail-body"></div>
     </dialog>
+    <script id="tool-catalog" type="application/json">
+      /* CATALOG */
+    </script>
     <script>
       /* SCRIPT */
     </script>
