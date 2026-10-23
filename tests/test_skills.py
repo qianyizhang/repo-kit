@@ -432,7 +432,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
 
     def test_source_and_invocation_selection(self) -> None:
         lock, content = MODULE.bundle(ROOT)
-        self.assertEqual(11, len(lock["skills"]))
+        self.assertEqual(12, len(lock["skills"]))
         for name in MODULE.UPSTREAM_SKILLS:
             expected = {p: h for p, h in lock["upstream"]["files"].items() if p.startswith(name + "/")}
             actual = {p: MODULE.digest(data) for p, data in content.items() if p.startswith(name + "/")}

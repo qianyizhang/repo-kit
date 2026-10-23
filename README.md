@@ -120,8 +120,8 @@ Use Python 3.12 and pinned tools; the root stays manifest-free:
 ```sh
 python3.12 scripts/skills.py check --source-only
 python3.12 -m unittest discover -s tests -v
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
 ```
 
 For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a
@@ -130,6 +130,12 @@ For user instructions, review `diff`, run `sync`, then `check`.
 For executable workbench changes, use Node 24.21+ and run `npm run check` and
 `npm run test:browser` in `plugins/repo-workbench`. For browser tests on this Mac,
 read [Mac browser testing](user/practices/macos-browser-testing.md).
+
+For the MCP App skill's executable starter, generate into a new temporary directory
+with `skills/mcp-app/scripts/scaffold.py`, then run `npm ci`, `npm run check` and
+`npm run test:browser` there. The [starter CI job](.github/workflows/mcp-app-skill.yml)
+exercises that same generated app. The root tests cover generator safety and the
+MCP integration review validator; neither check alone verifies an app integration.
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
 slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)

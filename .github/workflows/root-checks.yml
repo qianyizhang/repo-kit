@@ -15,6 +15,6 @@ jobs:
       - run: python3.12 scripts/skills.py check --source-only
       - run: python3.12 -m unittest discover -s tests -v
       - name: Ruff format
-        run: python3.12 -m ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+        run: python3.12 -m ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
       - name: Ruff lint
-        run: python3.12 -m ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+        run: python3.12 -m ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts

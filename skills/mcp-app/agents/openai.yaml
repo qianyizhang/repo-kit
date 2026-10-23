@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCP App Builder"
+  short_description: "Build inspectable MCP Apps with shared boundary tests"
+  default_prompt: "Use $mcp-app to build or repair this app with standalone operation and inspectable interactions."

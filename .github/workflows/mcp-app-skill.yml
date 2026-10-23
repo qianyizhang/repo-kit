@@ -1,0 +1,30 @@
+name: MCP App starter
+on:
+  push:
+    paths: ['skills/mcp-app/**', '.github/workflows/mcp-app-skill.yml']
+  pull_request:
+    paths: ['skills/mcp-app/**', '.github/workflows/mcp-app-skill.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generated-app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24.21.0'
+      - run: python3.12 skills/mcp-app/scripts/scaffold.py --target "$RUNNER_TEMP/mcp-app-trial" --name ci-app
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+        working-directory: ${{ runner.temp }}/mcp-app-trial
+      - run: npm run check
+        working-directory: ${{ runner.temp }}/mcp-app-trial
+      - run: npx playwright install --with-deps chrome
+        working-directory: ${{ runner.temp }}/mcp-app-trial
+      - run: npm run test:browser
+        working-directory: ${{ runner.temp }}/mcp-app-trial

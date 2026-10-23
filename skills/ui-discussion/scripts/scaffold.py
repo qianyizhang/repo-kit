@@ -24,7 +24,7 @@ def date(value: str) -> str:
     return value
 
 
-def scaffold(repo: Path, design_root: Path, app: str, day: str, topic: str) -> Path:
+def scaffold(repo: Path, design_root: Path, app: str, day: str, topic: str, *, mcp: bool = False) -> Path:
     repo = repo.resolve(strict=True)
     slug(app)
     slug(topic)
@@ -55,10 +55,20 @@ def scaffold(repo: Path, design_root: Path, app: str, day: str, topic: str) -> P
 
     # Read all inputs before creating files, so missing assets leave no partial round.
     readme, prototype = render("round.md"), render("index.html")
+    integration = render("integration.html") if mcp else None
+    prototype = prototype.replace(
+        "<!-- MCP_REVIEW -->", '<a href="integration.html">MCP integration</a>' if mcp else ""
+    )
+    if mcp:
+        readme += (
+            "\n\n[MCP integration review](integration.html) — populate tool contracts and conversation fixtures.\n"
+        )
     app_index = index.read_text() if index.exists() else render("app.md")
     target.mkdir(parents=True, exist_ok=False)
     (target / "README.md").write_text(readme)
     (target / "index.html").write_text(prototype)
+    if integration is not None:
+        (target / "integration.html").write_text(integration)
     index.write_text(app_index.rstrip() + f"\n\n- [{round_name}]({round_name}/README.md) — scaffold; unreviewed.\n")
     return target
 
@@ -70,9 +80,10 @@ def main() -> None:
     parser.add_argument("--app", type=slug, required=True)
     parser.add_argument("--date", required=True, help="Round date in the user's timezone, YYYY-MM-DD")
     parser.add_argument("--topic", type=slug, required=True)
+    parser.add_argument("--mcp", action="store_true", help="Include the MCP tool and conversation integration page")
     args = parser.parse_args()
     try:
-        print(scaffold(args.repo, args.design_root, args.app, args.date, args.topic))
+        print(scaffold(args.repo, args.design_root, args.app, args.date, args.topic, mcp=args.mcp))
     except (OSError, ValueError, argparse.ArgumentTypeError) as exc:
         parser.exit(1, f"ui-discussion: {exc}\n")
 

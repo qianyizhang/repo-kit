@@ -25,6 +25,10 @@ their original meaning. A reconstruction is still a model, not live acceptance.
 
 - `revision`, `scope`, `baseline`: identity, explicit scope/exclusions, source/build
   and capture provenance. An empty scaffold visibly reports incomplete coverage.
+- `coverageGaps[]` (optional): `{scope, reason}` for each specific inaccessible
+  state or uninspected area. The frame shows these limitations; they never waive
+  required records. Keep explicit exclusions in `scope` and mapped-state
+  reconciliation in each screen's `coverage`.
 - `screens[]`: `id`, `name`, `kind` (`current` or `proposed`), `image`,
   `coverage` (manual reconciliation and gaps), `marks[]`. Mark both regions and
   their child controls. Repeated-instance coverage belongs in the element record.
@@ -58,11 +62,27 @@ needed to interpret decisions; do not accumulate private logs or redundant copie
 
 ## Ready to show
 
-For the bundled capture-based frame, run
-`python3 /path/to/ui-discussion/scripts/validate.py /absolute/round/index.html`
-to check captured-image paths, IDs, parent chains, marker bounds and journey/finding
-references. It deliberately rejects an empty scaffold. It does not certify visual
-coverage, source accuracy or design quality.
+For the bundled capture-based frame, run:
+
+```sh
+python3 /path/to/ui-discussion/scripts/validate.py /absolute/round/index.html --stage ready --json
+```
+
+Use `--stage structure` during authoring (the CLI default). It checks capture
+paths, stable IDs, parent chains, marker bounds and screen/step references.
+Readiness additionally requires provenance, named components with their purpose
+and source owner, screen coverage, at least one primary journey with complete
+steps, and evidence/effect/proposal/status for recorded findings. Empty fact/action
+lists and no findings are valid; explain inapplicable narrative fields explicitly.
+
+The result is `ready`, `ready-with-gaps`, or `blocked`; structural success is only
+`structurally-valid`. Blocked results exit 1. Both readable and `--json` outputs
+retain the same rule codes. Diagnostics identify a JSON pointer, stable ID where
+available, evidence and supported repairs. Repair the named cause, preserve IDs
+and meaning, then rerun. Do not fill unknown facts just to clear a check.
+The result's SHA-256 binds the exact HTML bytes, not external capture files.
+No check certifies visual coverage, source accuracy, usability or acceptance.
+
 For a faithful HTML reconstruction, use its DOM/component checks for these links
 and inspect the render; the capture validator expects images and rectangle overlays.
 
@@ -71,3 +91,8 @@ and parent IDs resolve, and every journey step resolves to a screen and elements
 Inspect the actual rendered page at useful widths. Check marker/list keyboard
 selection, step navigation, overlap findings and comment context across changes.
 The page must show gaps truthfully. A valid empty scaffold is not a completed review.
+
+This is a UI review model for discussion, distinct from a diagram renderer's IR.
+Its definitions and diagnostics help an agent make precise revisions; frozen human
+feedback carries the intent. Keep revision/view/element/step context intact when
+addressing feedback, including when the current layout has since changed.

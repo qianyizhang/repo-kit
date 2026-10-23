@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  />
+  <title>{{APP}} · MCP integration review</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    :root {
+      color-scheme: light dark;
+      font:
+        16px/1.5 system-ui,
+        sans-serif;
+    }
+    body {
+      max-width: 1100px;
+      margin: auto;
+      padding: 1.5rem;
+      overflow-wrap: anywhere;
+    }
+    h1 {
+      font-size: 1.6rem;
+    }
+    nav {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    button,
+    select,
+    textarea {
+      font: inherit;
+      padding: 0.5rem;
+      max-width: 100%;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      padding: 1rem;
+      background: #8881;
+    }
+    section {
+      border-top: 1px solid #8886;
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+    }
+    li {
+      padding: 0.3rem;
+    }
+    summary {
+      cursor: pointer;
+    }
+    .step {
+      display: grid;
+      grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr);
+      gap: 0.7rem;
+      align-items: center;
+    }
+    .step span {
+      text-align: center;
+      border: 1px solid #8886;
+      padding: 0.5rem;
+    }
+    .step p {
+      grid-column: 1/-1;
+      margin-top: 0;
+    }
+    a {
+      color: inherit;
+    }
+  </style>
+  <header>
+    <a href="index.html">← Spatial UI and journeys</a>
+    <h1>{{APP}} · MCP integration</h1>
+    <p id="baseline"></p>
+    <p id="gaps"></p>
+    <nav>
+      <a href="#tools">Tools and server operations</a
+      ><a href="#conversation">Conversation flow</a
+      ><a href="#logs">Logs and standalone mode</a>
+    </nav>
+  </header>
+  <section id="tools">
+    <h2>Tool catalog</h2>
+    <p id="coverage"></p>
+    <label for="tool">Tool</label>
+    <select id="tool"></select>
+    <div id="tool-detail"></div>
+  </section>
+  <section id="conversation">
+    <h2>Main conversation integration</h2>
+    <label for="fixture">Example</label>
+    <select id="fixture"></select>
+    <p id="fixture-origin"></p>
+    <div id="sequence"></div>
+    <details open>
+      <summary>Exact example request, result and reads</summary>
+      <pre id="fixture-payload"></pre>
+    </details>
+  </section>
+  <section id="logs">
+    <h2>Log policy</h2>
+    <p id="log-policy"></p>
+    <h2>Standalone operation</h2>
+    <p id="standalone"></p>
+  </section>
+  <section>
+    <h2>Feedback</h2>
+    <label for="comment">Comment on the selected tool or example</label
+    ><textarea id="comment"></textarea>
+    <p id="target"></p>
+    <button id="keep">Keep comment</button
+    ><button id="export">Show export</button>
+    <pre id="comments"></pre>
+  </section>
+  <script id="mcp-review-data" type="application/json">
+    {
+      "baseline": "",
+      "registeredTools": [],
+      "tools": [],
+      "fixtures": [],
+      "logPolicy": "",
+      "standalone": "",
+      "coverageGaps": []
+    }
+  </script>
+  <script>
+    const data = JSON.parse(
+        document.getElementById("mcp-review-data").textContent,
+      ),
+      $ = (id) => document.getElementById(id);
+    const comments = [];
+    let target = null,
+      selected = { kind: "catalog", id: null };
+    function node(tag, text) {
+      const n = document.createElement(tag);
+      n.textContent = text;
+      return n;
+    }
+    $("baseline").textContent =
+      data.baseline ||
+      "Incomplete scaffold: no build or source has been inspected.";
+    $("gaps").textContent = data.coverageGaps.length
+      ? "Coverage gaps: " + data.coverageGaps.join("; ")
+      : "Coverage gaps not assessed.";
+    $("coverage").textContent =
+      `${data.tools.length} documented tools; ${data.registeredTools.length} discovered registrations. Counts do not prove agreement.`;
+    for (const tool of data.tools)
+      $("tool").add(new Option(tool.name, tool.name));
+    for (const fixture of data.fixtures)
+      $("fixture").add(new Option(fixture.name, fixture.id));
+    function renderTool() {
+      const tool = data.tools.find((t) => t.name === $("tool").value);
+      $("tool-detail").replaceChildren();
+      if (tool) {
+        $("tool-detail").append(
+          node("h3", tool.purpose),
+          node("p", `${tool.effect}. Scope: ${tool.scope}.`),
+          node(
+            "p",
+            `Callers: ${tool.visibility.join(", ")}. Authorization: ${tool.authorization}.`,
+          ),
+          node("p", `Operation: ${tool.operation}. Source: ${tool.source}.`),
+        );
+        const detail = node("details", "");
+        detail.append(
+          node("summary", "Input/output schemas and example"),
+          node(
+            "pre",
+            JSON.stringify(
+              {
+                inputSchema: tool.inputSchema,
+                outputSchema: tool.outputSchema,
+                example: tool.example,
+              },
+              null,
+              2,
+            ),
+          ),
+        );
+        $("tool-detail").append(detail);
+        selected = { kind: "tool", id: tool.name };
+      }
+    }
+    function renderFixture() {
+      const fixture = data.fixtures.find((f) => f.id === $("fixture").value);
+      $("sequence").replaceChildren();
+      if (!fixture) return;
+      $("fixture-origin").textContent = `${fixture.mode} · ${fixture.source}`;
+      selected = { kind: "fixture", id: fixture.id };
+      for (const step of fixture.sequence) {
+        const row = node("div", "");
+        row.className = "step";
+        row.append(
+          node("span", step.from),
+          node("b", "→"),
+          node("span", step.to),
+          node("p", `${step.action} · ${step.evidence}`),
+        );
+        $("sequence").append(row);
+      }
+      $("fixture-payload").textContent = JSON.stringify(
+        {
+          request: fixture.request,
+          result: fixture.result,
+          reads: fixture.reads,
+        },
+        null,
+        2,
+      );
+    }
+    $("tool").onchange = renderTool;
+    $("fixture").onchange = renderFixture;
+    $("log-policy").textContent = data.logPolicy || "Not inspected";
+    $("standalone").textContent = data.standalone || "Not inspected";
+    $("comment").oninput = () => {
+      if (!$("comment").value.trim()) target = null;
+      else target ??= { baseline: data.baseline, ...selected };
+      $("target").textContent = target ? JSON.stringify(target) : "";
+    };
+    $("keep").onclick = () => {
+      if (!$("comment").value.trim()) return;
+      comments.push({ ...target, comment: $("comment").value });
+      $("comment").value = "";
+      target = null;
+      $("target").textContent =
+        `${comments.length} comments kept locally; export before closing.`;
+    };
+    $("export").onclick = () => {
+      $("comments").textContent = JSON.stringify(
+        { baseline: data.baseline, comments },
+        null,
+        2,
+      );
+    };
+    renderTool();
+    renderFixture();
+  </script>
+</html>

@@ -273,11 +273,13 @@
     <p class="tag">Review frame · <span id="revision"></span></p>
     <h1>{{APP}} · UI/UX anatomy</h1>
     <p id="scope"></p>
+    <p id="coverage-gaps" hidden></p>
     <details>
       <summary>Baseline and coverage scope</summary>
       <p id="provenance"></p>
     </details>
     <nav class="row" aria-label="Review dimensions">
+      <!-- MCP_REVIEW -->
       <button data-view="layout" aria-pressed="true">1 · Spatial UI</button>
       <button data-view="inventory" aria-pressed="false">
         Component inventory
@@ -393,6 +395,7 @@
       "revision": "inventory-draft-1",
       "scope": "Incomplete scaffold. Define scoped screens, states and exclusions, then populate from inspected evidence. No product layout or user journey has been inferred.",
       "baseline": "Record source revision/build, capture origin and time, viewport, and fixture/live status.",
+      "coverageGaps": [],
       "screens": [],
       "elements": [],
       "journeys": [],
@@ -404,6 +407,11 @@
       document.getElementById("review-data").textContent,
     );
     const $ = (id) => document.getElementById(id);
+    if (model.coverageGaps?.length) {
+      $("coverage-gaps").hidden = false;
+      $("coverage-gaps").textContent = "Coverage gaps: " + model.coverageGaps
+        .map((gap) => `${gap.scope} — ${gap.reason}`).join("; ");
+    }
     let view = "layout",
       screenId = model.screens[0]?.id ?? "",
       selected = "",

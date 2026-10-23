@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -133,3 +134,126 @@ class UIDiscussionTest(unittest.TestCase):
                     model["findings"][0]["step"] = 2
                 with self.assertRaises(ValueError):
                     VALIDATOR.validate(self.write_review(model))
+
+    def ready_model(self) -> dict:
+        model = self.review_model()
+        model.update(
+            revision="review-2",
+            scope="Fixture save flow; no other surfaces reviewed.",
+            baseline="Synthetic fixture, revision fixture-1, captured 2026-10-23 at 1440x1000.",
+        )
+        model["elements"][0].update(
+            name="Save",
+            location="Header",
+            purpose="Save the draft",
+            reveal="Always visible",
+            source="fixture/Header.tsx",
+            instances="One button",
+            facts=[],
+            actions=["save draft"],
+        )
+        model["screens"][0].update(name="Draft ready", coverage="Save and its container reconciled in the fixture.")
+        model["journeys"][0].update(
+            name="Save draft", goal="Retain edits", start="Unsaved draft", success="Saved status"
+        )
+        model["journeys"][0]["steps"][0].update(
+            before="Draft is unsaved",
+            cue="Enabled Save button",
+            action="Click Save",
+            after="Saved status appears",
+            deferred="Details remain closed",
+            recovery="On failure retain draft and retry",
+        )
+        model["findings"][0].update(
+            kind="disclosure",
+            evidence="Save remains visible in the fixture",
+            effect="User can find the action",
+            proposal="Retain placement",
+            status="retained",
+        )
+        return model
+
+    def test_readiness_reports_exact_missing_fields_and_repairs_clear_them(self) -> None:
+        model = self.ready_model()
+        del model["baseline"]
+        del model["elements"][0]["name"]
+        del model["journeys"][0]["steps"][0]["cue"]
+        page = self.write_review(model)
+        before = page.read_bytes()
+        self.assertEqual("structurally-valid", VALIDATOR.diagnose(page, "structure")["status"])
+        result = VALIDATOR.diagnose(page)
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            {"/baseline", "/elements/0/name", "/journeys/0/steps/0/cue"},
+            {d["subject"]["path"] for d in result["diagnostics"]},
+        )
+        self.assertTrue(all(d["supportedFixes"] for d in result["diagnostics"]))
+        self.assertEqual(before, page.read_bytes())
+        repaired = VALIDATOR.diagnose(self.write_review(self.ready_model()))
+        self.assertEqual("ready", repaired["status"])
+        self.assertNotEqual(result["sha256"], repaired["sha256"])
+
+    def test_declared_gaps_do_not_waive_required_journeys(self) -> None:
+        model = self.ready_model()
+        model["coverageGaps"] = [{"scope": "Offline error state", "reason": "Fixture cannot disconnect the host"}]
+        result = VALIDATOR.diagnose(self.write_review(model))
+        self.assertEqual("ready-with-gaps", result["status"])
+        self.assertEqual("coverage/declared-gap", result["diagnostics"][0]["code"])
+        self.assertEqual(model["coverageGaps"][0], result["diagnostics"][0]["evidence"])
+        model["journeys"] = []
+        model["findings"] = []
+        result = VALIDATOR.diagnose(self.write_review(model))
+        self.assertEqual("blocked", result["status"])
+        self.assertIn("readiness/journeys", [d["code"] for d in result["diagnostics"]])
+        model["coverageGaps"] = [{"scope": "Unknown"}]
+        self.assertEqual("blocked", VALIDATOR.diagnose(self.write_review(model))["status"])
+
+    def test_findings_cannot_target_another_screen_or_unmarked_component(self) -> None:
+        model = self.ready_model()
+        model["screens"].append({**model["screens"][0], "id": "other", "marks": []})
+        model["findings"][0]["screen"] = "other"
+        result = VALIDATOR.diagnose(self.write_review(model))
+        codes = {d["code"] for d in result["diagnostics"]}
+        self.assertIn("reference/visible-elements", codes)
+        self.assertIn("reference/finding-screen", codes)
+
+    def test_cli_malformed_records_produce_json_failure_without_traceback(self) -> None:
+        cases = [
+            None,
+            {"elements": [None], "screens": {}, "journeys": [3], "findings": []},
+            {**self.ready_model(), "elements": [{"id": [], "parent": []}]},
+            {**self.ready_model(), "coverageGaps": [False]},
+        ]
+        for model in cases:
+            with self.subTest(model=model):
+                page = self.write_review(model)
+                run = subprocess.run(
+                    [
+                        sys.executable,
+                        str(ROOT / "skills/ui-discussion/scripts/validate.py"),
+                        str(page),
+                        "--stage",
+                        "ready",
+                        "--json",
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+                self.assertEqual(1, run.returncode, run.stderr)
+                self.assertEqual("", run.stderr)
+                result = json.loads(run.stdout)
+                self.assertFalse(result["ok"])
+                self.assertEqual("blocked", result["status"])
+
+    def test_duplicate_script_invalid_json_and_nonfinite_bounds_fail_closed(self) -> None:
+        page = self.write_review(self.ready_model())
+        page.write_text(page.read_text() * 2)
+        self.assertEqual("input/review-data", VALIDATOR.diagnose(page)["diagnostics"][0]["code"])
+        page.write_text('<script id="review-data">{broken}</script>')
+        self.assertEqual("input/read", VALIDATOR.diagnose(page)["diagnostics"][0]["code"])
+        for value in (True, float("nan"), float("inf")):
+            model = self.ready_model()
+            model["screens"][0]["marks"][0]["x"] = value
+            result = VALIDATOR.diagnose(self.write_review(model))
+            self.assertIn("geometry/number", [d["code"] for d in result["diagnostics"]])
+            json.dumps(result, allow_nan=False)

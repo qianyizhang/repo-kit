@@ -143,3 +143,16 @@ does not install app changes or require a review round for a simple cosmetic fix
 The [22 October correction](reviews/2026-10-22-ui-discussion.md) replaces the
 journey-led generic scaffold with a current-layout map. Complete the component
 inventory before journey analysis; proposals remain separate from the baseline.
+
+## MCP App construction and observability
+
+[mcp-app](../skills/mcp-app/SKILL.md) packages the shared construction procedure,
+interaction/logging references, a dual-mode TypeScript starter and boundary tests.
+The [MCP Apps guide](../user/practices/mcp-apps.md) retains portable principles.
+`ui-discussion --mcp` adds a linked integration review page and validator for tool
+coverage, payload fixtures and conversation sequences. App-specific domain rules
+and actual deployment authority remain in each product repository.
+
+The starter is a copied, reviewable starting point, not an automatically upgraded
+runtime dependency. New app work should run its behavioral tests after adapting
+the domain; existing apps adopt only the relevant mechanisms through their owners.

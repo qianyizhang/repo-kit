@@ -44,6 +44,10 @@ python3 /path/to/ui-discussion/scripts/scaffold.py \
 
 The scaffold starts empty, not with a generic substitute app. Read
 [the review-surface contract](references/review-surface.md) when populating it.
+For an MCP App, add `--mcp` and read [the integration supplement](references/mcp-integration.md).
+It adds a linked page for every registered tool, server-operation mapping, exact
+conversation fixtures, ordered data flows, logs and standalone behavior. Use the
+`mcp-app` skill when implementation or integration repair is part of the request.
 
 ## 1. Map the spatial UI exhaustively
 
@@ -134,3 +138,9 @@ Round maps are dated projections, not a second product specification. Promote on
 durable accepted decisions and evidence-linked lessons to existing owners; keep
 historical maps as evidence and mark supersession. Do not save global agent memory.
 Private captures stay outside Git. Future rounds recheck these owners against code.
+
+Before handing off a populated capture-based round, run the readiness diagnostic
+command in [the review-surface contract](references/review-surface.md#ready-to-show).
+Clear blocking diagnostics, disclose named coverage gaps, then inspect the render.
+Use the structural stage while the spatial map is still being authored. A passing
+check verifies recorded requirements, not usability or human acceptance.

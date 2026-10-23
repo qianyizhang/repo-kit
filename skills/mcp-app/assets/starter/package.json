@@ -1,0 +1,27 @@
+{
+  "name": "__APP_ID__",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.21.0"
+  },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "start": "node dist/server.mjs",
+    "dev": "node dist/web.mjs",
+    "check": "tsc --noEmit && npm run build && node --test tests/*.test.ts",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.19.2",
+    "rolldown": "1.2.14",
+    "typescript": "6.0.3"
+  }
+}
