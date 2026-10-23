@@ -1,0 +1,481 @@
+{
+  "version": 3,
+  "title": "Repo-kit · products, ownership & workflows",
+  "modules": [
+    {
+      "id": "repo",
+      "parent": null,
+      "name": "Repo-kit",
+      "kind": "system",
+      "summary": "Personal instructions, shared skills, portable governance and executable tools have distinct owners. Consumer repositories retain local policy, meaning and evidence.",
+      "sources": [
+        "README.md",
+        "AGENTS.md",
+        "docs/models.md"
+      ],
+      "x": 0,
+      "y": 0
+    },
+    {
+      "id": "docs",
+      "parent": "repo",
+      "name": "Authority & decisions",
+      "kind": "concept",
+      "summary": "Root governance defines kit ownership. ADRs retain accepted trade-offs; optional Campaigns link uncertainty, work and evidence without owning them.",
+      "sources": [
+        "AGENTS.md",
+        "docs/models.md",
+        "docs/adr/0001-scoped-authority-and-explicit-promotion.md",
+        "docs/adr/0002-campaigns-for-bounded-uncertainty.md",
+        "docs/adr/0006-shared-skill-delivery.md"
+      ],
+      "x": 70,
+      "y": 85
+    },
+    {
+      "id": "candidates",
+      "parent": "repo",
+      "name": "Candidate evidence",
+      "kind": "concept",
+      "summary": "Local friction, reviewed upstream ideas and downstream deltas are inputs for owner review. Observation or copying alone does not authorize promotion or propagation.",
+      "sources": [
+        "docs/models.md",
+        ".codex/skills/maintain-repo-kit/SKILL.md",
+        ".codex/skills/maintain-repo-kit/scripts/survey.py"
+      ],
+      "x": 670,
+      "y": 85
+    },
+    {
+      "id": "skills",
+      "parent": "repo",
+      "name": "Shared agent skills",
+      "kind": "package",
+      "summary": "Upstream and locally maintained workflows, pinned by exact source hashes and delivered independently of governance.",
+      "sources": [
+        "docs/skill-suite.md",
+        "skills-lock.json",
+        "skills/next-slice/SKILL.md",
+        "skills/show-me/SKILL.md",
+        "skills/finish-work/SKILL.md",
+        "skills/simplify-repository/SKILL.md",
+        "skills/ui-discussion/SKILL.md"
+      ],
+      "x": 70,
+      "y": 275
+    },
+    {
+      "id": "template",
+      "parent": "repo",
+      "name": "Portable governance",
+      "kind": "package",
+      "summary": "Copier delivers rules, checks and agent bootstrap from template/. True seeds remain consumer-owned; updates reconcile from the consumer's recorded _commit.",
+      "sources": [
+        "copier.yml",
+        "template/AGENTS.md.jinja",
+        "template/docs/rules/governance.md",
+        "tests/test_template_smoke.py"
+      ],
+      "x": 370,
+      "y": 275
+    },
+    {
+      "id": "plugins",
+      "parent": "repo",
+      "name": "Repo Workbench",
+      "kind": "package",
+      "summary": "Optional executable tools for architecture discussion, recorded-session review, usage analysis and inspectable MCP interactions. Runtime delivery is independent of skills and Copier.",
+      "sources": [
+        "plugins/repo-workbench/README.md",
+        "plugins/repo-workbench/package.json",
+        "plugins/repo-workbench/packages/runtime/cli.ts",
+        "plugins/repo-workbench/packages/runtime/setup.ts",
+        "plugins/example-mcp-app/README.md"
+      ],
+      "x": 370,
+      "y": 85
+    },
+    {
+      "id": "consumers",
+      "parent": "repo",
+      "name": "Project & user ownership",
+      "kind": "external",
+      "summary": "User skill installations support project work; projects retain language, paths, policy, checks, maps and curated evidence. These are distinct delivery destinations, grouped here as the ownership boundary.",
+      "sources": [
+        "docs/models.md",
+        "docs/skill-suite.md",
+        "copier.yml",
+        "plugins/repo-workbench/README.md"
+      ],
+      "x": 670,
+      "y": 275
+    },
+    {
+      "id": "scripts",
+      "parent": "skills",
+      "name": "Guarded skill delivery",
+      "kind": "process",
+      "summary": "Review diff → validate bundle hashes → sync user installation. Refuse unmanaged collisions or edited/missing managed files; stage replacements and retain the previous installation for recovery.",
+      "sources": [
+        "scripts/skills.py",
+        "skills-lock.json",
+        "tests/test_skills.py"
+      ],
+      "x": 670,
+      "y": 85
+    },
+    {
+      "id": "template/docs",
+      "parent": "template",
+      "name": "Rules & local bindings",
+      "kind": "concept",
+      "summary": "Portable doctrine defines document/work lifecycle and authority. Constitution, index, backlog, glossary and configuration are seeded, then adapted by each consumer.",
+      "sources": [
+        "template/docs/rules/governance.md",
+        "template/docs/rules/doc.md",
+        "template/docs/rules/testing.md",
+        "copier.yml",
+        "template/AGENTS.md.jinja"
+      ],
+      "x": 70,
+      "y": 85
+    },
+    {
+      "id": "template/scripts",
+      "parent": "template",
+      "name": "Checks & agent bootstrap",
+      "kind": "module",
+      "summary": "Consumer configuration drives mechanical documentation checks, profile-scoped authoring checks and agent symlink setup. Checks enforce configured structure; local owners retain semantic judgment.",
+      "sources": [
+        "template/scripts/check_docs.py",
+        "template/scripts/check_authoring.py",
+        "template/scripts/bootstrap_agents.py",
+        "template/pyproject-doc-governance.toml.jinja"
+      ],
+      "x": 370,
+      "y": 85
+    },
+    {
+      "id": "plugins/repo-workbench/packages/repo-canvas",
+      "parent": "plugins",
+      "name": "Architecture discussion",
+      "kind": "interface",
+      "summary": "Repository sources + typed map → inspect → discuss in owning chat → review proposal → Apply to draft → Save. Context-scoped state and revision checks protect draft and disk boundaries.",
+      "sources": [
+        "plugins/repo-workbench/packages/repo-canvas/src/model/document.ts",
+        "plugins/repo-workbench/packages/repo-canvas/src/server/operations.ts",
+        "plugins/repo-workbench/packages/repo-canvas/src/server/repository.ts",
+        "plugins/repo-workbench/packages/repo-canvas/src/ui/useCanvasDocument.ts",
+        "plugins/repo-workbench/docs/canvas-design.md"
+      ],
+      "x": 70,
+      "y": 85
+    },
+    {
+      "id": "plugins/repo-workbench/packages/trace",
+      "parent": "plugins",
+      "name": "Trace normalization",
+      "kind": "module",
+      "summary": "Recorded JSONL or explicit thread exports become inspectable trace events. Curated cases join episodes, revisions and assessments to exact source evidence; exports retain hashes and coverage limits.",
+      "sources": [
+        "plugins/repo-workbench/packages/trace/jsonl.ts",
+        "plugins/repo-workbench/packages/trace/normalize.ts",
+        "plugins/repo-workbench/packages/trace/build.ts",
+        "plugins/repo-workbench/packages/trace/contracts.ts",
+        "plugins/repo-workbench/docs/session-review.md"
+      ],
+      "x": 70,
+      "y": 275
+    },
+    {
+      "id": "plugins/repo-workbench/packages/session-review",
+      "parent": "plugins",
+      "name": "Session review",
+      "kind": "interface",
+      "summary": "ReviewDocument drives conversation, recorded-action, process, story and revision-comparison views. Authored interpretation remains distinguishable from recorded events and missing evidence.",
+      "sources": [
+        "plugins/repo-workbench/packages/session-review/src/model/contracts.ts",
+        "plugins/repo-workbench/packages/session-review/src/app/app.tsx",
+        "plugins/repo-workbench/packages/session-review/src/model/data-source.ts",
+        "plugins/repo-workbench/docs/session-review.md"
+      ],
+      "x": 670,
+      "y": 85
+    },
+    {
+      "id": "plugins/repo-workbench/packages/usage",
+      "parent": "plugins",
+      "name": "Usage analysis",
+      "kind": "process",
+      "summary": "Local session logs → incremental index → deduplicated usage records → dashboard and trace navigation. Coverage gaps and provenance accompany metrics; configurable price estimates are not billing authority.",
+      "sources": [
+        "plugins/repo-workbench/packages/usage/scan.ts",
+        "plugins/repo-workbench/packages/usage/build.ts",
+        "plugins/repo-workbench/packages/usage/model.ts",
+        "plugins/repo-workbench/packages/usage/pricing.ts",
+        "plugins/repo-workbench/docs/usage.md"
+      ],
+      "x": 370,
+      "y": 275
+    },
+    {
+      "id": "user",
+      "parent": "repo",
+      "name": "Personal instructions",
+      "kind": "package",
+      "summary": "One core routes build-time practice reads. Guarded sync installs reviewed sources at user scope; project contracts retain authority.",
+      "sources": [
+        "user/AGENTS.md",
+        "user/practices/ui-ux.md",
+        "user/practices/mcp-apps.md",
+        "scripts/user_instructions.py",
+        "docs/user-instructions.md"
+      ],
+      "x": 370,
+      "y": 275
+    },
+    {
+      "id": "plugins/example-mcp-app",
+      "parent": "plugins",
+      "name": "MCP interaction example",
+      "kind": "interface",
+      "summary": "Real tool/resource operations and host capabilities with a four-role sequence, bounded event log and explicit fixture/live provenance.",
+      "sources": [
+        "plugins/example-mcp-app/design.md",
+        "plugins/example-mcp-app/src/app.ts",
+        "plugins/example-mcp-app/src/observability.ts",
+        "plugins/example-mcp-app/tests/OUTCOMES.md"
+      ],
+      "x": 670,
+      "y": 275
+    },
+    {
+      "id": "plugins/repo-workbench/packages/reports",
+      "parent": "plugins",
+      "name": "Reports host",
+      "kind": "interface",
+      "summary": "Standalone and MCP report surfaces share session-review and usage evidence; transport and host capabilities remain adapters.",
+      "sources": [
+        "plugins/repo-workbench/packages/reports/design.md",
+        "plugins/repo-workbench/packages/reports/server.ts",
+        "plugins/repo-workbench/packages/reports/app.ts"
+      ],
+      "x": 370,
+      "y": 465
+    }
+  ],
+  "connections": [
+    {
+      "kind": "evidence",
+      "sources": [
+        "docs/models.md"
+      ],
+      "id": "candidate-review",
+      "from": "candidates",
+      "to": "docs",
+      "label": "Review evidence",
+      "description": "Local, upstream and downstream observations inform an explicit owner decision; recency does not establish authority."
+    },
+    {
+      "kind": "control-flow",
+      "sources": [
+        "AGENTS.md",
+        "docs/models.md"
+      ],
+      "id": "promote-skills",
+      "from": "docs",
+      "to": "skills",
+      "label": "Promote skill behavior",
+      "description": "Owner approval selects the smallest justified product change. This relationship describes governance, not an automatic runtime pipeline."
+    },
+    {
+      "kind": "control-flow",
+      "sources": [
+        "AGENTS.md",
+        "docs/models.md"
+      ],
+      "id": "promote-template",
+      "from": "docs",
+      "to": "template",
+      "label": "Promote portable governance",
+      "description": "Owner approval selects the smallest justified product change. This relationship describes governance, not an automatic runtime pipeline."
+    },
+    {
+      "kind": "control-flow",
+      "sources": [
+        "AGENTS.md",
+        "docs/models.md"
+      ],
+      "id": "promote-plugins",
+      "from": "docs",
+      "to": "plugins",
+      "label": "Promote executable tools",
+      "description": "Owner approval selects the smallest justified product change. This relationship describes governance, not an automatic runtime pipeline."
+    },
+    {
+      "kind": "data-flow",
+      "sources": [
+        "scripts/skills.py",
+        "docs/skill-suite.md"
+      ],
+      "id": "skills-delivery",
+      "from": "skills",
+      "to": "consumers",
+      "label": "Standalone user sync",
+      "description": "Locked skill content is installed once for the user; project-specific instructions and specialized skills remain local."
+    },
+    {
+      "kind": "data-flow",
+      "sources": [
+        "copier.yml",
+        "README.md"
+      ],
+      "id": "governance-delivery",
+      "from": "template",
+      "to": "consumers",
+      "label": "Copier reconciliation",
+      "description": "Deliver managed files against recorded _commit; preserve _skip_if_exists bindings, review conflicts and run consumer checks."
+    },
+    {
+      "kind": "data-flow",
+      "sources": [
+        "plugins/repo-workbench/README.md",
+        "plugins/repo-workbench/packages/runtime/setup.ts"
+      ],
+      "id": "workbench-delivery",
+      "from": "plugins",
+      "to": "consumers",
+      "label": "Optional npm/plugin install",
+      "description": "Prebuilt tool behavior is delivered independently; saved maps and case evidence stay in target repositories."
+    },
+    {
+      "kind": "control-flow",
+      "sources": [
+        "template/pyproject-doc-governance.toml.jinja",
+        "template/scripts/check_docs.py"
+      ],
+      "id": "bindings-checks",
+      "from": "template/docs",
+      "to": "template/scripts",
+      "label": "Configure enforcement",
+      "description": "Consumer config supplies paths, document classes, language profiles and symlink definitions to portable checks."
+    },
+    {
+      "kind": "data-flow",
+      "sources": [
+        "plugins/repo-workbench/packages/trace/build.ts",
+        "plugins/repo-workbench/packages/session-review/src/model/contracts.ts"
+      ],
+      "id": "trace-review",
+      "from": "plugins/repo-workbench/packages/trace",
+      "to": "plugins/repo-workbench/packages/session-review",
+      "label": "ReviewDocument + evidence",
+      "description": "Normalized source events and curated cases feed shared presentation; source truncation and authored assessments remain explicit."
+    },
+    {
+      "kind": "data-flow",
+      "sources": [
+        "plugins/repo-workbench/packages/usage/build.ts",
+        "plugins/repo-workbench/docs/usage.md"
+      ],
+      "id": "usage-review",
+      "from": "plugins/repo-workbench/packages/usage",
+      "to": "plugins/repo-workbench/packages/session-review",
+      "label": "Inspect recorded trace",
+      "description": "Usage serve mode provides trace inspection through the shared session-review renderer."
+    },
+    {
+      "id": "promote-user",
+      "from": "docs",
+      "to": "user",
+      "kind": "control-flow",
+      "label": "Review personal guidance",
+      "sources": [
+        "docs/user-instructions.md"
+      ]
+    },
+    {
+      "id": "user-delivery",
+      "from": "user",
+      "to": "consumers",
+      "kind": "data-flow",
+      "label": "Guarded instruction sync",
+      "sources": [
+        "scripts/user_instructions.py"
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "kind": "decision",
+      "id": "authority-boundary",
+      "target": {
+        "kind": "node",
+        "id": "docs"
+      },
+      "text": "Accepted principle: information may cross boundaries freely; authority crosses only through an explicit owner decision. Campaigns coordinate but own no work, evidence or decisions.",
+      "author": "agent"
+    },
+    {
+      "kind": "decision",
+      "id": "delivery-supersession",
+      "target": {
+        "kind": "node",
+        "id": "template"
+      },
+      "text": "ADR-0006 explicitly supersedes ADR-0003's shared-skill delivery clause. Current copier.yml exports template/ only; generic skills use scripts/skills.py. Keep ADR-0003's consumer ownership/baseline rationale.",
+      "author": "agent"
+    },
+    {
+      "kind": "note",
+      "id": "use-cases",
+      "target": {
+        "kind": "node",
+        "id": "repo"
+      },
+      "text": "Start here: (1) Improve a shared workflow: candidate → owner review → locked skill sync. (2) Adopt/update governance: reviewed revision → Copier → preserved local bindings → consumer checks. (3) Discuss architecture: inspect sources → proposal → Apply → Save. (4) Explain recorded work: scoped logs/exports + case → review views; usage adds aggregate evidence.",
+      "author": "agent"
+    },
+    {
+      "kind": "note",
+      "id": "research-scope",
+      "target": {
+        "kind": "node",
+        "id": "repo"
+      },
+      "text": "Initial source review: 435c554, 21 October 2026. Reconciled on 23 October against 43a08a4 and the reviewed skill/practice additions: v3 format, current source paths and delivery owners. This map is a discussion projection, not a dependency inventory or native acceptance report.",
+      "author": "agent"
+    },
+    {
+      "kind": "note",
+      "id": "canvas-design-limit",
+      "target": {
+        "kind": "node",
+        "id": "plugins/repo-workbench/packages/repo-canvas"
+      },
+      "text": "Named multi-view maps, freeform regions and richer architecture comparisons remain design proposals. Current source and canvas-design.md own supported behavior.",
+      "author": "agent"
+    },
+    {
+      "kind": "note",
+      "id": "acceptance-limit",
+      "target": {
+        "kind": "node",
+        "id": "plugins"
+      },
+      "text": "Implementation and documented behavior are source-backed; this architecture-authoring pass did not reinstall tools or run host/browser acceptance. Package/config discovery does not prove desktop activation. Native-host and restart-dependent acceptance limits are tracked in docs/migrations/repo-workbench.md; this map does not certify them.",
+      "author": "agent",
+      "severity": "risk"
+    },
+    {
+      "kind": "decision",
+      "id": "proposal-boundary",
+      "target": {
+        "kind": "node",
+        "id": "plugins/repo-workbench/packages/repo-canvas"
+      },
+      "text": "Apply modifies only the draft. Save is a separate revision-checked repository write. Plugin runtime/cache paths never own the target repository's durable architecture.",
+      "author": "agent"
+    }
+  ]
+}
