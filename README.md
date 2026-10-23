@@ -93,6 +93,26 @@ its discovery pointer.
 
 ## Verify repo-kit
 
+Enable the tracked pre-push gate once per clone:
+
+```sh
+git config --local core.hooksPath .githooks
+```
+
+If a clone already uses custom hooks, integrate this hook with that setup instead
+of replacing it. The gate exports each outgoing commit tip and runs `npm ci` for
+each tracked standalone npm package with a separate empty cache. It preserves
+the working checkout and blocks a failed install. Package-manager registry and
+authentication settings still apply; Node/npm must satisfy package engines.
+Ref deletions skip installation. The same gate runs in CI because local hooks can
+be bypassed. This repository's npm packages each own a sibling lockfile.
+
+To check a committed candidate directly:
+
+```sh
+python3.12 scripts/check_npm_install.py --revision HEAD
+```
+
 Use Python 3.12 and pinned tools; the root stays manifest-free:
 
 ```sh
