@@ -8,6 +8,12 @@ Repository contracts, runtimes and required checks govern their scope.
 - Preserve unrelated edits; commit only owned changes. Resolve symlinks before deletion.
 - Keep each rule in one owner: executable constraints in code/config/tests,
   shared judgment in guides, product-specific meaning in the repo.
+- Prefer declarative intent, policy and state in data/configuration, with behavior
+  derived by one owner. Use imperative code for effects or clearer control flow;
+  add a DSL only when it removes a demonstrated burden.
+- Before material automatic or background work, state its trigger, scope, extra
+  work or retained data, and stop condition. Small lookups and routine checks need
+  no ceremony. Reconcile saved goals and monitors with later user changes or stops.
 - Verify changed failure paths through stable interfaces and preserve required gates.
 
 ## Communication

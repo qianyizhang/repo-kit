@@ -39,3 +39,13 @@ Global changes affect all personal projects after deliberate sync. Exact source
 hashes, local-edit refusal and retained previous installations make updates
 inspectable and recoverable. Teams needing repo-scoped copies must deliberately
 choose that deployment and avoid competing names in the same discovery context.
+
+## Amendment — 2026-10-23
+
+The user approved local adaptations of `retro`, `grilling`,
+`improve-codebase-architecture` and `domain-modeling` to remove demonstrated
+workflow conflicts. This supersedes the unchanged-body restriction for declared
+entrypoints only. The lock separates original upstream hashes from delivered
+hashes and records each adaptation's reason. Metadata and license stay intact.
+Refresh preserves adaptations against an unchanged baseline and rejects changed
+adapted upstream files before mutation. Repository-specific meanings remain local.

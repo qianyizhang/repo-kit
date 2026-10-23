@@ -1,4 +1,10 @@
 {
+  "adaptations": {
+    "domain-modeling/SKILL.md": "Record terms only within authorized write scope and preserve repository formats.",
+    "grilling/SKILL.md": "Reuse accepted decisions and scale factual exploration to the task.",
+    "improve-codebase-architecture/SKILL.md": "Make delegation conditional, preserve discussion scope and load skills portably.",
+    "retro/SKILL.md": "Keep review separate from implementation; load skills portably and review affected boundaries."
+  },
   "files": {
     "codebase-design/DEEPENING.md": "f3dd099ce99289bd213914d8ee3e2429b78309c3957ca4583f7659551b1d53c1",
     "codebase-design/DESIGN-IT-TWICE.md": "52b52e75655a27aea59c6966b410bac82448968ad46ef1ebb9f07c274e3ae010",
@@ -6,20 +12,20 @@
     "codebase-design/agents/openai.yaml": "edebc9e4fcfe102114012575eaa9600b9b5fd08c311664f389c36e7bc717740f",
     "domain-modeling/ADR-FORMAT.md": "944c92aa790e8fbdc9199640b170979abb8a34ba8d0fe18c2a01a63bce140ca0",
     "domain-modeling/GLOSSARY-FORMAT.md": "21dcc40cdec8e151a829b98ab1517c1867bc444e3665134a98c6983411996801",
-    "domain-modeling/SKILL.md": "7b925d7b1e341a2eeae33ad68a8a8c0ab889a38ddd22a7598e4c240e5a7556a3",
+    "domain-modeling/SKILL.md": "ded7703511b36dcf7e488d7b99dfc6d25cdf6e54ae798b8829a171228b0969fb",
     "domain-modeling/agents/openai.yaml": "f6bf2aa996c6e6f53fdd0708e18a0d16a56aed8322cca59fedbe3c0d2c75f06b",
-    "finish-work/SKILL.md": "abd5ddfaf3d891dc8e0d0a69e34e1af23925b97c19674f14edc4ab24cc752982",
+    "finish-work/SKILL.md": "8f4006f5a4228a98ad884ae1172efd4d79a8a23ced4bb7569d34e075182c68d9",
     "finish-work/agents/openai.yaml": "d443f3a232b480d5c44ace4d6ec5e2a98401d9e9cac007966d602e0743563832",
     "finish-work/references/repository-rules.md": "4d27d4067bd385e8ca969d221bc3975966f6ace5fce1241059361686e488d49c",
-    "grilling/SKILL.md": "befdff1e27a1dfe2a294d5871169ac1afe16d983911daa4f32627514a48c1e15",
+    "grilling/SKILL.md": "d9c03aa5e8c13018ecc2962a9bf5422809fbab71e90ef0f7d9b190f6d5374607",
     "grilling/agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b",
     "improve-codebase-architecture/HTML-REPORT.md": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
-    "improve-codebase-architecture/SKILL.md": "552240a5ab5cec6b67c15dd1ad6e9f6962b1bca6ce870059a8c2713760c20392",
+    "improve-codebase-architecture/SKILL.md": "6721710d29bb455a9a3506e7b00a1292a84f56f053e75c68eac11f4f2bd734d2",
     "improve-codebase-architecture/agents/openai.yaml": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1",
     "mattpocock-LICENSE": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
     "next-slice/SKILL.md": "fee5908018ba9ae8ccb023fa5c5e590971fa8f448e16252c24138d1a7d01fcef",
     "next-slice/agents/openai.yaml": "66d7ee916d522a18f935febbd2aebbddddb8575606c685941625c4f4feef3e23",
-    "retro/SKILL.md": "33fbc28568e3146f20fd908b12998bc0ab30aa4f4c87288199a40793efa94696",
+    "retro/SKILL.md": "4df08cfe9670661ce356eb1986de2638ac2bedb34493872c1f850e9a0bdd9bed",
     "retro/agents/openai.yaml": "cb6fb9d7e6b4be5975f41f6def1dd00a1255bad5d9b02696b124c924a8b8745c",
     "show-me/LICENSE": "5f13c18ea00ea5c1384f41745feeca774079164f7f59a92e4ac0899ad217b26f",
     "show-me/SKILL.md": "2ab2fb5537779ccbde533a966c74895886b46281f22177b0fcb1d704ef88bfd4",
@@ -41,7 +47,7 @@
     "writing-for-agents/SKILL.md": "551adca942227b44192edba88acd4e8db911f0121ce58ad16944ccf6a896a74a",
     "writing-for-agents/agents/openai.yaml": "eacb24b2a618cfb81dacb0416f4fdd75ddf3a8060f8ddb99aae1b1e301907e4b"
   },
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "skills": [
     "retro",
     "improve-codebase-architecture",

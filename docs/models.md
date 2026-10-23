@@ -18,7 +18,7 @@ rules or evidence.
 | --- | --- | --- |
 | **Candidate** | Evidence from local work, an upstream, or a consumer. | Evidence only. |
 | **Personal instructions** | Core and guides in `user/`, explicitly synced to Codex. | This user; repositories retain project-specific authority. |
-| **Shared skills** | Skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Upstream text belongs to Matt; repo-kit owns selection, local skills and delivery. |
+| **Shared skills** | Skills in `skills/`, pinned by `skills-lock.json` and installed at user scope. | Repo-kit owns selection, declared adaptations, local skills and delivery; the lock retains upstream provenance. |
 | **Governance template** | Files intentionally exported from `template/` through Copier. | Repo-kit. |
 | **Executable plugin** | Prebuilt Repo Workbench package in `plugins/repo-workbench/`, installed through npm and a user/repo plugin catalog. | Repo-kit owns tool behavior; target repositories own maps, case definitions and evidence. |
 | **Consumer binding** | Repository-specific language, paths, policy, and verification. | That consumer. |

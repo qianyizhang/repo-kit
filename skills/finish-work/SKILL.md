@@ -24,6 +24,10 @@ HEAD. Include staged, unstaged, and new-file contents; a branch diff alone can
 miss all of the work. If everything is already committed, use the known session
 commits. Ask only when a materially ambiguous boundary cannot be resolved locally.
 
+If delivery includes installation, inspect the installed layout and migration needs
+before implementation. Identify required disconnects/restarts and live acceptance
+early. Keep source, installed package and active runtime evidence distinct.
+
 Record the starting unrelated staging/worktree state sufficiently to preserve it.
 Use exact paths and hashes when concurrent edits, evidence artifacts, or destructive
 cleanup make byte identity material; ordinary small changes need no manifest.

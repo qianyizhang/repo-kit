@@ -1,10 +1,9 @@
 # Shared skill suite
 
-`skills/` is the canonical shared bundle. Six directories are copied unchanged
-from Matt Pocock; `next-slice`, `show-me`, `finish-work`,
-`simplify-repository`, and `ui-discussion` are maintained here. The single
-[lock](../skills-lock.json) records the upstream revision, original paths and all
-delivered file hashes. The MIT licenses are retained in the bundle.
+`skills/` is the canonical shared bundle. The [lock](../skills-lock.json) declares
+its selection, delivered hashes, upstream revision/original hashes and any local
+entrypoint adaptations with their reasons. Repo-kit owns those adaptations and
+local skills; upstream attribution and the MIT license remain intact.
 
 Skills are installed once for the user account. Project-specific rules and skills
 stay in their owning repository. This product is separate from `template/`:
@@ -46,7 +45,7 @@ power-loss durability guarantee.
 
 ## Review an update
 
-Fetch Matt's repository into a disposable checkout and inspect the six selected
+Fetch Matt's repository into a disposable checkout and inspect the selected
 skills, their dependencies and invocation policy. Use its exact reviewed commit:
 
 ```sh
@@ -59,12 +58,22 @@ python3.12 scripts/skills.py sync
 ```
 
 Refresh reads committed Git blobs, excludes ignored generated files, performs no
-network request and installs nothing. Review upstream monthly
+network request and installs nothing. It preserves declared adaptations only when
+the corresponding upstream baseline is unchanged. If an adapted file changed or
+disappeared upstream, refresh stops before source writes and names the conflict.
+Reconcile that adaptation and its exact upstream provenance in a reviewed source
+change; no automatic rebase is attempted. Review upstream monthly
 or when friction appears; changed instructions need a representative invocation
 in addition to structural checks. No background updater is installed.
 
-For edits to local skills, run `python3.12 scripts/skills.py lock` after
-review; it refuses changes to upstream bytes. Git history owns local change
+For edits to local skills or declared adaptations, run
+`python3.12 scripts/skills.py lock` after review. The lock permits only declared
+entrypoint differences; upstream supporting files, metadata and license stay
+unchanged. Use the current repository script for refresh; older refresh code did
+not read the existing lock and can overwrite adaptations. Schema 2 makes older
+check/sync/lock commands reject adapted bundles; legacy unadapted locks remain
+readable by the current script. Installation receipts and recovery remain schema 1.
+Git history owns local change
 history. To roll back, restore the previous reviewed bundle and lock in repo-kit,
 review the diff, then sync it. Restore independently edited installations from
 their recovery copies before applying a different lock.

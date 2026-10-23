@@ -23,8 +23,8 @@ Unmanaged existing files require reviewed adoption first. See
 
 ## Shared skills
 
-Six unchanged Matt Pocock skills plus `next-slice`, `show-me`, `finish-work`,
-`simplify-repository`, and `ui-discussion` are installed once for your user account. From this repository:
+The locked bundle includes upstream-derived workflows, declared local adaptations
+and local skills. It is installed once for your user account. From this repository:
 
 ```sh
 python3.12 scripts/skills.py diff
@@ -113,6 +113,8 @@ To check a committed candidate directly:
 python3.12 scripts/check_npm_install.py --revision HEAD
 ```
 
+The [root CI job](.github/workflows/root-checks.yml) runs the same source, unit and
+Ruff checks on pushes and pull requests. It does not install personal instructions.
 Use Python 3.12 and pinned tools; the root stays manifest-free:
 
 ```sh

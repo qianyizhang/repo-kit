@@ -65,13 +65,35 @@ def validate_content(content: dict) -> None:
 
 def read_lock(root: Path) -> dict:
     lock = json.loads((root / "skills-lock.json").read_text(encoding="utf-8"))
-    if lock.get("schemaVersion") != 1 or set(lock["skills"]) != set(UPSTREAM_SKILLS + LOCAL_SKILLS):
+    if lock.get("schemaVersion") not in (1, 2) or set(lock["skills"]) != set(UPSTREAM_SKILLS + LOCAL_SKILLS):
         raise ValueError("Invalid skill lock schema or selection")
-    for path, value in lock["files"].items():
-        if Path(path).is_absolute() or ".." in Path(path).parts or not re.fullmatch(r"[a-f0-9]{64}", value):
-            raise ValueError(f"Invalid locked path or digest: {path}")
+    for inventory in (lock["files"], lock["upstream"]["files"]):
+        for path, value in inventory.items():
+            if Path(path).is_absolute() or ".." in Path(path).parts or not re.fullmatch(r"[a-f0-9]{64}", value):
+                raise ValueError(f"Invalid locked path or digest: {path}")
     validate_content(lock["files"])
+    adaptations = lock.get("adaptations", {})
+    if not isinstance(adaptations, dict) or (lock["schemaVersion"] == 1 and adaptations):
+        raise ValueError("Adaptations require skill lock schema 2")
+    for path, reason in adaptations.items():
+        if (
+            path not in {f"{name}/SKILL.md" for name in UPSTREAM_SKILLS}
+            or path not in lock["upstream"]["files"]
+            or not isinstance(reason, str)
+            or not reason.strip()
+        ):
+            raise ValueError(f"Invalid adaptation path or reason: {path}")
+    validate_upstream(lock, lock["files"])
     return lock
+
+
+def validate_upstream(lock: dict, inventory: dict[str, str]) -> None:
+    baseline = lock["upstream"]["files"]
+    actual = {p: h for p, h in inventory.items() if p.split("/")[0] in UPSTREAM_SKILLS or p == "mattpocock-LICENSE"}
+    if set(actual) != set(baseline) or any(
+        actual[p] != baseline[p] for p in actual if p not in lock.get("adaptations", {})
+    ):
+        raise ValueError("Upstream files changed outside declared adaptations; review an upstream refresh")
 
 
 def bundle(root: Path) -> tuple[dict, dict[str, bytes]]:
@@ -256,6 +278,7 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
 
 
 def refresh(root: Path, checkout: Path, revision: str) -> None:
+    previous, content = bundle(root)
     actual_revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
     if not re.fullmatch(r"[a-f0-9]{40}", revision) or actual_revision != revision:
         raise ValueError("Pass the exact reviewed 40-character checkout revision")
@@ -289,25 +312,32 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
             {f"{name}/{p.removeprefix(prefix)}": data for p, data in tracked_content(prefix).items()}
         )
     destination = root / "skills"
-    local_content = {p: data for p, data in files(destination).items() if p.split("/")[0] in LOCAL_SKILLS}
-    validate_content({**local_content, **upstream_content})
+    adaptations = previous.get("adaptations", {})
+    baseline = hashes(upstream_content)
+    conflicts = [p for p in adaptations if baseline.get(p) != previous["upstream"]["files"][p]]
+    if conflicts:
+        raise ValueError("Upstream changed adapted files; reconcile before refresh: " + ", ".join(sorted(conflicts)))
+    delivered = {**upstream_content, **{p: content[p] for p in adaptations}}
+    local_content = {p: data for p, data in content.items() if p.split("/")[0] in LOCAL_SKILLS}
+    validate_content({**local_content, **delivered})
     for name in UPSTREAM_SKILLS:
         if (destination / name).exists():
             shutil.rmtree(destination / name)
-    for path, data in upstream_content.items():
+    for path, data in delivered.items():
         dest = destination / path
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(data)
     write_json(
         root / "skills-lock.json",
         {
-            "schemaVersion": 1,
+            "schemaVersion": 2,
             "skills": list(UPSTREAM_SKILLS + LOCAL_SKILLS),
+            "adaptations": adaptations,
             "upstream": {
                 "repository": "https://github.com/mattpocock/skills",
                 "revision": revision,
                 "paths": {name: p.relative_to(checkout).as_posix() for name, p in source_paths.items()},
-                "files": hashes(upstream_content),
+                "files": baseline,
             },
             "files": hashes(files(destination)),
         },
@@ -319,14 +349,11 @@ def relock(root: Path) -> None:
     lock = read_lock(root)
     content = files(root / "skills")
     validate_content(content)
-    upstream = {
-        p: data for p, data in content.items() if p.split("/")[0] in UPSTREAM_SKILLS or p == "mattpocock-LICENSE"
-    }
-    if hashes(upstream) != lock["upstream"]["files"]:
-        raise ValueError("Upstream files changed; restore them or use a reviewed upstream refresh")
+    validate_upstream(lock, hashes(content))
+    lock["schemaVersion"] = 2
     lock["files"] = hashes(content)
     write_json(root / "skills-lock.json", lock)
-    print("Locked local skill changes; upstream bytes remain unchanged")
+    print("Locked delivered skills; upstream baseline and declared adaptations verified")
 
 
 def main() -> int:

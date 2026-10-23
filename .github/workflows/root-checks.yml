@@ -1,0 +1,20 @@
+name: Root checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  root-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.12'
+      - run: python3.12 -m pip install ruff==0.16.3
+      - run: python3.12 scripts/skills.py check --source-only
+      - run: python3.12 -m unittest discover -s tests -v
+      - name: Ruff format
+        run: python3.12 -m ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts
+      - name: Ruff lint
+        run: python3.12 -m ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts

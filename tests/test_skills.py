@@ -257,7 +257,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         self.assertEqual([], list(outside.iterdir()))
 
     def test_source_drift_and_upstream_relocking_are_rejected(self) -> None:
-        source = self.root / "skills/grilling/SKILL.md"
+        source = self.root / "skills/codebase-design/SKILL.md"
         source.write_text("modified upstream")
         with self.assertRaisesRegex(ValueError, "Bundle differs"):
             self.sync(apply=True)
@@ -285,16 +285,26 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         with self.assertRaisesRegex(ValueError, "Missing skill manifest"):
             MODULE.relock(self.root)
 
-    def test_refresh_pins_git_content_and_excludes_ignored_files(self) -> None:
+    def upstream_fixture(self) -> Path:
         checkout = Path(self.temp.name) / "upstream"
         checkout.mkdir()
-        (checkout / "LICENSE").write_text("MIT license")
+        shutil.copy2(self.root / "skills/mattpocock-LICENSE", checkout / "LICENSE")
         (checkout / ".gitignore").write_text("*.tmp\n")
         for name in MODULE.UPSTREAM_SKILLS:
-            source = checkout / "skills/engineering" / name
-            source.mkdir(parents=True)
-            (source / "SKILL.md").write_text(f"---\nname: {name}\ndescription: A skill.\n---\n")
+            shutil.copytree(self.root / "skills" / name, checkout / "skills/engineering" / name)
+        # Give this synthetic upstream its own baseline, independent of Git history.
+        lock = MODULE.read_lock(self.root)
+        lock["upstream"]["files"] = {
+            p: h
+            for p, h in lock["files"].items()
+            if p.split("/")[0] in MODULE.UPSTREAM_SKILLS or p == "mattpocock-LICENSE"
+        }
+        MODULE.write_json(self.root / "skills-lock.json", lock)
         subprocess.run(["git", "init", "--quiet"], cwd=checkout, check=True)
+        self.commit_upstream(checkout)
+        return checkout
+
+    def commit_upstream(self, checkout: Path) -> str:
         subprocess.run(["git", "add", "."], cwd=checkout, check=True)
         subprocess.run(
             [
@@ -311,6 +321,10 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
             cwd=checkout,
             check=True,
         )
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
+
+    def test_refresh_pins_git_content_and_excludes_ignored_files(self) -> None:
+        checkout = self.upstream_fixture()
         revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
         (checkout / "skills/engineering/grilling/generated.tmp").write_text("ignored runtime output")
         MODULE.refresh(self.root, checkout, revision)
@@ -318,13 +332,114 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         self.assertEqual(revision, lock["upstream"]["revision"])
         self.assertNotIn("grilling/generated.tmp", content)
 
+    def test_declared_adaptation_relocks_and_preserves_baseline(self) -> None:
+        before = MODULE.read_lock(self.root)
+        self.sync(apply=True)
+        original = MODULE.files(self.target)
+        path = "grilling/SKILL.md"
+        source = self.root / "skills" / path
+        source.write_text(source.read_text() + "\nLocal reviewed change.\n")
+        with self.assertRaisesRegex(ValueError, "Bundle differs"):
+            self.sync(apply=True)
+        self.assertEqual(original, MODULE.files(self.target))
+        MODULE.relock(self.root)
+        after, content = MODULE.bundle(self.root)
+        self.assertEqual(before["upstream"], after["upstream"])
+        self.assertNotEqual(before["files"][path], after["files"][path])
+        self.sync(apply=True)
+        self.assertEqual(content[path], (self.target / path).read_bytes())
+        self.assertTrue(self.sync())
+        self.assertTrue(
+            any(MODULE.files(p) == original for p in (self.target.parent / ".repo-kit-skill-backups").iterdir())
+        )
+
+    def test_refresh_preserves_adaptation_and_updates_unadapted_file(self) -> None:
+        checkout = self.upstream_fixture()
+        local = self.root / "skills/grilling/SKILL.md"
+        local.write_text(local.read_text() + "\nLocal workflow.\n")
+        MODULE.relock(self.root)
+        expected = local.read_bytes()
+        upstream = checkout / "skills/engineering/codebase-design/SKILL.md"
+        upstream.write_text(upstream.read_text() + "\nUpstream vocabulary.\n")
+        revision = self.commit_upstream(checkout)
+        MODULE.refresh(self.root, checkout, revision)
+        lock, content = MODULE.bundle(self.root)
+        self.assertEqual(expected, content["grilling/SKILL.md"])
+        self.assertEqual(upstream.read_bytes(), content["codebase-design/SKILL.md"])
+        self.assertNotEqual(lock["files"]["grilling/SKILL.md"], lock["upstream"]["files"]["grilling/SKILL.md"])
+
+    def test_conflicting_refresh_preserves_entire_source(self) -> None:
+        checkout = self.upstream_fixture()
+        upstream = checkout / "skills/engineering/grilling/SKILL.md"
+        for remove in (False, True):
+            with self.subTest(remove=remove):
+                if remove:
+                    upstream.unlink()
+                else:
+                    upstream.write_text(upstream.read_text() + "\nChanged upstream workflow.\n")
+                revision = self.commit_upstream(checkout)
+                before = MODULE.files(self.root)
+                with self.assertRaisesRegex(ValueError, "Upstream changed adapted files.*grilling/SKILL.md"):
+                    MODULE.refresh(self.root, checkout, revision)
+                self.assertEqual(before, MODULE.files(self.root))
+
+    def test_refresh_rejects_unlocked_source_before_any_write(self) -> None:
+        checkout = self.upstream_fixture()
+        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
+        (self.root / "skills/grilling/SKILL.md").write_text("unreviewed change")
+        before = MODULE.files(self.root)
+        with self.assertRaisesRegex(ValueError, "Bundle differs"):
+            MODULE.refresh(self.root, checkout, revision)
+        self.assertEqual(before, MODULE.files(self.root))
+
+    def test_invalid_adaptations_and_baseline_are_rejected(self) -> None:
+        path = self.root / "skills-lock.json"
+        original = json.loads(path.read_text())
+        for entry in (
+            {"../outside": "reason"},
+            {"retro/agents/openai.yaml": "reason"},
+            {"mattpocock-LICENSE": "reason"},
+            {"unknown/SKILL.md": "reason"},
+            {"grilling/SKILL.md": " "},
+            {"grilling/SKILL.md": 7},
+        ):
+            with self.subTest(entry=entry):
+                lock = json.loads(json.dumps(original))
+                lock["adaptations"] = entry
+                MODULE.write_json(path, lock)
+                with self.assertRaisesRegex(ValueError, "Invalid adaptation"):
+                    MODULE.bundle(self.root)
+        lock = json.loads(json.dumps(original))
+        lock["upstream"]["files"]["../outside"] = "bad"
+        MODULE.write_json(path, lock)
+        with self.assertRaisesRegex(ValueError, "Invalid locked path"):
+            MODULE.bundle(self.root)
+
+    def test_legacy_lock_is_readable_but_cannot_hide_adaptations(self) -> None:
+        self.upstream_fixture()
+        path = self.root / "skills-lock.json"
+        lock = MODULE.read_lock(self.root)
+        lock["schemaVersion"] = 1
+        lock.pop("adaptations")
+        MODULE.write_json(path, lock)
+        self.assertEqual(1, MODULE.bundle(self.root)[0]["schemaVersion"])
+        MODULE.relock(self.root)
+        self.assertEqual(2, MODULE.bundle(self.root)[0]["schemaVersion"])
+        lock["adaptations"] = {"grilling/SKILL.md": "reason"}
+        MODULE.write_json(path, lock)
+        with self.assertRaisesRegex(ValueError, "schema 2"):
+            MODULE.bundle(self.root)
+
     def test_source_and_invocation_selection(self) -> None:
         lock, content = MODULE.bundle(ROOT)
         self.assertEqual(11, len(lock["skills"]))
         for name in MODULE.UPSTREAM_SKILLS:
             expected = {p: h for p, h in lock["upstream"]["files"].items() if p.startswith(name + "/")}
             actual = {p: MODULE.digest(data) for p, data in content.items() if p.startswith(name + "/")}
-            self.assertEqual(expected, actual)
+            self.assertEqual(set(expected), set(actual))
+            for path in expected:
+                if path not in lock.get("adaptations", {}):
+                    self.assertEqual(expected[path], actual[path])
         for name in ("retro", "improve-codebase-architecture"):
             self.assertIn(b"allow_implicit_invocation: false", content[f"{name}/agents/openai.yaml"])
         for name in MODULE.LOCAL_SKILLS:
