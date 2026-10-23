@@ -1,3 +1,4 @@
+import { releaseReceipt } from '../../mcp-app-runtime/src/release.ts';
 import { build as vite } from 'vite';
 import { build as bundle } from 'rolldown';
 import { mkdir, writeFile, readFile, chmod, rm } from 'node:fs/promises';
@@ -118,4 +119,5 @@ await bundle({
   },
 });
 await chmod(resolve(root, 'dist/cli.mjs'), 0o755);
+await releaseReceipt(root, resolve(root, 'dist'), buildId);
 console.log('Built standalone plugin: CLI, MCP server, and offline UI assets.');

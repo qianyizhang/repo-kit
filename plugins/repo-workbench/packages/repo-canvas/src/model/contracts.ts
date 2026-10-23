@@ -193,6 +193,7 @@ export const contracts = {
     input: z.strictObject({ draft: draftSchema.nullable() }),
     output: z.object({ stored: z.boolean() }),
   },
+  view_touch: { input: z.strictObject({ revision }), output: z.object({ revision }) },
   view_write: { input: z.strictObject({ view: viewSchema }), output: z.object({ revision }) },
   agent_read: { input: empty, output: inboxSchema },
   command_ack: {
@@ -234,6 +235,7 @@ export const appRequestSchema = z.discriminatedUnion('action', [
   requestSchema('draft_read'),
   requestSchema('draft_write'),
   requestSchema('view_write'),
+  requestSchema('view_touch'),
   requestSchema('agent_read'),
   requestSchema('command_ack'),
   requestSchema('proposal_dismiss'),

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
-import { httpOperation, operations } from '../model/operations.ts';
+import { httpOperation, operations, backgroundActions } from '../model/operations.ts';
 import { operate } from './operations.ts';
 import { Repository } from './repository.ts';
 import { CanvasBridge } from './bridge.ts';
@@ -63,8 +63,11 @@ export function apiMiddleware(root: string) {
       }
       if (req.method === 'GET' && url.pathname === '/api/state') {
         json(res, {
-          ...(await observed.observeOperation('state', {}, () =>
-            operate('state', {}, repository, bridge),
+          ...(await observed.observeOperation(
+            'state',
+            {},
+            () => operate('state', {}, repository, bridge),
+            'background',
           )),
           token,
           plugin: 'Current Codex chat via MCP',
@@ -92,8 +95,11 @@ export function apiMiddleware(root: string) {
             : await body(req);
         json(
           res,
-          await observed.observeOperation(action, args, () =>
-            operate(action, args, repository, bridge),
+          await observed.observeOperation(
+            action,
+            args,
+            () => operate(action, args, repository, bridge),
+            backgroundActions.includes(action) ? 'background' : 'user',
           ),
         );
         return;

@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from './host-client.ts';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { z } from 'zod';
 import { ObservableServer } from '../packages/diagnostics/server.ts';
-import { LogStore } from '../packages/diagnostics/store.ts';
-import { Recorder, eventSchema, snapshot } from '../packages/diagnostics/events.ts';
+import { LogStore } from '../../mcp-app-runtime/src/store.ts';
+import { Recorder, eventSchema, snapshot } from '../../mcp-app-runtime/src/events.ts';
 
 void test('credential masking preserves token metrics and flags actual credential fields', () => {
   const value = snapshot({
@@ -63,13 +63,17 @@ void test('actual MCP registrations, wire capture and explicit payload storage s
     tools.find((tool) => tool.name === 'diagnostics_capture')?.annotations?.readOnlyHint,
     false,
   );
+  const correlation = { interaction: crypto.randomUUID(), callId: crypto.randomUUID() };
   await client.callTool({
+    _meta: { 'repo-kit/interaction': correlation },
     name: 'echo',
     arguments: { text: 'selected-private-prose', token: 'never-retain-credential' },
   });
   const event = store.events.find(
     (event) => event.method === 'tools/call:echo' && event.phase === 'request',
   )!;
+  assert.equal(event.interaction, correlation.interaction);
+  assert.equal(event.callId, correlation.callId);
   assert.match(event.payload.text, /selected-private-prose/);
   assert.doesNotMatch(event.payload.text, /never-retain-credential/);
   assert.equal(event.payload.redacted, true);
@@ -97,9 +101,25 @@ void test('actual MCP registrations, wire capture and explicit payload storage s
     'unrelated-private-prose',
   );
   await client.callTool({ name: 'diagnostics_append', arguments: { event: unrelated } });
+  for (const [name, args] of [
+    ['diagnostics_event', { id: event.id }],
+    ['diagnostics_capture', { interaction: event.interaction }],
+  ] as const) {
+    assert.equal(
+      (await client.callTool({ name, arguments: args, _meta: { threadId: crypto.randomUUID() } }))
+        .isError,
+      true,
+    );
+    assert.equal((await client.callTool({ name, arguments: args, _meta: {} })).isError, true);
+  }
   const before = store.events.length;
-  const saved = server.callDiagnostics('diagnostics_capture', { interaction: event.interaction });
-  const capture = await readFile(String(saved.path), 'utf8');
+  const saved = (
+    await client.callTool({
+      name: 'diagnostics_capture',
+      arguments: { interaction: event.interaction },
+    })
+  ).structuredContent!;
+  const capture = await readFile(z.object({ path: z.string() }).parse(saved).path, 'utf8');
   assert.match(capture, /selected-private-prose/);
   assert.doesNotMatch(capture, /unrelated-private-prose|never-retain-credential/);
   assert.equal(store.events.length, before); // Observer endpoints never record themselves.

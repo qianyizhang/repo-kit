@@ -1,6 +1,11 @@
-import { App } from '@modelcontextprotocol/ext-apps';
+import { poll } from '../../../mcp-app-runtime/src/poller.ts';
+import { HostSession } from '../../../mcp-app-runtime/src/host-session.ts';
+import { RuntimeError, failureCode } from '../../../mcp-app-runtime/src/definition.ts';
 import { z } from 'zod';
 import {
+  backgroundActions,
+  parseReportOutput,
+  type ReportOutput,
   bindingSchema,
   payloadSchema,
   textSchema,
@@ -20,8 +25,21 @@ import type { ReviewDocument } from '../session-review/src/model/contracts.ts';
 import type { RecordSource } from '../session-review/src/model/data-source.ts';
 import { AppDiagnostics, plainMessageFlow } from '../diagnostics/client.ts';
 
-const app = new App({ name: 'Repo Workbench reports', version: VERSION }, {});
+const app = new HostSession(
+  { name: 'Repo Workbench reports', version: VERSION },
+  {
+    onhostcontextchanged: (context) => theme(context.theme),
+    onteardown: () => {
+      close();
+      return {};
+    },
+    onclose: close,
+    onerror: (error) => message(String(error)),
+    ontoolresult: (result) => receiveToolResult(result),
+  },
+);
 const inspection = new AppDiagnostics({
+  remote: readReportDiagnostics,
   name: 'Workbench reports',
   version: VERSION,
   build: BUILD,
@@ -52,14 +70,14 @@ const inspection = new AppDiagnostics({
     },
   ],
 });
-inspection.remote = async (name, args) => {
+async function readReportDiagnostics(name: string, args: Record<string, unknown>) {
   const result = await app.callServerTool({ name, arguments: args }, { timeout: 5000 });
   if (result.isError)
     throw new Error(
       result.content?.find((item) => item.type === 'text')?.text ?? 'Diagnostics unavailable',
     );
   return result.structuredContent;
-};
+}
 document.getElementById('report-toolbar')!.append(inspection.button());
 const inspectSend = document.createElement('button');
 inspectSend.textContent = 'Inspect send';
@@ -84,10 +102,10 @@ let generation = 0;
 let closed = false;
 let sending = false;
 let composerRevision = 0;
-let pollTimer: ReturnType<typeof setTimeout> | undefined;
+let stopPolling: (() => void) | undefined;
 let refreshPromise: Promise<z.infer<typeof overviewSchema>> | undefined;
 let cachedAt = '';
-const lifetime = new AbortController();
+const lifetime = { signal: app.signal };
 let statusOwner: 'connection' | 'discussion' = 'connection';
 function message(text: string, owner: typeof statusOwner = 'connection') {
   if (!closed) {
@@ -102,12 +120,11 @@ function controls() {
 function theme(value?: string) {
   if (value === 'light' || value === 'dark') document.documentElement.dataset.theme = value;
 }
-app.onhostcontextchanged = (context) => theme(context.theme);
 function close() {
   closed = true;
   generation++;
-  clearTimeout(pollTimer);
-  lifetime.abort();
+  stopPolling?.();
+  void app.dispose();
   usage?.dispose();
   unmount();
   controls();
@@ -116,36 +133,48 @@ function close() {
   traceView.inert = true;
   status.textContent = 'Connection closed. Reopen the report to reconnect.';
 }
-app.onteardown = () => {
-  close();
-  return {};
-};
-app.onclose = close;
-app.onerror = (error) => message(String(error));
-async function call(request: Request): Promise<unknown> {
+async function call<R extends Request>(
+  request: R,
+  interaction?: string,
+): Promise<ReportOutput<R['action']>> {
+  const trace = { interaction: interaction ?? crypto.randomUUID(), callId: crypto.randomUUID() };
   return inspection.observe(
-    'report_app · decoded',
-    { contextId: binding?.contextId, expectedRevision: binding?.revision, request },
-    () => perform(request),
+    `report_app:${request.action} · decoded`,
+    {
+      contextId: binding?.contextId,
+      expectedRevision: binding?.revision,
+      request,
+      _meta: { 'repo-kit/interaction': trace },
+    },
+    async () => parseReportOutput<R['action']>(request.action, await perform(request, trace)),
+    {
+      ...trace,
+      retention: interaction || !backgroundActions.includes(request.action) ? 'user' : 'background',
+    },
   );
 }
-async function perform(request: Request): Promise<unknown> {
+async function perform(
+  request: Request,
+  trace: { interaction: string; callId: string },
+): Promise<unknown> {
   if (!binding || closed) throw new Error('Report is not connected. Reopen it.');
   const current = binding;
   const result = await app.callServerTool(
     {
       name: 'report_app',
+      _meta: { 'repo-kit/interaction': trace },
       arguments: { contextId: current.contextId, expectedRevision: current.revision, request },
     },
     { timeout: 180000, signal: lifetime.signal },
   );
   if (result.isError)
-    throw new Error(
+    throw new RuntimeError(
+      failureCode(result._meta?.['repo-kit/error']) ?? 'rejected',
       result.content?.find((c) => c.type === 'text')?.text ?? 'Report operation failed',
     );
   const meta = payloadSchema.parse(result._meta);
   if (meta.build !== BUILD)
-    throw new Error('Server/UI build mismatch. Reconnect and reopen the app.');
+    app.incompatible('Server/UI build mismatch. Reconnect and reopen the app.');
   const bytes = Uint8Array.from(atob(meta.payload), (c) => c.charCodeAt(0));
   const value: unknown = JSON.parse(
     await new Response(
@@ -156,7 +185,11 @@ async function perform(request: Request): Promise<unknown> {
     throw new Error('Report context changed.');
   return value;
 }
+const scrollPositions = { usage: 0, trace: 0 };
+let shown: 'usage' | 'trace' = 'usage';
 function view(kind: 'usage' | 'trace') {
+  scrollPositions[shown] = window.scrollY;
+  shown = kind;
   usageView.hidden = kind !== 'usage';
   traceView.hidden = kind !== 'trace';
   back.hidden = kind !== 'trace' || !usage;
@@ -165,6 +198,9 @@ function view(kind: 'usage' | 'trace') {
   (document.querySelector('#trace-style') as HTMLStyleElement).media =
     kind === 'trace' ? 'all' : 'not all';
   document.documentElement.dataset.report = kind;
+  requestAnimationFrame(() => {
+    if (!closed) window.scrollTo(0, scrollPositions[kind]);
+  });
   const label = document.getElementById('report-context-label');
   if (label)
     label.textContent =
@@ -269,29 +305,30 @@ function refreshOverview() {
   return pending;
 }
 function watchRefresh(contextId: string) {
-  clearTimeout(pollTimer);
-  pollTimer = setTimeout(() => {
-    void (async () => {
-      if (closed || binding?.contextId !== contextId) return;
+  stopPolling?.();
+  stopPolling = poll(
+    async (signal) => {
+      if (closed || binding?.contextId !== contextId) {
+        stopPolling?.();
+        return;
+      }
       const state = statusSchema.parse(await call({ action: 'status' }));
-      if (closed || binding?.contextId !== contextId) return;
+      if (signal.aborted || closed || binding?.contextId !== contextId) return;
       if (state.error) {
-        refreshMessage(
-          `Cached summary · ${cachedAt} · Refresh failed: ${state.error} Use Refresh logs to retry.`,
-          true,
-        );
+        refreshMessage(`Refresh failed: ${state.error} Use Refresh logs to retry.`, true);
+        stopPolling?.();
         return;
       }
       if (state.updated && !session && !sending) {
         const data = await refreshOverview();
-        if (!closed && binding?.contextId === contextId) usage?.update(data);
-      } else if (state.refreshing || state.updated) watchRefresh(contextId);
-    })().catch((error: unknown) => {
-      if (!closed && binding?.contextId === contextId) refreshMessage(String(error), true);
-    });
-  }, 1000);
+        if (!signal.aborted && !closed && binding?.contextId === contextId) usage?.update(data);
+      }
+      if (!state.refreshing && !state.updated) stopPolling?.();
+    },
+    { interval: 1000, immediate: false },
+  );
 }
-app.ontoolresult = (result) => {
+function receiveToolResult(result: import('@modelcontextprotocol/sdk/types.js').CallToolResult) {
   if (closed) return;
   if (result.isError) {
     message(result.content?.find((c) => c.type === 'text')?.text ?? 'Could not open the report.');
@@ -300,7 +337,7 @@ app.ontoolresult = (result) => {
   const parsed = bindingSchema.safeParse(result.structuredContent);
   if (!parsed.success) return;
   const current = ++generation;
-  clearTimeout(pollTimer);
+  stopPolling?.();
   refreshPromise = undefined;
   binding = parsed.data;
   message('Loading recorded history…');
@@ -313,7 +350,7 @@ app.ontoolresult = (result) => {
   void (async () => {
     const started = performance.now();
     if (binding?.build !== BUILD)
-      throw new Error('Server/UI build mismatch. Reconnect and reopen.');
+      app.incompatible('Server/UI build mismatch. Reconnect and reopen.');
     const value = z
       .object({
         binding: bindingSchema,
@@ -369,7 +406,7 @@ app.ontoolresult = (result) => {
   })().catch((error) => {
     if (current === generation) message(String(error));
   });
-};
+}
 back.onclick = () => {
   generation++;
   unmount();
@@ -389,8 +426,16 @@ send.onclick = () => {
   if (send.disabled) return;
   sending = true;
   controls();
-  const text = question.value.trim();
+  const text = question.value;
+  const selectionIdentity = () =>
+    !attach.checked
+      ? ''
+      : session
+        ? `trace:${session}:${reviewSelection()}`
+        : `usage:${JSON.stringify(usage?.selection())}`;
+  const sentSelection = selectionIdentity();
   const sentRevision = composerRevision;
+  const interaction = crypto.randomUUID();
   const contextId = binding?.contextId;
   void (async () => {
     let context: unknown;
@@ -416,20 +461,23 @@ send.onclick = () => {
         const turn = exact ? exact.turnId : pair.success ? pair.data[1] : selected.get('turn');
         if (!thread || !turn)
           throw new Error('Choose a turn or action to attach, or turn off Attach selection.');
-        context = await call({
-          action: 'select_trace',
-          session,
-          scope: {
-            thread,
-            turn,
-            ...(event ? { event } : {}),
-            reviews: selected.get('reviews') === 'show',
+        context = await call(
+          {
+            action: 'select_trace',
+            session,
+            scope: {
+              thread,
+              turn,
+              ...(event ? { event } : {}),
+              reviews: selected.get('reviews') === 'show',
+            },
           },
-        });
+          interaction,
+        );
       } else {
         const selection = usage?.selection();
         if (!selection) throw new Error('Wait for usage to load, or turn off Attach selection.');
-        context = await call({ action: 'select_usage', ...selection });
+        context = await call({ action: 'select_usage', ...selection }, interaction);
       }
     }
     const textToSend =
@@ -449,8 +497,11 @@ send.onclick = () => {
           },
         ],
       };
-      const pending = inspection.observe('ui/message', payload, () =>
-        app.sendMessage(payload, { timeout: 10000, signal: lifetime.signal }),
+      const pending = inspection.observe(
+        'ui/message',
+        payload,
+        () => app.sendMessage(payload, { timeout: 10000, signal: lifetime.signal }),
+        { interaction, retention: 'user' },
       );
       lastSend = inspection.lastInteraction;
       inspectSend.hidden = false;
@@ -460,14 +511,16 @@ send.onclick = () => {
         return;
       }
       if (closed || binding?.contextId !== contextId) return;
-      if (composerRevision === sentRevision) {
+      if (composerRevision === sentRevision && selectionIdentity() === sentSelection) {
         question.value = '';
         attach.checked = false;
       }
       message('Accepted by host · Check this chat for arrival and a response.', 'discussion');
     } catch (error) {
       message(
-        `Delivery unconfirmed. Check the chat before sending again. ${String(error)}`,
+        error instanceof RuntimeError && error.code === 'rejected'
+          ? `Host rejected the message. Your draft is preserved. ${String(error)}`
+          : `Delivery unconfirmed. Check the chat before sending again. ${String(error)}`,
         'discussion',
       );
     }

@@ -19,8 +19,11 @@ captured data and source identity through refresh. Up to 40 are retained; an
 expired selection must be attached again. Unconfirmed delivery keeps the draft;
 check the chat before resending.
 
-Contexts expire on server restart or after 12 newer opens; up to 8 traces per
-context are retained in memory. Reopen an expired report.
+The caller-aware registry retains at most 12 report contexts with a shared 512 MiB
+accounted memory budget and a 24-hour idle limit. Each report bounds scan results
+and retains at most 8 traces within 64 MiB. Eviction disposes the session and stops
+its worker. Reopen an expired report. Frozen selections have a separate bounded
+registry and preserve the caller who created them.
 
 ## Canvas connection and recovery
 
@@ -33,8 +36,9 @@ target. Canonical repository identity stays visible.
 Automatic connection uses the host-provided `_meta.threadId` (or matching `thread_id` alias),
 then an exact-ID, read-only lookup of `cwd` in the newest `state_N.sqlite` under
 `CODEX_HOME` (default `~/.codex`). This is a Codex-specific adapter, not a portable
-MCP guarantee. Missing metadata, unknown database schemas, missing workspaces and
-non-Git tasks fall back to the picker. It never scans conversation bodies or
+MCP guarantee. Hosted operations require caller identity; missing or conflicting
+identity fails before context access. Unknown database schemas, missing workspaces
+and non-Git tasks with a valid identity fall back to the picker. It never scans conversation bodies or
 chooses the last-used repository. The desktop-bundled Codex 0.163.0-alpha.10.2
 was probed through `mcpServer/tool/call`: it provided `threadId` and no workspace
 path. Empty new chats can have an ID before their workspace is persisted. The picker explains this gap, retries automatically every five seconds while visible, and reports the outcome of manual retry. Choosing a repository explicitly works immediately and is not overridden when the chat is later persisted. The plugin cannot read the project selector when Codex does not supply it. Repeat the isolated, model-free probe with
@@ -50,11 +54,11 @@ After upgrading from an earlier app protocol, reopen the panel after refreshing 
 
 ## Connection diagnostics
 
-The **ⓘ App info** control beside the header shows panel/server versions and build fingerprints, server start time and process/instance IDs, repository, caller chat, context, and local log path. It warns when builds differ. Its compact symbol controls copy details, refresh status, and download the connection log; tooltips and accessible names identify each action. The JSON report
-includes bounded browser and server connection metadata, versions,
-server identity, caller metadata key names and thread ID, panel/context IDs, event status and source-local timestamps. If the host is unavailable,
-the download still includes the browser history after a five-second collection timeout.
-Initialization failures can be retried without reloading the panel.
+The **ⓘ App info** control opens one inspector with aligned app, host, repository,
+caller, context, build and recording fields. Full JSON is under a disclosure.
+Tools and Interactions use the same surface. A selected interaction has a bounded
+payload area and can be pinned while inspected. Copy and metadata download remain
+available. Panel/server build mismatch blocks domain actions until reopened.
 
 App info also exposes generated tool contracts, conversation fixtures and individual
 frozen interactions. Inspect send opens only that send; server summaries and exact
@@ -63,8 +67,9 @@ event payloads have separate bounded APIs. Metadata is written under
 `MCP_APP_LOG_ROOT`. Each app/server file rotates at 2 MiB with one prior file.
 Startup keeps 8 inactive sessions for at most 7 days; live sessions are excluded.
 Only an explicit **Save diagnostic capture** persists payloads for one interaction
-(up to 2 MiB, 8 captures per session, same retention). Payloads are masked and
-bounded in live memory; restart/closure can lose uncaptured payloads. Logging
+(up to 2 MiB, 8 captures per session, same retention). User actions and automatic reads/autosaves have separate count, byte and age
+budgets, declared in the shared runtime. Expiration and partial captures are
+explicit. Payloads are masked and bounded in live memory; restart/closure can lose uncaptured payloads. Logging
 failure does not block domain work. These observations are not host internals or
 proof of a model response. Standalone Canvas and the local report service share
 the same diagnostic handlers; offline exports have memory inspection and an
@@ -79,12 +84,38 @@ compatibility layer. Directory discovery accepts dynamic-route names, Unicode,
 spaces and long paths without treating filenames as document IDs; existing saved
 IDs remain unchanged.
 
-The UI uses the official MCP Apps SDK through `ui/host-client.ts`; `ui/host.ts`
-owns repository selection and restart recovery. Codex is the acceptance target.
-Other hosts should adapt capabilities without copying domain behavior or assuming
-Codex's SQLite layout. The SDK pin is in `package.json`; moving to MCP SDK 2.x
-requires a coordinated server migration.
+The shared `HostSession` owns SDK initialization, frozen declarations and observed
+capabilities, typed outcomes, cancellation and terminal disposal. Callbacks and
+policy cannot be replaced after creation. Reconnect requires a new instance.
+Canvas's `ui/host.ts` owns repository selection and explicit draft recovery; reports
+keep view navigation separate from connection lifetime. Server `ReportSession`
+owns scan adoption, revisions, trace reads and disposal for both HTTP and MCP.
+
+The scoped registry owns authorization and retention together. All context,
+request, selection and payload reads resolve the trusted caller before accessing
+state. Opaque IDs and app-only visibility do not confer authority. Standalone
+adapters declare a trusted local principal explicitly; they never infer it from
+missing hosted metadata. Server diagnostics store app observations as claims.
+Explicit interaction/call IDs cross forwarded tool calls; wire IDs stay local.
+
+Polling is single-flight and pauses when hidden. Disposal stops timers and aborts
+reads. Stable Canvas views send a revision heartbeat instead of the complete map.
+Discussion writes use a SQLite transaction sidecar to coordinate atomic JSON
+replacement. OS lock release recovers a killed writer; legacy orphan lock folders
+are left untouched. Revisions are compared inside the transaction.
+
+The canonical review parser validates nested recorded v3 and authored v2 documents,
+including turns, events and lazy body references. Readers retain hash/provenance
+checks. Inputs and outputs of report commands share one declaration map.
+
+Codex is the acceptance target. Other hosts must supply trusted caller metadata.
+The SDK pin is in `package.json`; a server SDK 2 migration remains separate.
 
 The packaged UI URI includes a fingerprint of source, static assets, build config
 and lockfile. Server and UI expose the same build identity. Rebuilding a package
 does not refresh a server retained by an existing chat.
+
+`dist/release.json` records the source revision and dirt (or explicitly unavailable
+Git identity), protocol version, package-lock and shared-source identities, and
+SHA-256/size for each emitted asset. Source, package, installed process and active
+panel remain separate acceptance layers.

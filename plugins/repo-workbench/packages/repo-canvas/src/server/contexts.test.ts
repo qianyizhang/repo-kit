@@ -1,5 +1,5 @@
 import { test, expect, vi } from 'vitest';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from '../../../../tests/host-client.ts';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';

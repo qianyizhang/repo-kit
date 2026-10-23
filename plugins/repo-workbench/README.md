@@ -25,6 +25,7 @@ connection recovery and diagnostics.
 Build a local package from this directory with Node 24.21+:
 
 ```sh
+npm ci --prefix ../mcp-app-runtime
 npm ci
 npm run build
 npm pack

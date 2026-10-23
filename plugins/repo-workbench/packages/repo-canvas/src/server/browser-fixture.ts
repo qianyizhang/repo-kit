@@ -1,12 +1,9 @@
 /** Disposable repository; the browser test acts as the MCP client. */
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createServer } from 'vite';
-import react from '@vitejs/plugin-react';
-import { apiPlugin } from './api.ts';
 import { Repository } from './repository.ts';
 const root = mkdtempSync(join(tmpdir(), 'canvas-browser-'));
 process.env.XDG_STATE_HOME = join(root, '.test-state');
@@ -18,15 +15,26 @@ execFileSync('git', ['add', '.'], { cwd: root });
 const repo = new Repository(root),
   snapshot = repo.snapshot();
 repo.save({ ...snapshot.document, title: 'Architecture test repo' }, snapshot.revision);
-const server = await createServer({
-  configFile: false,
-  root: fileURLToPath(new URL('../../', import.meta.url)),
-  plugins: [react(), apiPlugin(root)],
-  server: { host: '127.0.0.1', port: 4318, strictPort: true },
+// Serve the delivered CLI and matching UI. Source Vite state must never impersonate a bundle.
+const server = spawn(
+  process.execPath,
+  [
+    fileURLToPath(new URL('../../../../dist/cli.mjs', import.meta.url)),
+    'canvas',
+    '--repo',
+    root,
+    '--port',
+    '4318',
+  ],
+  { stdio: 'inherit', env: process.env },
+);
+server.once('error', (error) => {
+  throw error;
 });
-await server.listen();
+const exited = new Promise<void>((done) => server.once('exit', () => done()));
 const close = async () => {
-  await server.close();
+  server.kill('SIGTERM');
+  await exited;
   rmSync(root, { recursive: true, force: true });
   process.exit(0);
 };

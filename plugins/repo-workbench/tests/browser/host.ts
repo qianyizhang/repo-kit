@@ -37,10 +37,13 @@ const bridge = new AppBridge(
   },
 );
 bridge.oncalltool = async (params) => {
-  window.hostCalls.push(String((params.arguments?.request as { action?: string })?.action));
+  window.hostCalls.push(
+    String((params.arguments?.request as { action?: string })?.action ?? params.name),
+  );
   if (
     window.dropDiagnostics &&
-    (params.arguments?.request as { action?: string })?.action === 'diagnostics'
+    ((params.arguments?.request as { action?: string })?.action === 'diagnostics' ||
+      params.name === 'diagnostics_info')
   )
     return new Promise(() => {});
   return window.canvasTool(params);

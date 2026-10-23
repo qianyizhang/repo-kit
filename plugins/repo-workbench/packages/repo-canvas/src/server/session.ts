@@ -24,6 +24,12 @@ export class CanvasSession {
     this.state = { view, revision, observedAt: new Date().toISOString() };
     return { revision };
   }
+  touch(expected: string) {
+    if (!this.state || this.state.revision !== expected)
+      throw new Error('Conflict: canvas state changed. Publish a fresh view.');
+    this.state = { ...this.state, observedAt: new Date().toISOString() };
+    return { revision: expected };
+  }
   snapshot(includeDocument = false) {
     if (!this.state)
       return { available: false, reason: 'The panel has not reported its live state.' };

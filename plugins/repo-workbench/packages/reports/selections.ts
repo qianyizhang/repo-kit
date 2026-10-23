@@ -1,4 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import {
+  ScopedRegistry,
+  LOCAL_PRINCIPAL,
+  type Principal,
+} from '../../../mcp-app-runtime/src/registry.ts';
+import { immutable, RuntimeError } from '../../../mcp-app-runtime/src/definition.ts';
 import { z } from 'zod';
 import { summarize, selectRecords, type UsageData, type UsageRow } from '../usage/model.ts';
 import { bucketId } from '../usage/overview.ts';
@@ -44,17 +49,40 @@ const preview = (event: TraceEvent) => ({
 });
 
 export class ReportSelections {
-  private selections = new Map<string, Selection>();
+  #registry: ScopedRegistry<Selection>;
+  #owner: Principal;
+  constructor(
+    registry = new ScopedRegistry<Selection>({
+      maxEntries: 40,
+      maxBytes: 128 * 1024 * 1024,
+      maxAgeMs: 24 * 3600_000,
+      overflow: 'evict',
+    }),
+    owner: Principal = LOCAL_PRINCIPAL,
+  ) {
+    this.#registry = registry;
+    this.#owner = immutable(owner);
+  }
+  forOwner(owner: Principal) {
+    return new ReportSelections(this.#registry, owner);
+  }
+  dispose() {
+    this.#registry.close();
+  }
   private save(value: Selection) {
-    if (this.selections.size >= 40) this.selections.delete(this.selections.keys().next().value!);
-    const selectionId = randomUUID();
-    this.selections.set(selectionId, value);
-    return selectionId;
+    const bytes = Buffer.byteLength(JSON.stringify(value));
+    return this.#registry.create(this.#owner, immutable(value), bytes);
   }
   private get(id: string): Selection {
-    const value = this.selections.get(id);
-    if (!value) throw new Error('Selection expired. Attach the selection again.');
-    return value;
+    try {
+      return this.#registry.resolve(id, this.#owner);
+    } catch (error) {
+      if (!(error instanceof RuntimeError) || error.code !== 'expired') throw error;
+      throw new RuntimeError(
+        'expired',
+        'Selection expired or unavailable for this caller. Attach the selection again.',
+      );
+    }
   }
   usage(snapshot: UsageData, filters: z.infer<typeof filtersSchema>, ids?: string[]) {
     const selected = ids && new Set(ids);

@@ -47,7 +47,13 @@ it('automatically binds per-call metadata, isolates panels and restores an expli
     expect(
       (await host.connect({ panelId: '33333333-3333-4333-8333-333333333333' })).target?.contextId,
     ).not.toBe(first.target?.contextId);
-    expect((await host.connect({}, {})).target).toBeNull();
+    const missing = await host.client.callTool({
+      name: 'canvas_app',
+      arguments: { request: { action: 'connect', args: { panelId } } },
+      _meta: {},
+    });
+    expect(missing.isError).toBe(true);
+    expect(missing._meta?.['repo-kit/error']).toBe('forbidden');
     const crossed = await host.client.callTool({
       name: 'canvas_app',
       arguments: { contextId: first.target!.contextId, request: { action: 'state', args: {} } },

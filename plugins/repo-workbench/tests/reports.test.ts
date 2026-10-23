@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, readFile, appendFile, cp, writeFile } from 'node:fs
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from './host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { z } from 'zod';
 import { createFixture } from '../packages/usage/fixture.ts';
@@ -132,6 +132,20 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
     name: 'usage_summary',
     arguments: { selectionId: selection.selectionId },
   });
+  for (const metadata of [{ threadId: crypto.randomUUID() }, {}]) {
+    const expectedCode = 'threadId' in metadata ? 'expired' : 'forbidden';
+    for (const tool of [
+      { name: 'usage_summary', arguments: { selectionId: selection.selectionId } },
+      {
+        name: 'report_app',
+        arguments: { contextId: a.contextId, expectedRevision: 0, request: { action: 'status' } },
+      },
+    ]) {
+      const rejected = await client.callTool({ ...tool, _meta: metadata });
+      assert.equal(rejected.isError, true);
+      assert.equal(rejected._meta?.['repo-kit/error'], expectedCode);
+    }
+  }
   assert.doesNotMatch(JSON.stringify(frozen), /sources|sha256|PRIVATE_PROMPT_SENTINEL/);
   const provenance = await client.callTool({
     name: 'report_provenance',

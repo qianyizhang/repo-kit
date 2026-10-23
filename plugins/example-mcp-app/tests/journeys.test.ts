@@ -1,3 +1,4 @@
+import { LOCAL_PRINCIPAL } from '../../mcp-app-runtime/src/registry.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -23,17 +24,20 @@ void test('panel reports evict oldest and support selecting one panel', () => {
   const reports = new PanelReports();
   const ids = Array.from({ length: 13 }, () => randomUUID());
   for (const panelId of ids)
-    reports.put({
-      panelId,
-      build: 'test',
-      host: { name: 'test', version: '1' },
-      connection: 'Connected',
-      mode: 'live',
-      runs: [],
-      events: [],
-      dropped: 0,
-    });
-  assert.equal(reports.list().length, 12);
-  assert.equal(reports.list(ids[0]).length, 0);
-  assert.equal(reports.list(ids[12]).length, 1);
+    reports.put(
+      {
+        panelId,
+        build: 'test',
+        host: { name: 'test', version: '1' },
+        connection: 'Connected',
+        mode: 'live',
+        runs: [],
+        events: [],
+        dropped: 0,
+      },
+      LOCAL_PRINCIPAL,
+    );
+  assert.equal(reports.list(LOCAL_PRINCIPAL).length, 12);
+  assert.equal(reports.list(LOCAL_PRINCIPAL, ids[0]).length, 0);
+  assert.equal(reports.list(LOCAL_PRINCIPAL, ids[12]).length, 1);
 });

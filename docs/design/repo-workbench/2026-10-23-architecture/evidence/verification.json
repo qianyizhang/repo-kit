@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "verifiedOn": "2026-10-24",
+  "timezone": "Asia/Shanghai",
+  "baseCommit": "e434aaa7c383f943777adb6739458932a720e58f",
+  "candidate": "Disposable export of base plus exact owned paths; independent Git index; fresh empty-cache installs for all three packages.",
+  "implementationManifest": "implementation-sha256.json",
+  "implementationManifestSha256": "5da7a798638d7ecb0eafd97b530b9705f3f9d7a42a51a66502df0b15e66ef6ba",
+  "runtime": {
+    "node": "24.21.0",
+    "npm": "11.19.0",
+    "python": "3.12"
+  },
+  "checks": {
+    "runtime": {
+      "passed": 10
+    },
+    "workbench": {
+      "vitestPassed": 44,
+      "nodePassed": 54,
+      "nodeSkipped": 2,
+      "browserPassed": 45
+    },
+    "example": {
+      "nodePassed": 12,
+      "browserPassed": 11
+    },
+    "standaloneLoopback": {
+      "passed": 10,
+      "skipped": 0
+    },
+    "root": {
+      "tests": 108,
+      "passed": 105,
+      "skipped": 3
+    },
+    "skills": "source-only passed",
+    "ruffFormat": "passed",
+    "ruffLint": "passed",
+    "npmCi": "three fresh empty caches; all passed"
+  },
+  "skipAccounting": [
+    "Workbench check skips loopback in the sandbox; the separate approved loopback run passed all 10 tests.",
+    "The opt-in native Codex configuration probe was not run.",
+    "Root skips three optional Copier smoke tests; template/Copier files are unchanged."
+  ],
+  "visual": {
+    "environment": "In-app browser and actual bundled app in a local SDK host; temporary synthetic repository and logs. No real conversation send.",
+    "checks": [
+      "Canvas App info labels, compatibility and expandable record",
+      "Frozen exact request with surrounding whitespace; bounded list/payload view",
+      "Selected request retains DOM focus through continued polling",
+      "Report implemented/baseline maps and terminal-lifetime simulation",
+      "390 px frame: document client width and scroll width both 375 px; no horizontal overflow"
+    ],
+    "captures": [
+      "canvas-info.jpg",
+      "canvas-interaction-final.jpg",
+      "implemented-ownership.jpg",
+      "report-narrow.jpg"
+    ],
+    "limits": [
+      "This is SDK fixture evidence, not native installed-panel acceptance.",
+      "Early canvas-info.jpg and canvas-interaction.jpg were captured before the focus repair; the final interaction screenshot records its replacement."
+    ]
+  },
+  "review": {
+    "method": "Two passes in this session: intent/failure behavior, then repository fit and ownership. No independent reviewer was used.",
+    "resolved": [
+      "Standalone initial scan cache now transfers into ReportSession.",
+      "Authored v2 review exports remain accepted alongside recorded v3.",
+      "Runtime error identity survives report adapters.",
+      "Canvas browser fixture uses the packaged CLI and matching resource.",
+      "Background polls no longer recreate unchanged inspector rows or discard focus."
+    ]
+  },
+  "limits": [
+    "No installation, push, publication or hosted CI run was performed.",
+    "Native panel activation and live cross-chat process sharing remain unverified.",
+    "Build receipts from the exported candidate explicitly record unavailable Git HEAD rather than a fabricated clean source revision."
+  ],
+  "logs": {
+    "mcp-app-runtime-ci.log": "4cdd00e15620fe59665cde547143c01c3f7d7213a6f860f3f637b2a7dce0b732",
+    "repo-workbench-ci.log": "1498ee7ec8108f3c0ba821b101d80f572372033caaae7a33dbf276d9440b132e",
+    "example-mcp-app-ci.log": "e4334397a717c0beeae3a79c2b6af261494bc25ef135123d31d35f4fbf383081",
+    "mcp-app-runtime-check.log": "f83571540ca641f99f98fb7fb774c5f10b873919dc5bd2602c93f7cbf752a3fe",
+    "repo-workbench-check.log": "f0e5bd3173f380cfe059e750b3c7cc197d91b33d997b645b111c08b7ea522ca1",
+    "example-mcp-app-check.log": "01de11521d41d6fe3e3a8af1b1ef0cecd85826814a9da1844c4116555689c77e",
+    "workbench-browser.log": "1f377fcaf68fdeef1712df148ebf0f1c6adfb2436ef34476a098bee77d0bbb99",
+    "example-browser.log": "c1ba36d1db0439586e47356cccf263617ea535abb7eb0b9a0880cc7c4bbbc6b9",
+    "loopback.log": "6655e7c449e8e0d739730570ea1ea7e10f058a34a902b299a5c4fc65450bc848",
+    "root-check.log": "c0d315c5d583d027895087e3f0796e69c92f201993507166f2683eeaed776bf8",
+    "skills-check.log": "da4dd8113a63cb19eda12a79e69c5b44275b18862f81ef02285187d562338813",
+    "ruff-format.log": "7b4549ac2e9820f695aa60c4695796689a11c0dce1a49f0b01a6250eca9f55aa",
+    "ruff-check.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  }
+}

@@ -26,6 +26,7 @@ is the host bridge itself. Simulated conversation exists only in `tests/`.
 Use Node 24.21 or newer:
 
 ```sh
+npm ci --prefix ../mcp-app-runtime --ignore-scripts
 npm ci --ignore-scripts
 npm run build
 npm run preview
@@ -165,3 +166,10 @@ Fixtures, browser tests and a separate native probe cannot replace this check.
 The pinned compatibility boundary is MCP Apps SDK 1.7.5 with MCP SDK 1.32.1.
 See [design.md](design.md), the [official SDK](https://github.com/modelcontextprotocol/ext-apps)
 and [plugin packaging](https://developers.openai.com/plugins/build/plugins).
+
+Shared host lifecycle, event masking, metadata storage and retention now come from
+`../mcp-app-runtime`. The app keeps its teaching scenarios and four-role trace
+projection. Panels and retained diagnostic payloads require trusted caller identity;
+fixture mode remains local. Both plugin suites and the shared runtime run in CI.
+The generated `dist/release.json` separates source/input identity from emitted-byte
+hashes. It does not prove that an existing Codex panel has been refreshed.

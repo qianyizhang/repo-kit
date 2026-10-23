@@ -1,6 +1,7 @@
-import { App, PostMessageTransport, applyDocumentTheme } from '@modelcontextprotocol/ext-apps';
+import { HostSession } from '../../mcp-app-runtime/src/host-session.ts';
+import { PostMessageTransport, applyDocumentTheme } from '@modelcontextprotocol/ext-apps';
 import { z } from 'zod';
-import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
+import { RuntimeError } from '../../mcp-app-runtime/src/definition.ts';
 import { TraceLog, observedTransport, boundedPayload } from './trace.ts';
 import { serverIdentitySchema, snapshotSchema, type JourneyId, type Run } from './contracts.ts';
 import { journeys, makeFixture, type Scenario } from './journeys.ts';
@@ -42,8 +43,7 @@ const liveRuns: Run[] = [],
   steps = new Map<string, number>(),
   checked = new Set<string>();
 const observations = new Observations();
-const lifetime = new AbortController(),
-  options = { timeout: 10000, signal: lifetime.signal };
+const options = { timeout: 10000 };
 let refreshFlight: Promise<void> | undefined, poll: ReturnType<typeof setTimeout> | undefined;
 let capturePending = false,
   infoRevision = 0;
@@ -60,11 +60,26 @@ const log = new TraceLog('app', () => {
     });
   }
 });
-const app = new App(
-  { name: 'Example MCP App', version: '0.4.0' },
-  { availableDisplayModes: ['inline', 'fullscreen'] },
-  { autoResize: true, strict: true },
+const app = new HostSession(
+  {
+    name: 'Example MCP App',
+    version: '0.4.0',
+    capabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+  },
+  {
+    onhostcontextchanged: (context) => {
+      if (context.theme) applyDocumentTheme(context.theme);
+    },
+    ontoolinputpartial: () => renderEvidence(),
+    ontoolinput: () => renderEvidence(),
+    ontoolresult: () => renderEvidence(),
+    ontoolcancelled: (params) => log.local('host.tool-cancelled', params, 'captured', 'startup'),
+    onteardown: () => teardown(),
+    onclose: () => disconnected(),
+    onerror: (error) => log.local('app.error', String(error), 'error'),
+  },
 );
+const lifetime = { signal: app.signal };
 const actions = ['resource', 'tool', 'context', 'message'] as const;
 function currentRun() {
   return mode === 'fixture'
@@ -544,7 +559,7 @@ async function runLive() {
     }
   } catch (error) {
     if (run.status !== 'closed' && !lifetime.signal.aborted) {
-      const timeout = error instanceof McpError && error.code === Number(ErrorCode.RequestTimeout);
+      const timeout = error instanceof RuntimeError && error.code === 'uncertain';
       run.status = timeout ? 'uncertain' : 'error';
       run.summary = timeout
         ? 'No acknowledgment arrived. Delivery is uncertain; no automatic retry.'
@@ -561,22 +576,7 @@ async function runLive() {
     renderEvidence();
   }
 }
-app.onhostcontextchanged = (context) => {
-  if (context.theme) applyDocumentTheme(context.theme);
-};
-app.ontoolinputpartial = () => {
-  renderEvidence();
-};
-app.ontoolinput = () => {
-  renderEvidence();
-};
-app.ontoolresult = () => {
-  renderEvidence();
-};
-app.ontoolcancelled = (params) => {
-  log.local('host.tool-cancelled', params, 'captured', 'startup');
-};
-app.onteardown = () => {
+function teardown() {
   let run = liveRuns.find((r) => r.id === log.teardownRun);
   if (!run) {
     run = {
@@ -604,7 +604,7 @@ app.onteardown = () => {
   log.local('app.cleanup', {}, 'captured', run.id);
   connection = 'Closed';
   clearTimeout(poll);
-  lifetime.abort(new Error('Panel closed'));
+
   for (const other of liveRuns)
     if (other.status === 'running') {
       other.status = 'uncertain';
@@ -614,11 +614,11 @@ app.onteardown = () => {
   controls();
   renderEvidence();
   return {};
-};
-app.onclose = () => {
+}
+function disconnected() {
   if (connection !== 'Closed') connection = 'Disconnected';
   clearTimeout(poll);
-  lifetime.abort(new Error('Host disconnected'));
+
   for (const run of liveRuns)
     if (run.status === 'running') {
       run.status = 'uncertain';
@@ -627,8 +627,7 @@ app.onclose = () => {
   busy = false;
   controls();
   renderEvidence();
-};
-app.onerror = (error) => log.local('app.error', String(error), 'error');
+}
 for (const [id, d] of Object.entries(journeys)) {
   const b = document.createElement('button');
   b.textContent =

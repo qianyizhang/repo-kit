@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from './host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
   CallToolRequestSchema,
@@ -87,7 +87,10 @@ const server = createServer((request, response) => {
       const message = requestSchema.parse(JSON.parse(raw));
       const result =
         message.method === 'tools/call'
-          ? await client.callTool(message.params)
+          ? await client.callTool({
+              ...message.params,
+              _meta: { ...message.params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
+            })
           : await client.readResource(message.params);
       response.end(JSON.stringify(result));
       return;

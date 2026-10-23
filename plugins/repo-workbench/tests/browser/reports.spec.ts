@@ -1,10 +1,10 @@
 import { zstdCompressSync } from 'node:zlib';
 import { z } from 'zod';
-import { eventSchema } from '../../packages/diagnostics/events.ts';
+import { eventSchema } from '../../../mcp-app-runtime/src/events.ts';
 import { scan } from '../../packages/usage/scan.ts';
 import { render, runtime } from '../../packages/usage/build.ts';
 import { test, expect, type Page } from '@playwright/test';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from '../host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { mkdtemp, mkdir, readFile, rm, appendFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -75,7 +75,10 @@ async function openHost(
   await page.exposeFunction('reportMessage', beforeMessage);
   await page.exposeFunction('reportCall', async (params: Parameters<Client['callTool']>[0]) => {
     await beforeCall?.(params);
-    return client.callTool(params);
+    return client.callTool({
+      ...params,
+      _meta: { ...params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
+    });
   });
   await page.route('**/reports-host', (route) =>
     route.fulfill({

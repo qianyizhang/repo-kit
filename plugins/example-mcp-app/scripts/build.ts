@@ -1,3 +1,4 @@
+import { sharedFingerprint, releaseReceipt } from '../../mcp-app-runtime/src/release.ts';
 import { build } from 'rolldown';
 import { createHash } from 'node:crypto';
 import { mkdir, readFile, readdir, writeFile, rm, lstat, mkdtemp } from 'node:fs/promises';
@@ -6,13 +7,15 @@ import { tmpdir } from 'node:os';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 const root = resolve(import.meta.dirname, '..');
-const hash = createHash('sha256');
+const hash = createHash('sha256').update(await sharedFingerprint());
 for (const dir of ['src', 'scripts']) {
   for (const file of (await readdir(resolve(root, dir))).sort()) {
     hash.update(`${dir}/${file}`).update(await readFile(resolve(root, dir, file)));
   }
 }
 hash.update(await readFile(resolve(root, 'package-lock.json')));
+for (const path of ['package.json', 'plugin.json', 'mcp.json', 'tsconfig.json'])
+  hash.update(path).update(await readFile(resolve(root, path)));
 const fingerprint = hash.digest('hex').slice(0, 12);
 const dist = resolve(root, 'dist');
 const existing = await lstat(dist).catch(() => undefined);
@@ -72,4 +75,5 @@ try {
 }
 await bundle('src/preview.ts', 'node', 'preview.mjs');
 await writeFile(resolve(dist, 'build.json'), JSON.stringify({ build: fingerprint }) + '\n');
+await releaseReceipt(root, dist, fingerprint);
 console.log(`Built Example MCP App ${fingerprint}`);

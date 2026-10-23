@@ -1,22 +1,28 @@
 import { z } from 'zod';
-import { eventSchema, eventMetadataSchema } from './events.ts';
-import type { LogStore } from './store.ts';
+import { eventSchema, eventMetadataSchema } from '../../../mcp-app-runtime/src/events.ts';
+import type { LogStore } from '../../../mcp-app-runtime/src/store.ts';
 
 type Definition = {
   name: string;
   description: string;
   input: z.ZodObject;
   writes: boolean;
-  run(value: unknown): Record<string, unknown>;
+  run(value: unknown, owner: string): Record<string, unknown>;
 };
 function define<I extends z.ZodObject>(
   name: string,
   description: string,
   input: I,
   writes: boolean,
-  run: (args: z.infer<I>) => Record<string, unknown>,
+  run: (args: z.infer<I>, owner: string) => Record<string, unknown>,
 ): Definition {
-  return { name, description, input, writes, run: (value) => run(input.parse(value)) };
+  return {
+    name,
+    description,
+    input,
+    writes,
+    run: (value, owner) => run(input.parse(value), owner),
+  };
 }
 /** HTTP and MCP publish the same scoped diagnostic operations. */
 export function diagnosticOperations(store: LogStore, identity: object, catalog: () => unknown[]) {
@@ -46,8 +52,8 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
       'Retain one app observation in bounded memory and persist its metadata only. App-origin observations remain claims.',
       z.object({ event: eventSchema }).strict(),
       true,
-      ({ event }) => {
-        store.append({ ...event, source: 'app' });
+      ({ event }, owner) => {
+        store.append({ ...event, owner, source: 'app' });
         return { stored: !store.error, health: store.status().health };
       },
     ),
@@ -61,11 +67,13 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
         })
         .strict(),
       false,
-      ({ limit, interaction }) => ({
+      ({ limit, interaction }, owner) => ({
         events: store.events
           .filter(
             (event) =>
-              event.source === 'server' && (!interaction || event.interaction === interaction),
+              event.owner === owner &&
+              event.source === 'server' &&
+              (!interaction || event.interaction === interaction),
           )
           .slice(-limit)
           .map((event) => eventMetadataSchema.parse(event)),
@@ -76,8 +84,8 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
       'Read one frozen, masked, bounded diagnostic event. Expired payloads are unavailable.',
       z.object({ id: z.uuid() }).strict(),
       false,
-      ({ id }) => {
-        const event = store.events.find((event) => event.id === id);
+      ({ id }, owner) => {
+        const event = store.events.find((event) => event.id === id && event.owner === owner);
         if (!event) throw new Error('Observation unavailable or expired');
         return { event };
       },
@@ -87,7 +95,7 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
       'Save diagnostic capture: explicitly persist the retained masked payloads for one selected interaction. No source reread or replay.',
       z.object({ interaction: z.uuid() }).strict(),
       true,
-      ({ interaction }) => store.capture(interaction),
+      ({ interaction }, owner) => store.capture(interaction, owner),
     ),
   ];
 }

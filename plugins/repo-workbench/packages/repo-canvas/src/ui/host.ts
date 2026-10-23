@@ -14,24 +14,29 @@ import {
 } from '../model/contracts';
 import type { CanvasView } from '../model/session';
 import { BUILD, VERSION } from '../model/build';
+import { RuntimeError } from '../../../../../mcp-app-runtime/src/definition.ts';
 import { HostClient } from './host-client';
 export type { ServerInfo } from '../model/contracts';
 export const hosted = !!document.querySelector('meta[name="repo-canvas-mcp-app"]');
 let contextId: string | undefined;
 let repository: string | undefined;
 const panelId = crypto.randomUUID();
+let bindingGeneration = 0;
 let latestDraft: Draft | null | undefined;
 let latestView: CanvasView | undefined;
 let connectionState: ConnectionState | undefined;
 let connecting: Promise<boolean> | undefined;
-const client = new HostClient((value) => {
-  const target = targetSchema.safeParse(value);
-  if (!contextId && target.success) {
-    contextId = target.data.contextId;
-    repository = target.data.repo;
-    window.dispatchEvent(new Event('repo-canvas-target'));
-  }
-});
+const client = new HostClient(
+  (value) => {
+    const target = targetSchema.safeParse(value);
+    if (!contextId && target.success) {
+      contextId = target.data.contextId;
+      repository = target.data.repo;
+      window.dispatchEvent(new Event('repo-canvas-target'));
+    }
+  },
+  () => connectionStatus(),
+);
 export const interactionDiagnostics = client.inspection;
 export function inspectLastMessage() {
   client.inspection.show('Interactions', client.lastMessageInteraction);
@@ -57,16 +62,28 @@ function toolError(result: CallToolResult): string | undefined {
     ? (result.content?.find((c) => c.type === 'text')?.text ?? 'Canvas tool failed')
     : undefined;
 }
-async function appCall<K extends Action>(action: K, args: Input<K>, timeout?: number) {
+async function appCall<K extends Action>(
+  action: K,
+  args: Input<K>,
+  timeout?: number,
+  interaction?: string,
+) {
   const input = contracts[action].input.parse(args);
-  return client.call({ action, args: input }, contextId, timeout);
+  return client.call({ action, args: input }, contextId, timeout, interaction);
 }
-export async function hostTool<K extends Operation>(action: K, args: Input<K>): Promise<Output<K>> {
+export async function hostTool<K extends Operation>(
+  action: K,
+  args: Input<K>,
+  interaction?: string,
+): Promise<Output<K>> {
   if (action === 'draft_write') latestDraft = contracts.draft_write.input.parse(args).draft;
   if (action === 'view_write') latestView = contracts.view_write.input.parse(args).view;
   const previousContext = contextId;
-  let result = await appCall(action, args);
-  if (toolError(result)?.startsWith('CONTEXT_UNAVAILABLE:')) {
+  const generation = bindingGeneration;
+  let result = await appCall(action, args, undefined, interaction);
+  if (generation !== bindingGeneration)
+    throw new RuntimeError('stale', 'Canvas target changed before the operation completed.');
+  if (result.isError && result._meta?.['repo-kit/error'] === 'expired') {
     // Only retry a confirmed pre-operation context rejection, never an uncertain transport failure.
     if (contextId === previousContext) {
       connecting ??= connectRepository(repository, true).finally(() => {
@@ -74,10 +91,14 @@ export async function hostTool<K extends Operation>(action: K, args: Input<K>): 
       });
       await connecting;
     }
-    result = await appCall(action, args);
+    if (generation !== bindingGeneration)
+      throw new RuntimeError('stale', 'Canvas target changed during recovery.');
+    result = await appCall(action, args, undefined, interaction);
   }
+  if (generation !== bindingGeneration)
+    throw new RuntimeError('stale', 'Canvas target changed before the operation completed.');
   const error = toolError(result);
-  if (error) throw new Error(error);
+  if (error) throw new RuntimeError('unavailable', error);
   if (!result.structuredContent) throw new Error('Canvas tool returned no data');
   return parseOutput(action, result.structuredContent.value);
 }
@@ -85,9 +106,9 @@ export async function requireMessaging() {
   if (!hosted) throw new Error('Open Repo Canvas from a supported host to send messages.');
   await client.requireMessaging();
 }
-export async function sendToChat(text: string) {
+export async function sendToChat(text: string, interaction?: string) {
   await requireMessaging();
-  await client.sendMessage(text);
+  await client.sendMessage(text, interaction);
 }
 
 async function connectRepository(repo?: string, recover = false): Promise<boolean> {
@@ -96,6 +117,7 @@ async function connectRepository(repo?: string, recover = false): Promise<boolea
   if (error) throw new Error(error);
   const value = parseOutput('connect', result.structuredContent?.value);
   connectionState = value;
+  client.requireBuild(value.server.build);
   if (!value.target) {
     window.dispatchEvent(new Event('repo-canvas-connection'));
     return false;
@@ -122,6 +144,7 @@ async function connectRepository(repo?: string, recover = false): Promise<boolea
 export async function openRepository(repo: string) {
   // Let an in-flight automatic lookup finish before honoring the explicit choice.
   await connecting?.catch(() => undefined);
+  bindingGeneration++;
   connecting = connectRepository(repo).finally(() => {
     connecting = undefined;
   });

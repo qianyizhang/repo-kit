@@ -6,6 +6,7 @@ import { randomUUID } from 'node:crypto';
 import { Worker } from 'node:worker_threads';
 import { overviewSchema } from './contracts.ts';
 import type { Snapshot, UsageOverview } from '../usage/model.ts';
+import type { ScanCache } from '../usage/scan.ts';
 declare const WORKBENCH_BUNDLED: boolean;
 const zip = promisify(gzip),
   unzip = promisify(gunzip);
@@ -36,13 +37,13 @@ export type HistoryResult = {
   overviews: UsageOverview[];
   timings: Record<string, number>;
 };
-export function scanHistory(roots: string[]) {
+export function scanHistory(roots: string[], index?: string, seed?: ScanCache) {
   const worker = new Worker(
     new URL(
       typeof WORKBENCH_BUNDLED !== 'undefined' ? './reports-worker.mjs' : './scan-worker.ts',
       import.meta.url,
     ),
-    { workerData: roots },
+    { workerData: { roots, index, seed } },
   );
   const promise = new Promise<HistoryResult>((resolve, reject) => {
     let delivered = false;

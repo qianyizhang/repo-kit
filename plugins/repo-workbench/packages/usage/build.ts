@@ -1,5 +1,9 @@
-import { readSessionBody } from '../trace/jsonl.ts';
-import { createTraceReader, textBlock } from './trace-service.ts';
+import { RuntimeError } from '../../../mcp-app-runtime/src/definition.ts';
+import { renderReview } from '../session-review/build.ts';
+import { ReportSession } from '../reports/session.ts';
+import { ReportSelections } from '../reports/selections.ts';
+import { textSchema } from '../reports/contracts.ts';
+import { z } from 'zod';
 import { asset } from '../runtime/assets.ts';
 import { mkdtemp, mkdir, writeFile, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -94,9 +98,16 @@ export function startServer(
   index?: string,
 ): Promise<{ server: Server; url: string }> {
   let html = initial.html;
-  let currentSnapshot = initial.snapshot;
-  const fullTrace = createTraceReader(() => currentSnapshot);
-  let refreshing = false;
+  const selections = new ReportSelections();
+  const report = new ReportSession({ roots, kind: 'usage', index }, selections, {
+    snapshot: initial.snapshot,
+    cache,
+  });
+  const fullTrace = (id: string) =>
+    report.trace(id).catch((error) => {
+      if (error instanceof RuntimeError && error.code === 'not_found') return null;
+      throw error;
+    });
   const diagnostics = reportsMcp(),
     diagnosticNonce = randomUUID();
   const withDiagnostics = (value: string) =>
@@ -149,54 +160,55 @@ export function startServer(
       );
       response.once('finish', () => completed(response.statusCode));
       if (request.method === 'GET' && ['/trace-record', '/trace-image'].includes(target.pathname)) {
-        const trace = await fullTrace(target.searchParams.get('session') ?? '');
-        const key = target.searchParams.get('event');
-        const thread = trace?.data.threads.find((t) =>
-          t.turns.some((turn) => turn.events.some((e) => e.key === key)),
-        );
-        const event = thread?.turns.flatMap((turn) => turn.events).find((e) => e.key === key);
-        if (!thread || !event?.body) {
+        const session = target.searchParams.get('session') ?? '';
+        const trace = await fullTrace(session);
+        if (!trace) {
           response.writeHead(404).end('Record not found');
           return;
         }
-        if (
-          target.searchParams.get('revision') !==
-          event.body.sources.map((source) => source.sha256).join('.')
-        ) {
-          response.writeHead(409).end('Source record changed. Reopen the trace to refresh it.');
-          return;
-        }
-        if (target.pathname === '/trace-record') {
-          const field = target.searchParams.get('field');
-          const offset = Number(target.searchParams.get('offset') ?? 0);
-          if (
-            !['text', 'output'].includes(field ?? '') ||
-            !Number.isSafeInteger(offset) ||
-            offset < 0
-          ) {
-            response.writeHead(400).end('Invalid record range');
-            return;
+        const event = target.searchParams.get('event') ?? '';
+        const revision = target.searchParams.get('revision') ?? '';
+        const base = { session, event, revision };
+        try {
+          if (target.pathname === '/trace-record') {
+            const field = z.enum(['text', 'output']).parse(target.searchParams.get('field'));
+            const offset = z
+              .number()
+              .int()
+              .nonnegative()
+              .parse(Number(target.searchParams.get('offset') ?? 0));
+            const value = textSchema.parse(
+              await report.execute(
+                { action: 'text', ...base, field, offset },
+                report.binding.revision,
+              ),
+            );
+            response.setHeader('Content-Type', 'application/json');
+            response.end(JSON.stringify(value));
+          } else {
+            if (!target.searchParams.has('image')) throw new Error('Invalid image index');
+            const index = z
+              .number()
+              .int()
+              .nonnegative()
+              .parse(Number(target.searchParams.get('image')));
+            const value = z
+              .object({ image: z.string() })
+              .parse(
+                await report.execute({ action: 'image', ...base, index }, report.binding.revision),
+              );
+            const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/.exec(
+              value.image,
+            );
+            if (!match) throw new Error('Image unavailable');
+            response.setHeader('Content-Type', match[1]);
+            response.end(Buffer.from(match[2], 'base64'));
           }
-          const body = await readSessionBody(thread, event);
-          const value = field === 'output' ? (body.output ?? '') : body.text;
-          response.setHeader('Content-Type', 'application/json');
-          response.end(JSON.stringify(textBlock(value, offset)));
-        } else {
-          const index = Number(target.searchParams.get('image'));
-          if (!target.searchParams.has('image') || !Number.isSafeInteger(index) || index < 0) {
-            response.writeHead(400).end('Invalid image index');
-            return;
-          }
-          const body = await readSessionBody(thread, event);
-          const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=\s]+)$/.exec(
-            body.imageUrls[index] ?? '',
-          );
-          if (!match) {
-            response.writeHead(404).end('Image unavailable');
-            return;
-          }
-          response.setHeader('Content-Type', match[1]);
-          response.end(Buffer.from(match[2], 'base64'));
+        } catch (error) {
+          const code = error instanceof RuntimeError ? error.code : undefined;
+          response
+            .writeHead(code === 'stale' ? 409 : code === 'not_found' ? 404 : 400)
+            .end(String(error));
         }
         return;
       }
@@ -210,7 +222,7 @@ export function startServer(
         }
         if (target.pathname === '/trace') {
           response.setHeader('Content-Type', 'text/html; charset=utf-8');
-          response.end(withDiagnostics(trace.html));
+          response.end(withDiagnostics(await renderReview(trace.data)));
         } else {
           response.setHeader('Content-Type', 'application/json');
           response.end(
@@ -241,30 +253,33 @@ export function startServer(
           response.writeHead(403).end('Same-origin refresh required');
           return;
         }
-        if (refreshing) {
-          response.writeHead(409).end('Scan already running');
-          return;
-        }
-        refreshing = true;
         try {
-          const prior = new Map(cache);
-          const snapshot = await scan(roots, cache);
-          if (index) await saveIndex(index, cache, prior);
-          currentSnapshot = snapshot;
-          html = await render(snapshot, initial.javascript);
-          await writeFile(initial.file, html);
-          await writeFile(resolve(initial.output, 'usage.json'), JSON.stringify(snapshot));
+          const snapshot = await report.refreshRaw(async (snapshot) => {
+            const nextHtml = await render(snapshot, initial.javascript);
+            await writeFile(initial.file, nextHtml);
+            await writeFile(resolve(initial.output, 'usage.json'), JSON.stringify(snapshot));
+            html = nextHtml;
+            return snapshot;
+          });
           response.setHeader('Content-Type', 'application/json');
           response.end(JSON.stringify(snapshot));
-        } finally {
-          refreshing = false;
+        } catch (error) {
+          response
+            .writeHead(error instanceof RuntimeError && error.code === 'busy' ? 409 : 500)
+            .end(String(error));
         }
+
         return;
       }
       response.writeHead(404).end('Not found');
     })().catch((e: unknown) => {
       response.writeHead(500).end(e instanceof Error ? e.message : String(e));
     });
+  });
+  server.once('close', () => {
+    report.dispose();
+    selections.dispose();
+    void diagnostics.close();
   });
   return new Promise((resolvePromise, reject) => {
     server.once('error', reject);

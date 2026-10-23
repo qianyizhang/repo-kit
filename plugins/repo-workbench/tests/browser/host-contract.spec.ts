@@ -1,13 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
+import { HostTestClient as Client } from '../host-client.ts';
+import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { mkdtemp, writeFile, rm, realpath } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { canvasMcp } from '../../packages/repo-canvas/src/server/mcp';
-import { Repository } from '../../packages/repo-canvas/src/server/repository';
+import { join, resolve } from 'node:path';
 import { hostDocument } from './host-fixture';
 
 async function withHost(
@@ -20,11 +18,19 @@ async function withHost(
   process.env.XDG_CONFIG_HOME = join(root, 'config');
   execFileSync('git', ['init', '-q', root]);
   await writeFile(join(root, 'README.md'), 'Host contract fixture');
-  const server = canvasMcp(undefined, new Repository(root));
   const client = new Client({ name: 'host-contract', version: '1' });
-  const [a, b] = InMemoryTransport.createLinkedPair();
-  await server.connect(a);
-  await client.connect(b);
+  await client.connect(
+    new StdioClientTransport({
+      command: process.execPath,
+      args: [resolve('dist/canvas-server.mjs'), '--repo', root],
+      env: {
+        ...process.env,
+        XDG_CONFIG_HOME: join(root, 'config'),
+        XDG_STATE_HOME: join(root, 'state'),
+      },
+      stderr: 'pipe',
+    }),
+  );
   try {
     const uri = (await client.listResources()).resources[0].uri;
     const resource = (await client.readResource({ uri })).contents[0];
@@ -35,7 +41,10 @@ async function withHost(
         (params.arguments?.request as { action?: string })?.action === 'state'
       )
         return { content: [], structuredContent: { value: { document: 'invalid' } } };
-      return client.callTool(params);
+      return client.callTool({
+        ...params,
+        _meta: { ...params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
+      });
     });
     const html = await hostDocument(resource.text, {
       messaging: options.messaging ?? true,
@@ -49,7 +58,6 @@ async function withHost(
   } finally {
     await page.close();
     await client.close();
-    await server.close();
     if (previousConfig === undefined) delete process.env.XDG_CONFIG_HOME;
     else process.env.XDG_CONFIG_HOME = previousConfig;
     await rm(root, { recursive: true, force: true });
@@ -111,14 +119,17 @@ test('teardown cancels pending tool calls instead of leaving UI work waiting', a
     await page.evaluate(() => {
       window.dropDiagnostics = true;
     });
-    await ui.locator('summary[aria-label="App info"]').click();
+    await ui.getByRole('button', { name: 'App info', exact: true }).click();
     await expect
-      .poll(() => page.evaluate(() => window.hostCalls.includes('diagnostics')))
+      .poll(() => page.evaluate(() => window.hostCalls.includes('diagnostics_info')))
       .toBe(true);
     await page.evaluate(() => window.testHost.teardownResource({}));
-    await expect(ui.locator('.connection-info [role="alert"]')).toContainText('Canvas closed', {
-      timeout: 2000,
-    });
+    await expect(ui.locator('.mcp-observability [role="status"]')).toContainText(
+      /closed|uncertain|abort/i,
+      {
+        timeout: 2000,
+      },
+    );
   });
 });
 
@@ -135,6 +146,38 @@ test('an uncertain message is never sent twice automatically', async ({ page }) 
     await expect.poll(() => page.evaluate(() => window.chatRequests.length)).toBe(1);
     await expect(ui.getByText(/Delivery is uncertain/)).toBeVisible({ timeout: 35000 });
     await expect(ui.getByRole('button', { name: 'Close local request' })).toBeVisible();
+    expect(await page.evaluate(() => window.chatRequests.length)).toBe(1);
+  });
+});
+
+test('a frozen send survives ninety seconds of actual background polling', async ({ page }) => {
+  test.setTimeout(120000);
+  await withHost(page, {}, async () => {
+    const ui = page.frameLocator('iframe');
+    await expect(ui.locator('.checkout-path')).toBeVisible();
+    const exact = '  retained user action  ';
+    await ui.getByRole('textbox', { name: 'Message Codex' }).fill(exact);
+    await ui.getByRole('button', { name: 'Send to chat' }).click();
+    await expect.poll(() => page.evaluate(() => window.chatRequests.length)).toBe(1);
+    expect(await page.evaluate(() => window.chatRequests[0])).toMatchObject({
+      content: [{ text: exact }],
+    });
+    // This is the temporal acceptance case: the former FIFO lost the send after ~64 seconds.
+    await page.waitForTimeout(91000);
+    expect(
+      await page.evaluate(() => window.hostCalls.filter((name) => name === 'agent_read').length),
+    ).toBeGreaterThan(60);
+    await ui.getByRole('button', { name: 'Inspect last send' }).click();
+    const dialog = ui.getByRole('dialog');
+    await expect(dialog.getByRole('button', { name: /ui\/message.*request/ })).toBeVisible();
+    await dialog.getByRole('button', { name: /ui\/message.*request/ }).click();
+    await expect(dialog.locator('.interaction-split pre')).toContainText(exact);
+    const calls = await page.evaluate(() => window.hostCalls.length);
+    await expect
+      .poll(() => page.evaluate(() => window.hostCalls.length))
+      .toBeGreaterThan(calls + 2);
+    await expect(dialog.getByRole('button', { name: /ui\/message.*request/ })).toBeFocused();
+    await expect(dialog.locator('.interaction-split pre')).toContainText(exact);
     expect(await page.evaluate(() => window.chatRequests.length)).toBe(1);
   });
 });

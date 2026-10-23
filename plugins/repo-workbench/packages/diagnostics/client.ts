@@ -1,5 +1,11 @@
+import { RuntimeError, immutable } from '../../../mcp-app-runtime/src/definition.ts';
 import { z } from 'zod';
-import { Recorder, eventSchema, type Event } from './events.ts';
+import {
+  Recorder,
+  eventSchema,
+  type Event,
+  type EventContext,
+} from '../../../mcp-app-runtime/src/events.ts';
 
 type Remote = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 export type Flow = { name: string; steps: string[]; request: unknown; reads: string[] };
@@ -16,28 +22,35 @@ export const plainMessageFlow: Flow = {
 };
 function node<K extends keyof HTMLElementTagNameMap>(tag: K, text = '') {
   const value = document.createElement(tag);
+  if (value instanceof HTMLButtonElement) value.type = 'button';
   value.textContent = text;
   return value;
 }
 /** Product views keep their layout. This optional inspector owns only diagnostics. */
 export class AppDiagnostics {
   readonly log: Recorder;
-  remote?: Remote;
+  get remote() {
+    return this.options.remote;
+  }
   private persistence = new Set<Promise<void>>();
   private recording = 'Live memory only; no payloads saved';
   private dialog?: HTMLDialogElement;
   private render?: () => void;
   lastInteraction?: string;
-  readonly options: {
+  #options: {
     name: string;
     version: string;
     build: string;
     mode: string;
     info?: () => unknown;
-    flows?: Flow[];
+    flows?: readonly Flow[];
+    remote?: Remote;
   };
+  get options() {
+    return this.#options;
+  }
   constructor(options: AppDiagnostics['options']) {
-    this.options = options;
+    this.#options = Object.freeze({ ...options, flows: options.flows && immutable(options.flows) });
     this.log = new Recorder('app', (event) => {
       if (!this.remote) return;
       const pending = this.remote('diagnostics_append', { event })
@@ -54,8 +67,14 @@ export class AppDiagnostics {
       void pending.finally(() => this.persistence.delete(pending));
     });
   }
-  async observe<T>(method: string, request: unknown, action: () => Promise<T>): Promise<T> {
-    const interaction = crypto.randomUUID();
+  async observe<T>(
+    method: string,
+    request: unknown,
+    action: () => Promise<T>,
+    options: EventContext & { interaction?: string } = {},
+  ): Promise<T> {
+    const interaction = options.interaction ?? crypto.randomUUID();
+    const context = { ...options, callId: options.callId ?? crypto.randomUUID() };
     this.lastInteraction = interaction;
     this.log.record(
       interaction,
@@ -64,6 +83,7 @@ export class AppDiagnostics {
       'request',
       'sending',
       request,
+      context,
     );
     try {
       const result = await action();
@@ -79,11 +99,20 @@ export class AppDiagnostics {
         'result',
         rejected ? 'rejected' : 'received',
         result,
+        context,
       );
       this.render?.();
       return result;
     } catch (error) {
-      this.log.record(interaction, method, 'Adapter → App', 'error', 'unconfirmed', String(error));
+      this.log.record(
+        interaction,
+        method,
+        'Adapter → App',
+        'error',
+        error instanceof RuntimeError ? error.code : 'failed',
+        String(error),
+        context,
+      );
       this.render?.();
       throw error;
     }
@@ -100,14 +129,16 @@ export class AppDiagnostics {
     initial: 'Info' | 'Tools' | 'Conversation flow' | 'Interactions' = 'Info',
     interaction?: string,
   ) {
+    this.dialog?.close();
     this.dialog?.remove();
+    this.log.journal.pin(interaction);
     const dialog = node('dialog');
     this.dialog = dialog;
     dialog.className = 'mcp-observability';
     dialog.setAttribute('aria-label', `${this.options.name} · App info`);
     const style = node(
       'style',
-      `.mcp-observability{color-scheme:inherit;color:var(--ink,CanvasText);background:var(--panel,var(--surface,Canvas));border:1px solid var(--line,GrayText);border-radius:12px;width:min(900px,94vw);max-height:90vh;padding:20px;font:14px/1.5 system-ui;box-sizing:border-box}.mcp-observability *{box-sizing:border-box}.mcp-observability::backdrop{background:#0006}.mcp-observability header,.mcp-observability nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px}.mcp-observability header strong{flex:1}.mcp-observability button,.mcp-observability summary{font:inherit;cursor:pointer}.mcp-observability button{padding:6px 10px;color:inherit;background:transparent;border:1px solid var(--line,GrayText);border-radius:6px}.mcp-observability button:disabled{opacity:.5;cursor:default}.mcp-observability button[aria-pressed=true]{outline:2px solid var(--accent,Highlight)}.mcp-observability pre,.mcp-observability p{white-space:pre-wrap;overflow-wrap:anywhere}.mcp-observability pre{font:12px/1.5 ui-monospace,monospace;border:1px solid var(--line,GrayText);padding:12px;max-height:45vh;overflow:auto}.mcp-observability li{margin:8px 0}.mcp-observability details{margin:12px 0}.mcp-observability [hidden]{display:none!important}`,
+      `.mcp-observability{color-scheme:inherit;color:var(--ink,CanvasText);background:var(--panel,var(--surface,Canvas));border:1px solid var(--line,GrayText);border-radius:12px;width:min(900px,94vw);max-height:90vh;padding:20px;font:14px/1.5 system-ui;box-sizing:border-box}.mcp-observability *{box-sizing:border-box}.mcp-observability::backdrop{background:#0006}.mcp-observability header,.mcp-observability nav{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 14px}.mcp-observability header strong{flex:1}.mcp-observability button,.mcp-observability summary{font:inherit;cursor:pointer}.mcp-observability button{padding:6px 10px;color:inherit;background:transparent;border:1px solid var(--line,GrayText);border-radius:6px}.mcp-observability button:disabled{opacity:.5;cursor:default}.mcp-observability button[aria-pressed=true]{outline:2px solid var(--accent,Highlight)}.mcp-observability pre,.mcp-observability p{white-space:pre-wrap;overflow-wrap:anywhere}.mcp-observability pre{font:12px/1.5 ui-monospace,monospace;border:1px solid var(--line,GrayText);padding:12px;max-height:45vh;overflow:auto}.mcp-observability li{margin:8px 0}.mcp-observability details{margin:12px 0}.mcp-observability .interaction-split{display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.4fr);gap:14px}.mcp-observability .interaction-split ol{max-height:45vh;overflow:auto;padding-left:24px;margin:0}.mcp-observability .interaction-split pre{margin:0;min-width:0}.mcp-observability dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px}.mcp-observability dd{margin:0;overflow-wrap:anywhere}@media(max-width:600px){.mcp-observability .interaction-split{grid-template-columns:1fr}.mcp-observability .interaction-split ol{max-height:22vh}}.mcp-observability [hidden]{display:none!important}`,
     );
     const header = node('header'),
       close = node('button', 'Close');
@@ -141,21 +172,117 @@ export class AppDiagnostics {
           button.setAttribute('aria-pressed', String(button.textContent === tab)),
         );
       if (tab === 'Info') {
-        content.append(node('pre', JSON.stringify(info(), null, 2)));
+        const data = this.options.info?.();
+        const context = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
+        const rows: Record<string, unknown> = {
+          App: this.options.name,
+          Version: this.options.version,
+          'Panel build': this.options.build,
+          Mode: this.options.mode,
+          Connection: context.phase ?? context.connection ?? 'Not connected',
+          Repository: context.repository,
+          Chat: context.threadId,
+          Context: context.contextId,
+          Recording: this.recording,
+        };
+        const fields = node('dl');
+        const showFields = () => {
+          fields.replaceChildren();
+          for (const [label, value] of Object.entries(rows))
+            if (value !== undefined && value !== null)
+              fields.append(
+                node('dt', label),
+                node(
+                  'dd',
+                  typeof value === 'string' ? value : (JSON.stringify(value) ?? 'Unavailable'),
+                ),
+              );
+        };
+        showFields();
+        content.append(fields);
+        const actions = node('nav'),
+          refresh = node('button', 'Refresh status'),
+          copy = node('button', 'Copy connection details'),
+          feedback = node('p');
+        feedback.setAttribute('role', 'status');
+        let serverRecord: unknown;
+        const download = node('button', 'Download connection log');
+        download.onclick = () => {
+          const url = URL.createObjectURL(
+            new Blob([JSON.stringify({ app: info(), server: serverRecord }, null, 2)], {
+              type: 'application/json',
+            }),
+          );
+          const link = node('a');
+          link.href = url;
+          link.download = 'app-connection.json';
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        refresh.onclick = () => display('Info');
+        copy.onclick = () => {
+          const text = Object.entries(rows)
+            .filter(([, value]) => value !== undefined && value !== null)
+            .map(
+              ([key, value]) =>
+                `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`,
+            )
+            .join('\n');
+          void navigator.clipboard
+            .writeText(text)
+            .then(() => {
+              feedback.textContent = 'Copied connection details.';
+            })
+            .catch(() => {
+              const area = node('textarea');
+              area.readOnly = true;
+              area.value = text;
+              area.setAttribute('aria-label', 'Connection details to copy');
+              content.append(area);
+              area.focus();
+              area.select();
+            });
+        };
+        actions.append(refresh, copy, download);
+        content.append(actions, feedback);
+        const details = node('details');
+        details.append(
+          node('summary', 'Full diagnostic record'),
+          node('pre', JSON.stringify(info(), null, 2)),
+        );
+        content.append(details);
         const server = node(
           'pre',
           this.remote
             ? 'Reading server identity…'
-            : 'No server diagnostics adapter. This view keeps observations in memory; an explicit capture is downloaded.',
+            : 'No server adapter. Observations remain in memory; explicit capture downloads one interaction.',
         );
-        content.append(server);
+        details.append(server);
         if (this.remote)
           void this.remote('diagnostics_info', {})
             .then((value) => {
-              if (generation === current) server.textContent = JSON.stringify(value, null, 2);
+              if (generation !== current || !dialog.open) return;
+              serverRecord = value;
+              server.textContent = JSON.stringify(value, null, 2);
+              const record = z.record(z.string(), z.unknown()).parse(value);
+              Object.assign(rows, {
+                'Server version': record.version,
+                'Server build': record.build,
+                'Server instance': record.instance,
+                'Log directory': record.directory,
+                'Recording health': record.health,
+                Compatibility:
+                  record.build === this.options.build
+                    ? 'UI and server builds match.'
+                    : 'UI and server builds differ. Reopen after refreshing the plugin.',
+              });
+              showFields();
             })
             .catch((error) => {
-              server.textContent = String(error);
+              if (generation === current) {
+                server.textContent = String(error);
+                feedback.textContent = String(error);
+              }
             });
       } else if (tab === 'Tools') {
         const status = node(
@@ -215,6 +342,7 @@ export class AppDiagnostics {
     dialog.onclose = () => {
       generation++;
       this.render = undefined;
+      this.log.journal.pin();
     };
     display(initial);
     dialog.showModal();
@@ -236,18 +364,32 @@ export class AppDiagnostics {
     const remoteEvents: Omit<Event, 'payload'>[] = [];
     let selected: string | undefined,
       revision = 0,
-      saving = false;
+      saving = false,
+      displayed: string | undefined;
     const render = () => {
-      list.replaceChildren();
-      for (const event of [
+      const events = [
         ...this.log.events.filter((event) => !interaction || event.interaction === interaction),
         ...remoteEvents,
-      ]) {
+      ];
+      const next = events.map((event) => event.id).join(',');
+      if (next === displayed) return;
+      displayed = next;
+      const focus =
+        list.contains(document.activeElement) && document.activeElement instanceof HTMLElement
+          ? document.activeElement.dataset.event
+          : undefined;
+      const scroll = list.scrollTop;
+      list.replaceChildren();
+      if (interaction && !this.log.events.some((event) => event.interaction === interaction))
+        status.textContent =
+          'This interaction is unavailable or expired. It will not be reconstructed or repeated.';
+      for (const event of events) {
         const item = node('li'),
           button = node(
             'button',
             `${event.time.slice(11, 19)} · ${event.source} · ${event.method} · ${event.phase} · ${event.status}`,
           );
+        button.dataset.event = event.id;
         button.onclick = () => {
           const current = ++revision;
           selected = undefined;
@@ -263,8 +405,18 @@ export class AppDiagnostics {
                   .parse(await this.remote?.('diagnostics_event', { id: event.id })).event,
               );
             if (current !== revision || !content.isConnected) return;
-            payload.textContent = JSON.stringify(captured, null, 2);
+            payload.textContent = JSON.stringify(
+              {
+                ...captured,
+                completeness: local
+                  ? this.log.journal.completeness(captured.interaction)
+                  : 'Server observation; unavailable legs are not reconstructed',
+              },
+              null,
+              2,
+            );
             selected = captured.interaction;
+            this.log.journal.pin(selected);
             save.disabled = saving;
             receipt.textContent = `Selected interaction ${selected}. Save only its retained masked payloads.`;
           })().catch((error) => {
@@ -278,11 +430,19 @@ export class AppDiagnostics {
         item.append(button);
         list.append(item);
       }
+      if (focus)
+        list
+          .querySelector<HTMLButtonElement>(`[data-event="${CSS.escape(focus)}"]`)
+          ?.focus({ preventScroll: true });
+      list.scrollTop = scroll;
     };
     this.render = render;
     refresh.onclick = () => {
       refresh.disabled = true;
-      void this.remote?.('diagnostics_events', { limit: 20 })
+      void this.remote?.('diagnostics_events', {
+        limit: 20,
+        ...(interaction ? { interaction } : {}),
+      })
         .then((value) => {
           const result = z
             .object({ events: z.array(eventSchema.omit({ payload: true })) })
@@ -290,7 +450,7 @@ export class AppDiagnostics {
           remoteEvents.splice(0, remoteEvents.length, ...result.events);
           render();
           status.textContent =
-            'Latest 20 server summaries; server wire IDs do not establish app interaction correlation.';
+            'Latest 20 server summaries. Only explicit interaction/call IDs join observations; wire IDs stay local.';
         })
         .catch((error) => {
           status.textContent = String(error);
@@ -318,7 +478,11 @@ export class AppDiagnostics {
         } else {
           const events = this.log.events.filter((event) => event.interaction === target);
           if (!events.length) throw new Error('Interaction expired');
-          const body = JSON.stringify({ interaction: target, events }, null, 2);
+          const body = JSON.stringify(
+            { interaction: target, events, completeness: this.log.journal.completeness(target) },
+            null,
+            2,
+          );
           if (new TextEncoder().encode(body).length > 2 * 1024 * 1024)
             throw new Error('Capture exceeds 2 MiB');
           const url = URL.createObjectURL(new Blob([body], { type: 'application/json' })),
@@ -338,7 +502,10 @@ export class AppDiagnostics {
           save.disabled = !selected;
         });
     };
-    content.append(status, refresh, list, payload, save, receipt);
+    const split = node('div');
+    split.className = 'interaction-split';
+    split.append(list, payload);
+    content.append(status, refresh, split, save, receipt);
     render();
   }
 }

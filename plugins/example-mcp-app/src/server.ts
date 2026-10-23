@@ -1,3 +1,4 @@
+import { hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -19,7 +20,26 @@ const instance = randomUUID(),
   diagnostics = new Diagnostics();
 const log = new TraceLog('server', () => diagnostics.record(instance, log.events.at(-1)!));
 const reports = new PanelReports();
+type Caller = { _meta?: Record<string, unknown> };
+const owner = (extra: Caller) => hostedPrincipal(extra._meta);
+const serverEvents = (extra: Caller) => {
+  const id = `chat:${owner(extra).id}`;
+  return log.events.filter(
+    (event) =>
+      event.owner === id ||
+      [
+        'server.started',
+        'initialize',
+        'notifications/initialized',
+        'tools/list',
+        'resources/list',
+        'resources/read',
+      ].includes(event.method),
+  );
+};
+const panelReports = (extra: Caller, panelId?: string) => reports.list(owner(extra), panelId);
 const server = new McpServer({ name: 'example-mcp-app', version: '0.4.0' });
+server.server.onclose = () => reports.dispose();
 log.local('server.started', { instance, build, pid: process.pid });
 registerAppTool(
   server,
@@ -88,16 +108,16 @@ registerAppTool(
     annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
     _meta: { ui: { visibility: ['app'] } },
   },
-  ({ panelId }) => ({
+  ({ panelId }, extra) => ({
     content: [{ type: 'text', text: `${log.events.length} retained server events.` }],
     structuredContent: {
       instance,
       build,
       uri,
-      events: [...log.events],
+      events: serverEvents(extra),
       dropped: log.dropped,
-      panels: panelId ? reports.list(panelId) : [],
-      panelIndex: reports.list().map((report) => ({
+      panels: panelId ? panelReports(extra, panelId) : [],
+      panelIndex: panelReports(extra).map((report) => ({
         panelId: report.panelId,
         host: report.host.name,
         build: report.build,
@@ -116,7 +136,8 @@ registerAppTool(
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     _meta: { ui: { visibility: ['app'] } },
   },
-  ({ report }) => {
+  ({ report }, extra) => {
+    const principal = owner(extra);
     if (report.build !== build)
       return {
         isError: true,
@@ -128,12 +149,17 @@ registerAppTool(
     const liveEvents = report.events.filter(
       (event) => event.provenance === 'captured' && event.source === 'app',
     );
-    liveEvents.forEach((event) => diagnostics.record(report.panelId, event));
-    reports.put({
-      ...report,
-      runs: report.runs.filter((run) => run.mode === 'live'),
-      events: liveEvents,
-    });
+    liveEvents.forEach((event) =>
+      diagnostics.record(report.panelId, event, `chat:${principal.id}`),
+    );
+    reports.put(
+      {
+        ...report,
+        runs: report.runs.filter((run) => run.mode === 'live'),
+        events: liveEvents,
+      },
+      principal,
+    );
     return {
       content: [{ type: 'text', text: 'App-reported evidence retained in memory.' }],
       structuredContent: { panelId: report.panelId, instance },
@@ -151,15 +177,17 @@ registerAppTool(
     annotations: readOnly,
     _meta: { ui: { visibility: ['app', 'model'] } },
   },
-  () => ({
+  (_args, extra) => ({
     content: [],
     structuredContent: {
       instance,
       build,
       uri,
-      panels: reports
-        .list()
-        .map(({ panelId, host, reportedAt }) => ({ panelId, host, reportedAt })),
+      panels: panelReports(extra).map(({ panelId, host, reportedAt }) => ({
+        panelId,
+        host,
+        reportedAt,
+      })),
     },
   }),
 );
@@ -177,8 +205,8 @@ registerAppTool(
     annotations: readOnly,
     _meta: { ui: { visibility: ['app', 'model'] } },
   },
-  ({ panelId, runId, limit }) => {
-    const events = panelId ? (reports.list(panelId)[0]?.events ?? []) : log.events;
+  ({ panelId, runId, limit }, extra) => {
+    const events = panelId ? (panelReports(extra, panelId)[0]?.events ?? []) : serverEvents(extra);
     return {
       content: [],
       structuredContent: {
@@ -214,10 +242,10 @@ registerAppTool(
     annotations: readOnly,
     _meta: { ui: { visibility: ['app', 'model'] } },
   },
-  ({ expectedInstance, panelId, sequence }) => {
+  ({ expectedInstance, panelId, sequence }, extra) => {
     if (expectedInstance !== instance)
       throw new Error('Server changed; read fresh event summaries.');
-    const events = panelId ? (reports.list(panelId)[0]?.events ?? []) : log.events;
+    const events = panelId ? (panelReports(extra, panelId)[0]?.events ?? []) : serverEvents(extra);
     const event = events.find((event) => event.sequence === sequence);
     if (!event) throw new Error('Event unavailable or expired');
     return { content: [], structuredContent: { instance, panelId, event } };
@@ -272,7 +300,10 @@ registerAppTool(
     annotations: { ...readOnly, readOnlyHint: false },
     _meta: { ui: { visibility: ['app'] } },
   },
-  ({ interaction }) => ({ content: [], structuredContent: diagnostics.store.capture(interaction) }),
+  ({ interaction }, extra) => ({
+    content: [],
+    structuredContent: diagnostics.store.capture(interaction, `chat:${owner(extra).id}`),
+  }),
 );
 server.registerResource(
   'example-run-data',

@@ -1,3 +1,5 @@
+import { poll } from '../../../../../mcp-app-runtime/src/poller.ts';
+import { hostTool } from './host';
 import { useEffect, useState, useRef, useImperativeHandle, type Ref } from 'react';
 import { type Architecture, type ContextComment } from '../model/document';
 import { ProposalReview } from './ProposalReview';
@@ -46,6 +48,10 @@ export function SideChat({
   const dirty = useRef(false),
     queue = useRef<Promise<void>>(Promise.resolve()),
     sending = useRef(false);
+  const draftRevision = useRef(0);
+  useEffect(() => {
+    draftRevision.current++;
+  }, [document, scope, selection, selections]);
   const context = document.modules.find((m) => m.id === (selection ?? scope));
   useEffect(() => {
     let active = true;
@@ -59,17 +65,18 @@ export function SideChat({
         }
       } catch (e) {
         if (active) setError(String(e));
+        throw e;
       }
     }
-    void refresh();
-    const timer = setInterval(() => void refresh(), 2000);
+    const stop = poll(() => refresh(), { interval: 2000 });
     return () => {
       active = false;
-      clearInterval(timer);
+      stop();
     };
   }, [token]);
   function persist(composer: string, comments: ContextComment[]) {
     if (!current.current) return;
+    draftRevision.current++;
     dirty.current = true;
     const optimistic = { ...current.current, composer, comments };
     current.current = optimistic;
@@ -114,28 +121,40 @@ export function SideChat({
     sending.current = true;
     setBusy(true);
     setError('');
+    const interaction = crypto.randomUUID();
+    const sentRevision = draftRevision.current;
+    const frozen = structuredClone({
+      document,
+      scope,
+      selection,
+      selections,
+      comments: current.current?.comments ?? [],
+    });
     try {
       await queue.current;
       if (dirty.current) throw new Error('Save the local draft before sending.');
       await requireMessaging();
       if (!attached) {
         if (!text.trim()) throw new Error('Enter a message or attach the selected notes.');
-        await sendToChat(text.trim());
-        persist('', current.current!.comments);
+        await sendToChat(text, interaction);
+        if (draftRevision.current === sentRevision) persist('', current.current!.comments);
         await queue.current;
         return;
       }
-      const next = await request('send', token, {
-        canvasId: 'discussion',
-        document,
-        scope,
-        selection,
-        selections,
-        messages: [
-          { role: 'user', text: text.trim() || 'Please review the attached contextual comments.' },
-        ],
-        comments: current.current!.comments,
-      });
+      const next = await hostTool(
+        'send',
+        {
+          canvasId: 'discussion',
+          ...frozen,
+          messages: [
+            {
+              role: 'user',
+              text: text.trim() ? text : 'Please review the attached contextual comments.',
+            },
+          ],
+        },
+        interaction,
+      );
       const saved = await request('discussion_read', token);
       current.current = saved;
       setData(saved);
@@ -144,9 +163,12 @@ export function SideChat({
           '\n\nSelected canvas context (frozen data):\n' +
           JSON.stringify(discussionContext(next)) +
           '\nUse canvas_reply if a panel reply or proposal is needed. Additional map, comments and provenance are available through their scoped tools.',
+        interaction,
       );
-      setIncludeContext(false);
-      persist('', []);
+      if (draftRevision.current === sentRevision) {
+        setIncludeContext(false);
+        persist('', []);
+      }
       await queue.current;
     } catch (e) {
       setError(
@@ -196,7 +218,10 @@ export function SideChat({
           <input
             type="checkbox"
             checked={includeContext}
-            onChange={(e) => setIncludeContext(e.target.checked)}
+            onChange={(e) => {
+              draftRevision.current++;
+              setIncludeContext(e.target.checked);
+            }}
           />{' '}
           Attach selection and notes
         </label>

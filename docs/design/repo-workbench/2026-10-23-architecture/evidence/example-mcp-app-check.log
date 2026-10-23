@@ -1,0 +1,43 @@
+
+> @repo-kit/example-mcp-app@0.4.0 check
+> prettier --check . && npm run lint && npm run typecheck && npm run build && npm test
+
+Checking formatting...
+All matched files use Prettier code style!
+
+> @repo-kit/example-mcp-app@0.4.0 lint
+> eslint . --max-warnings=0
+
+
+> @repo-kit/example-mcp-app@0.4.0 typecheck
+> tsc --noEmit
+
+
+> @repo-kit/example-mcp-app@0.4.0 build
+> node scripts/build.ts
+
+Built Example MCP App 8d0f1f2bb5dd
+
+> @repo-kit/example-mcp-app@0.4.0 test
+> node --test tests/*.test.ts
+
+✔ existing frozen trace records feed metadata logs and one explicit capture without duplicates (8.779709ms)
+✔ fixtures are deterministic and labelled; distinct wire IDs group by interaction (2.715208ms)
+✔ panel reports evict oldest and support selecting one panel (0.562542ms)
+✔ snapshot ingestion deduplicates overlap, bounds retention, and scopes sequence to connections (2.035708ms)
+✔ late server observations append without inventing cross-source timing or correlation (0.677208ms)
+✔ actual partial input notifications update a stable stream row; raw records stay intact (0.266125ms)
+✔ all fixture outcomes use the same graph projection and keep errors at their actual layer (0.724708ms)
+✔ ambiguous repeated calls keep receipt order instead of inventing a forwarding match (0.192333ms)
+✔ delivered server: discovery, resource, tool errors and correlated trace without source dependencies (100.667875ms)
+✔ trace bounds, immutable payloads, explicit redaction and truncation (1.40225ms)
+✔ correlation keeps opposite-direction IDs separate (0.539167ms)
+✔ transport forwards messages, errors and closure without swallowing failed sends (0.32625ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 216.742834

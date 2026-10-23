@@ -1,5 +1,6 @@
 /** Existing HTTP routes and MCP action names describe the same canvas operations. */
 export const operations = {
+  view_touch: { method: 'POST', path: 'view/touch' },
   view_write: { method: 'PUT', path: 'view' },
   agent_read: { method: 'GET', path: 'agent' },
   command_ack: { method: 'POST', path: 'command/ack' },
@@ -25,3 +26,18 @@ export function httpOperation(method: string | undefined, pathname: string): Ope
       operations[action].method === method && `/api/${operations[action].path}` === pathname,
   );
 }
+
+/** Product-declared automatic work; transports and diagnostics project this policy. */
+export const backgroundActions = Object.freeze([
+  'agent_read',
+  'view_write',
+  'view_touch',
+  'state',
+  'discussion_read',
+  'discussion_write',
+  'connect',
+  'catalog',
+  'remember',
+  'draft_write',
+  'command_ack',
+]);

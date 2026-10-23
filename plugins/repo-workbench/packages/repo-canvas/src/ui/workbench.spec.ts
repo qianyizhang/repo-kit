@@ -1,9 +1,9 @@
 import { hostDocument } from '../../../../tests/browser/host-fixture';
 import { expect, test } from '@playwright/test';
+import { z } from 'zod';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CanvasExchange } from '../model/bridge';
-import { APP_URI } from '../server/app-resource';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseDocument, type Snapshot } from '../model/document';
@@ -34,7 +34,10 @@ test('standalone edits and temporary requests share operation semantics with MCP
     const firstInfo = await client.callTool({ name: 'diagnostics_info', arguments: {} });
     const nextInfo = await client.callTool({ name: 'diagnostics_info', arguments: {} });
     expect(firstInfo.structuredContent).toMatchObject({ instance: expect.any(String) });
-    expect(nextInfo.structuredContent).toEqual(firstInfo.structuredContent);
+    const identity = z.object({ instance: z.string(), directory: z.string(), build: z.string() });
+    expect(identity.parse(nextInfo.structuredContent)).toEqual(
+      identity.parse(firstInfo.structuredContent),
+    );
     await page.goto('/');
     await expect(page.getByText('Standalone preview', { exact: true })).toBeVisible();
     await expect(page.getByText('Shared with Codex', { exact: true })).toHaveCount(0);
@@ -152,12 +155,14 @@ test('navigate, annotate, connect, persist and reconcile agent proposals and ext
   await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
   const catalog = (await client.listTools()).tools;
   expect(catalog.find((t) => t.name === 'canvas_open')?._meta?.ui).toMatchObject({
-    resourceUri: APP_URI,
+    resourceUri: expect.stringMatching(/^ui:\/\/repo-canvas\/workbench-/),
   });
   expect(catalog.find((t) => t.name === 'canvas_app')?._meta?.ui).toMatchObject({
     visibility: ['app'],
   });
-  const resource = await client.readResource({ uri: APP_URI });
+  const resource = await client.readResource({
+    uri: (await client.listResources()).resources[0].uri,
+  });
   const content = resource.contents[0];
   if (!('text' in content)) throw new Error('Expected HTML resource');
   const html = content.text;

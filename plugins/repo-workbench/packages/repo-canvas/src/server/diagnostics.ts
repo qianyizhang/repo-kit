@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import { BUILD, VERSION } from '../model/build.ts';
-import { Recorder } from '../../../diagnostics/events.ts';
-import type { LogStore } from '../../../diagnostics/store.ts';
+import { Recorder } from '../../../../../mcp-app-runtime/src/events.ts';
+import type { LogStore } from '../../../../../mcp-app-runtime/src/store.ts';
 
 type Details = {
   repo?: string;

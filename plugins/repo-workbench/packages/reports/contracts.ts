@@ -92,7 +92,8 @@ export const textSchema = z.object({
 });
 
 import type { Snapshot, UsageOverview } from '../usage/model.ts';
-import type { ReviewDocument } from '../session-review/src/model/contracts.ts';
+import { reviewDocumentSchema } from '../session-review/src/model/document.ts';
+export { reviewDocumentSchema as documentSchema } from '../session-review/src/model/document.ts';
 // The existing report formats own their data; validate their structural version at this adapter.
 export const snapshotSchema = z.custom<Snapshot>((v) => {
   const s = v as Partial<Snapshot> | null;
@@ -195,13 +196,72 @@ export const recordsSchema = z.array(
     }),
   }),
 );
-export const documentSchema = z.custom<ReviewDocument>((v) => {
-  const d = v as Partial<ReviewDocument> | null;
-  return (
-    !!d &&
-    d.version === 3 &&
-    typeof d.title === 'string' &&
-    Array.isArray(d.threads) &&
-    d.threads.every((t) => typeof t.id === 'string' && Array.isArray(t.turns))
-  );
-}, 'Invalid trace document');
+
+export const backgroundActions = Object.freeze(['status', 'snapshot']);
+
+const reportView = z.object({
+  binding: bindingSchema,
+  snapshot: overviewSchema,
+  refreshing: z.boolean(),
+  timings: z.record(z.string(), z.number()).optional(),
+  document: reviewDocumentSchema.optional(),
+});
+/** One request/result map serves domain commands and both transport consumers. */
+export const resultSchemas = {
+  status: statusSchema,
+  snapshot: reportView,
+  refresh: reportView,
+  evidence: z.object({ records: recordsSchema }),
+  export: z.object({ records: recordsSchema }),
+  trace: z.object({ document: reviewDocumentSchema }),
+  text: textSchema,
+  image: z.object({
+    image: z
+      .string()
+      .max(12 * 1024 * 1024)
+      .regex(/^data:image\/(png|jpeg|webp|gif);base64,/),
+  }),
+  select_usage: z.object({
+    selectionId: z.uuid(),
+    kind: z.literal('usage'),
+    generatedAt: z.string(),
+    cached: z.boolean(),
+    filters: z.record(z.string(), z.union([z.string(), z.boolean()])),
+    sessions: count,
+    events: count,
+    tokens: z.object({
+      input: count,
+      cached: count,
+      write: count,
+      output: count,
+      reasoning: count,
+    }),
+  }),
+  select_trace: z.object({
+    selectionId: z.uuid(),
+    kind: z.literal('trace'),
+    thread: id,
+    turn: id,
+    event: id.optional(),
+    totalEvents: count,
+    shown: count,
+    previews: z
+      .array(
+        z.object({
+          eventId: id,
+          kind: z.string(),
+          role: z.string(),
+          title: z.string().max(200),
+          preview: z.string().max(400),
+        }),
+      )
+      .max(2),
+  }),
+} satisfies Record<Request['action'], z.ZodType>;
+export type ReportOutput<A extends Request['action']> = z.output<(typeof resultSchemas)[A]>;
+export function parseReportOutput<A extends Request['action']>(
+  action: A,
+  value: unknown,
+): ReportOutput<A> {
+  return resultSchemas[action].parse(value) as ReportOutput<A>;
+}

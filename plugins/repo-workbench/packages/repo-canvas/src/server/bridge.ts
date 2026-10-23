@@ -36,6 +36,8 @@ export class CanvasBridge {
     if (!value || typeof value !== 'object') throw new Error('Invalid draft');
     const data = value as Record<string, unknown>;
     const document = parseDocument(data.document);
+    if (Buffer.byteLength(JSON.stringify(document)) > 2_000_000)
+      throw new Error('Draft exceeds 2 MB');
     if (
       typeof data.revision !== 'string' ||
       data.revision.length > 100 ||

@@ -1,3 +1,5 @@
+import { ScopedRegistry, type Principal } from '../../mcp-app-runtime/src/registry.ts';
+import { immutable } from '../../mcp-app-runtime/src/definition.ts';
 import { z } from 'zod';
 
 export const journeySchema = z.enum([
@@ -22,6 +24,7 @@ export const eventSchema = z.object({
   elapsedMs: z.number().optional(),
   payload: z.string().max(13000),
   observer: z.boolean(),
+  owner: z.string().optional(),
   runId: z.string().max(100).optional(),
   provenance: z.enum(['captured', 'fixture']),
 });
@@ -70,16 +73,30 @@ export const snapshotSchema = serverIdentitySchema.extend({
 
 /** Reports are self-reported app evidence, not trusted proof of host/model behavior. */
 export class PanelReports {
-  private reports = new Map<string, AppReport & { reportedAt: string }>();
-  put(report: AppReport) {
-    this.reports.delete(report.panelId);
-    this.reports.set(report.panelId, { ...report, reportedAt: new Date().toISOString() });
-    if (this.reports.size > 12) this.reports.delete(this.reports.keys().next().value!);
+  #reports = new ScopedRegistry<AppReport & { reportedAt: string }>({
+    maxEntries: 12,
+    maxBytes: 16 * 1024 * 1024,
+    maxAgeMs: 3600_000,
+    overflow: 'evict',
+  });
+  put(report: AppReport, owner: Principal) {
+    const value = immutable({ ...report, reportedAt: new Date().toISOString() });
+    const bytes = new TextEncoder().encode(JSON.stringify(value)).length;
+    if (this.#reports.list(owner).some((entry) => entry.id === report.panelId))
+      this.#reports.update(report.panelId, owner, value, bytes);
+    else this.#reports.create(owner, value, bytes, report.panelId);
   }
-  list(panelId?: string) {
-    const cutoff = Date.now() - 60 * 60 * 1000;
-    for (const [id, report] of this.reports)
-      if (Date.parse(report.reportedAt) < cutoff) this.reports.delete(id);
-    return [...this.reports.values()].filter((report) => !panelId || report.panelId === panelId);
+  list(owner: Principal, panelId?: string) {
+    if (panelId) {
+      try {
+        return [this.#reports.resolve(panelId, owner)];
+      } catch {
+        return [];
+      }
+    }
+    return this.#reports.list(owner).map((entry) => entry.value);
+  }
+  dispose() {
+    this.#reports.close();
   }
 }

@@ -1,0 +1,25 @@
+{
+  "name": "@repo-kit/mcp-app-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Internal source shared by independently bundled Repo-kit MCP Apps",
+  "scripts": {
+    "check": "prettier --check . && tsc --noEmit && node --test tests/*.test.ts",
+    "format": "prettier --write .",
+    "test": "node --test tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=24.21.0",
+    "npm": ">=11.19.0 <12"
+  },
+  "packageManager": "npm@11.19.0",
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@types/node": "24.19.2",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "zod": "4.6.7"
+  }
+}

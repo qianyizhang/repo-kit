@@ -1,5 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+  statSync,
+} from 'node:fs';
+import { fileTransaction } from '../../../runtime/file-transaction.ts';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { discussionSchema } from '../model/contracts.ts';
@@ -25,9 +34,9 @@ export class DiscussionStore {
   read(): Discussion {
     if (!this.file) return structuredClone(this.memory);
     if (!existsSync(this.file)) return empty();
-    const raw = readFileSync(this.file, 'utf8');
-    if (raw.length > 50_000_000)
+    if (statSync(this.file).size > 50_000_000)
       throw new Error('Local discussion storage is too large; repair it offline');
+    const raw = readFileSync(this.file, 'utf8');
     return discussionSchema.parse(JSON.parse(raw));
   }
   change(change: (value: Discussion) => Discussion): Discussion {
@@ -36,28 +45,22 @@ export class DiscussionStore {
       return this.read();
     }
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 });
-    const lock = this.file + '.lock';
-    try {
-      mkdirSync(lock, { mode: 0o700 });
-    } catch {
-      throw new Error(
-        'Conflict: Another panel is updating this discussion. Retry after reloading.',
-      );
-    }
-    const temporary = this.file + '.' + randomUUID() + '.tmp';
-    try {
-      const before = this.read();
-      const next = discussionSchema.parse({ ...change(before), revision: before.revision + 1 });
-      const serialized = JSON.stringify(next);
-      if (Buffer.byteLength(serialized) > 50_000_000)
-        throw new Error('Local discussion storage is full. Clear history before adding more.');
-      writeFileSync(temporary, serialized, { mode: 0o600, flag: 'wx' });
-      renameSync(temporary, this.file);
-      return next;
-    } finally {
-      rmSync(temporary, { force: true });
-      rmSync(lock, { recursive: true, force: true });
-    }
+    const file = this.file;
+    return fileTransaction(file + '.sqlite', () => {
+      const temporary = file + '.' + randomUUID() + '.tmp';
+      try {
+        const before = this.read();
+        const next = discussionSchema.parse({ ...change(before), revision: before.revision + 1 });
+        const serialized = JSON.stringify(next);
+        if (Buffer.byteLength(serialized) > 50_000_000)
+          throw new Error('Local discussion storage is full. Clear history before adding more.');
+        writeFileSync(temporary, serialized, { mode: 0o600, flag: 'wx' });
+        renameSync(temporary, file);
+        return next;
+      } finally {
+        rmSync(temporary, { force: true });
+      }
+    });
   }
   write(revision: number, composer: string, comments: unknown) {
     return this.change((value) => {

@@ -1,0 +1,39 @@
+{
+  "mode": "synthetic shared-server ownership probe; no installed cross-chat claim",
+  "crossChatApp": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Canvas belongs to a different chat."
+      }
+    ],
+    "isError": true
+  },
+  "crossChatDiscovery": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"canvases\":[{\"contextId\":\"fbf93d41-60eb-43ab-beca-3e317f6423b2\",\"repo\":\"/private/var/folders/h1/wqbgyvj11257560170whl3lh0000gn/T/plugin-review-20261023-gdz4ih9p/boundary-probes-wPvf5t/repo\",\"requestCount\":0}]}"
+      }
+    ]
+  },
+  "crossChatSnapshot": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"contextId\":\"fbf93d41-60eb-43ab-beca-3e317f6423b2\",\"repo\":\"/private/var/folders/h1/wqbgyvj11257560170whl3lh0000gn/T/plugin-review-20261023-gdz4ih9p/boundary-probes-wPvf5t/repo\",\"available\":true,\"revision\":\"8d0bfce79a0fd4a01eb9e291730c97f7baa2e57e1315a9c9c0e2b0079b150610\",\"observedAt\":\"2026-10-23T14:31:58.993Z\",\"stale\":false,\"baseRevision\":\"278a2b579d8f62e962b578e79c661b93052cc3826524f457a473188c42c4966c\",\"scope\":\"repo\",\"selections\":[],\"panel\":\"chat\",\"navigation\":true,\"viewport\":{\"x\":0,\"y\":0,\"zoom\":1,\"width\":1200,\"height\":800},\"dirty\":false,\"conflict\":false,\"visibleNodes\":[],\"counts\":{\"nodes\":1,\"relationships\":0,\"annotations\":0},\"document\":{\"version\":3,\"title\":\"repo\",\"modules\":[{\"id\":\"repo\",\"parent\":null,\"name\":\"repo\",\"kind\":\"system\",\"summary\":\"A shared map of this repository. The initial grouping follows repository directories; refine responsibilities and relationships together.\",\"sources\":[\"README.md\"],\"x\":0,\"y\":0}],\"connections\":[],\"annotations\":[]},\"command\":null,\"proposalId\":null,\"capabilities\":[\"focus\",\"select\",\"fit\",\"fit_selection\",\"read\",\"panel\",\"navigation\",\"propose\"],\"visualInspection\":\"Use the connected browser DOM/screenshot tools for rendered pixels, hover, dialogs and accessibility.\"}"
+      }
+    ]
+  },
+  "crossChatCommand": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"id\":\"0895c072-6638-47d8-9304-01fa3726b6f0\",\"expectedRevision\":\"8d0bfce79a0fd4a01eb9e291730c97f7baa2e57e1315a9c9c0e2b0079b150610\",\"command\":{\"action\":\"fit\"},\"status\":\"pending\"}"
+      }
+    ]
+  },
+  "orphanLock": "Error: Conflict: Another panel is updating this discussion. Retry after reloading.",
+  "nestedTraceValidation": true,
+  "nullThreadValidationThrows": "TypeError: Cannot read properties of null (reading 'id')"
+}

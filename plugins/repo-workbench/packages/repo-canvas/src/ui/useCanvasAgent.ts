@@ -1,3 +1,4 @@
+import { poll } from '../../../../../mcp-app-runtime/src/poller.ts';
 import { useEffect, useRef, useState } from 'react';
 import type { CanvasCommand, CanvasView, CanvasProposal } from '../model/session';
 import { parseDocument } from '../model/document';
@@ -56,7 +57,12 @@ export function useCanvasAgent(
         const next = current.current.view;
         if (!next) return;
         const sent = JSON.stringify(next);
-        if (published === sent && Date.now() - lastPublished < 5000) return;
+        if (published === sent) {
+          if (Date.now() - lastPublished < 5000) return;
+          await request('view_touch', token, { revision });
+          lastPublished = Date.now();
+          return;
+        }
         const result = await request('view_write', token, {
           view: { ...next, document: parseDocument(next.document) },
         });
@@ -66,15 +72,15 @@ export function useCanvasAgent(
         if (active) setError('');
       } catch (error) {
         if (active) setError(String(error));
+        throw error;
       } finally {
         busy = false;
       }
     }
-    void tick();
-    const timer = setInterval(() => void tick(), 750);
+    const stop = poll(() => tick(), { interval: 1000 });
     return () => {
       active = false;
-      clearInterval(timer);
+      stop();
     };
   }, [token]);
   async function dismiss() {

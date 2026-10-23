@@ -13,6 +13,8 @@ export function operate(
 ) {
   args = contracts[action].input.parse(args);
   switch (action) {
+    case 'view_touch':
+      return bridge.session.touch(String(args.revision));
     case 'view_write':
       return bridge.session.observe(args.view);
     case 'agent_read':

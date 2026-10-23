@@ -1,10 +1,12 @@
+import { createHash } from 'node:crypto';
+import { z } from 'zod';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile, rm, realpath, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { HostTestClient as Client } from './host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { createFixture } from '../packages/usage/fixture.ts';
 import type { Snapshot } from '../packages/repo-canvas/src/model/document.ts';
@@ -54,6 +56,23 @@ void test('packed npm installation runs independently with scripts disabled and 
     { encoding: 'utf8' },
   );
   const installed = resolve(consumer, 'node_modules/@repo-kit/workbench');
+  const receipt = z
+    .object({
+      protocol: z.literal(1),
+      build: z.string(),
+      source: z.object({ revision: z.string().nullable(), dirty: z.boolean().nullable() }),
+      lockSha256: z.string(),
+      assets: z.array(z.object({ path: z.string(), bytes: z.number(), sha256: z.string() })),
+    })
+    .parse(JSON.parse(await readFile(resolve(installed, 'dist/release.json'), 'utf8')));
+  assert.ok(receipt.assets.length > 3);
+  for (const asset of receipt.assets) {
+    const path = resolve(installed, 'dist', asset.path);
+    assert.ok(path.startsWith(resolve(installed, 'dist') + '/'));
+    const bytes = await readFile(path);
+    assert.equal(bytes.length, asset.bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), asset.sha256);
+  }
   const cli = resolve(installed, 'dist/cli.mjs');
   assert.match(
     execFileSync(process.execPath, [cli, '--help'], { cwd: consumer, encoding: 'utf8' }),

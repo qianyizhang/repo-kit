@@ -140,8 +140,10 @@ UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff 
 For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a
 reviewed candidate index; use a disposable checkout to exclude unrelated staging.
 For user instructions, review `diff`, run `sync`, then `check`.
-For executable workbench changes, use Node 24.21+ and run `npm run check` and
-`npm run test:browser` in `plugins/repo-workbench`. For browser tests on this Mac,
+For executable plugin changes, use Node 24.21+. Install and check
+`plugins/mcp-app-runtime` first, then run `npm run check` and
+`npm run test:browser` in each changed plugin (`repo-workbench` and/or
+`example-mcp-app`). Shared runtime changes require both plugin suites. For browser tests on this Mac,
 read [Mac browser testing](user/practices/macos-browser-testing.md).
 
 For the MCP App skill's executable starter, generate into a new temporary directory

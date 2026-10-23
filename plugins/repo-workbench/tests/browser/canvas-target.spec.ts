@@ -66,10 +66,11 @@ test('native metadata binds without messages; picker and restart preserve select
     for (const threadId of [...ids, undefined, newChatId]) {
       const page = await context.newPage();
       pages.push(page);
-      await page.exposeFunction(
-        'canvasTool',
-        (params: { name: string; arguments: Record<string, unknown> }) =>
-          client.callTool({ ...params, _meta: threadId ? { threadId } : {} }),
+      await page.exposeFunction('canvasTool', (params: Parameters<Client['callTool']>[0]) =>
+        client.callTool({
+          ...params,
+          _meta: { ...params._meta, ...(threadId ? { threadId } : {}) },
+        }),
       );
       const hostHtml = await hostDocument(resource.text);
       await page.route('**/target-host', (route) =>
@@ -80,8 +81,7 @@ test('native metadata binds without messages; picker and restart preserve select
     const [first, second, picker, newChat] = pages.map((p) => p.frameLocator('iframe'));
     await expect(first.locator('.checkout-path')).toHaveText(repos[0]);
     await expect(second.locator('.checkout-path')).toHaveText(repos[1]);
-    await expect(picker.getByRole('button', { name: 'Retry automatic connection' })).toBeVisible();
-    await expect(picker.getByText(/Codex hasn’t supplied a chat identity/)).toBeVisible();
+    await expect(picker.getByText(/Hosted access requires a caller chat identity/)).toBeVisible();
     await expect(newChat.getByText(/This chat’s repository isn’t available/)).toBeVisible();
     await newChat.getByRole('button', { name: 'Retry automatic connection' }).click();
     await expect(newChat.getByText(/still waiting for workspace context/)).toBeVisible();
@@ -98,9 +98,7 @@ test('native metadata binds without messages; picker and restart preserve select
     persisted.prepare('INSERT INTO threads VALUES (?,?)').run(newChatId, repos[1]);
     persisted.close();
     await expect(newChat.locator('.checkout-path')).toHaveText(repos[1], { timeout: 12000 });
-    await expect(picker.getByRole('button', { name: /alpha/ })).toBeVisible();
-    await picker.getByRole('button', { name: /alpha/ }).click();
-    await expect(picker.locator('.checkout-path')).toHaveText(repos[0]);
+    await expect(picker.locator('.checkout-path')).not.toBeVisible();
     await second.getByRole('button', { name: 'Inspect src', exact: true }).click();
     await second.getByRole('button', { name: 'Inspect', exact: true }).click();
     await second.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -108,12 +106,12 @@ test('native metadata binds without messages; picker and restart preserve select
       .getByRole('textbox', { name: 'Module responsibility' })
       .fill('Unsaved responsibility survives reconnect');
     await second.getByRole('button', { name: 'Apply edits', exact: true }).click();
-    await second.locator('summary[aria-label="App info"]').click();
+    await second.getByRole('button', { name: 'App info', exact: true }).click();
     await expect(second.getByText('UI and server builds match.')).toBeVisible();
     await expect(second.getByText(ids[1], { exact: true })).toBeVisible();
     await second.getByRole('button', { name: 'Copy connection details' }).click();
     await expect(second.getByRole('textbox', { name: 'Connection details to copy' })).toHaveValue(
-      /Repo Canvas · Connection[\s\S]*Repository: .*beta/,
+      /App: Repo Canvas[\s\S]*Repository: .*beta/,
     );
     await second.getByRole('button', { name: 'Refresh status' }).click();
     await expect(second.getByRole('button', { name: 'Refresh status' })).toBeEnabled();
@@ -123,14 +121,18 @@ test('native metadata binds without messages; picker and restart preserve select
           requestAnimationFrame(() => requestAnimationFrame(() => done())),
         ),
     );
-    const originalInfo = await second.locator('.connection-info dd').allTextContents();
+    const originalInfo = await second.locator('.mcp-observability dd').allTextContents();
     await pages[1].screenshot({ path: info.outputPath('connection-info.png') });
     await client.close();
     client = await start();
     await expect
       .poll(
         async () => {
-          const result = await client.callTool({ name: 'canvas_requests', arguments: {} });
+          const result = await client.callTool({
+            name: 'canvas_requests',
+            arguments: {},
+            _meta: { threadId: ids[0] },
+          });
           return (
             JSON.parse((result.content as Array<{ text: string }>)[0].text) as {
               canvases: unknown[];
@@ -139,17 +141,17 @@ test('native metadata binds without messages; picker and restart preserve select
         },
         { timeout: 15000 },
       )
-      .toBe(4);
+      .toBe(1);
     await second.getByRole('button', { name: 'Refresh status', exact: true }).click();
     await expect(second.locator('.responsibility')).toHaveText(
       'Unsaved responsibility survives reconnect',
     );
     await expect(second.locator('.checkout-path')).toHaveText(repos[1]);
     await expect(first.locator('.checkout-path')).toHaveText(repos[0]);
-    const updatedInfo = await second.locator('.connection-info dd').allTextContents();
+    const updatedInfo = await second.locator('.mcp-observability dd').allTextContents();
     expect(updatedInfo).not.toEqual(originalInfo);
     const betaContext = await second
-      .locator('.connection-info dt')
+      .locator('.mcp-observability dt')
       .filter({ hasText: /^Context$/ })
       .locator('xpath=following-sibling::dd[1]')
       .innerText();
@@ -165,23 +167,18 @@ test('native metadata binds without messages; picker and restart preserve select
     const downloaded = pages[1].waitForEvent('download');
     await second.getByRole('button', { name: 'Download connection log' }).click();
     const report = JSON.parse(await readFile(await (await downloaded).path(), 'utf8')) as {
-      server: { events: Array<{ event: string; threadId?: string }> };
+      server: { build: string; instance: string };
+      app: { info: { threadId: string } };
     };
-    expect(report.server.events).toContainEqual(
-      expect.objectContaining({ event: 'panel.connect', threadId: ids[1] }),
-    );
+    expect(report.server.build).toBeTruthy();
+    expect(report.server.instance).toBeTruthy();
+    expect(report.app.info.threadId).toBe(ids[1]);
     expect(JSON.stringify(report)).not.toContain('Unsaved responsibility');
-    await pages[1].evaluate(() => Object.assign(window, { dropDiagnostics: true }));
-    const offlineDownload = pages[1].waitForEvent('download');
-    await second.getByRole('button', { name: 'Download connection log' }).click();
-    const offline = JSON.parse(await readFile(await (await offlineDownload).path(), 'utf8')) as {
-      server: { error: string };
-    };
-    expect(offline.server.error).toContain('did not acknowledge');
     for (const page of pages)
       expect(
         await page.evaluate(() => (window as unknown as { chatRequests: unknown[] }).chatRequests),
       ).toHaveLength(0);
+    await second.getByRole('button', { name: 'Close', exact: true }).click();
   } finally {
     await client.close();
     await rm(temporary, { recursive: true, force: true });

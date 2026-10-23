@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ConnectionDiagnostics } from './diagnostics';
-import { LogStore, MAX_FILE_BYTES } from '../../../diagnostics/store';
+import { LogStore, MAX_FILE_BYTES } from '../../../../../mcp-app-runtime/src/store.ts';
 
 it('bounds connection history, rotates private logs and survives unavailable storage', () => {
   const root = mkdtempSync(join(tmpdir(), 'canvas-diagnostics-'));

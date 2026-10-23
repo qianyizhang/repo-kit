@@ -1,12 +1,11 @@
+import { RuntimeError } from '../../../mcp-app-runtime/src/definition.ts';
 import { stat } from 'node:fs/promises';
 import { normalizeSessionFile, sessionTrace, readSessionBody } from '../trace/jsonl.ts';
-import { renderReview } from '../session-review/build.ts';
 import type { ReviewDocument } from '../session-review/src/model/contracts.ts';
 import type { Snapshot } from './model.ts';
 /** Shared lazy reader for HTTP and MCP; only indexed sessions are addressable. */
 export function createTraceReader(snapshot: () => Snapshot) {
-  let traceCache:
-    { key: string; promise: Promise<{ data: ReviewDocument; html: string }> } | undefined;
+  let traceCache: { key: string; promise: Promise<{ data: ReviewDocument }> } | undefined;
   return async function fullTrace(session: string) {
     const canonical = new Map<string, Snapshot['sources'][number]>();
     for (const source of snapshot().sources) {
@@ -48,7 +47,7 @@ export function createTraceReader(snapshot: () => Snapshot) {
           ),
         );
       const data = sessionTrace(threads, session);
-      return { data, html: await renderReview(data) };
+      return { data };
     })();
     traceCache = { key, promise };
     try {
@@ -64,9 +63,9 @@ export async function readRecord(data: ReviewDocument, key: string, revision: st
     t.turns.some((turn) => turn.events.some((e) => e.key === key)),
   );
   const event = thread?.turns.flatMap((turn) => turn.events).find((e) => e.key === key);
-  if (!thread || !event?.body) throw new Error('Record not found');
+  if (!thread || !event?.body) throw new RuntimeError('not_found', 'Record not found');
   if (revision !== event.body.sources.map((s) => s.sha256).join('.'))
-    throw new Error('Source record changed. Reopen the trace.');
+    throw new RuntimeError('stale', 'Source record changed. Reopen the trace.');
   return readSessionBody(thread, event);
 }
 export function textBlock(value: string, offset: number) {

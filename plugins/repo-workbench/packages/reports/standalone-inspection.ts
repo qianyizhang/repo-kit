@@ -6,7 +6,20 @@ export function standaloneReportInspection(name: string) {
   const nonce = document.querySelector<HTMLMetaElement>(
     'meta[name="workbench-diagnostics"]',
   )?.content;
+  const remote = nonce
+    ? async (name: string, args: Record<string, unknown>) => {
+        const response = await fetch(`/diagnostics/${name}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Workbench-Diagnostics': nonce },
+          body: JSON.stringify(args),
+        });
+        if (!response.ok) throw new Error(`Diagnostics HTTP ${response.status}`);
+        const value: unknown = await response.json();
+        return value;
+      }
+    : undefined;
   instance = new AppDiagnostics({
+    remote,
     name,
     version: VERSION,
     build: BUILD,
@@ -34,15 +47,5 @@ export function standaloneReportInspection(name: string) {
       },
     ],
   });
-  if (nonce)
-    instance.remote = async (name, args) => {
-      const response = await fetch(`/diagnostics/${name}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Workbench-Diagnostics': nonce },
-        body: JSON.stringify(args),
-      });
-      if (!response.ok) throw new Error(`Diagnostics HTTP ${response.status}`);
-      return response.json();
-    };
   return instance;
 }

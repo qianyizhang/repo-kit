@@ -1,7 +1,8 @@
+import { hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { TraceEvent } from './contracts.ts';
-import { isCredentialField } from './diagnostic-events.ts';
+import { isCredentialField } from '../../mcp-app-runtime/src/events.ts';
 
 /** Payloads are frozen, bounded and visibly abbreviated. This is a demo recorder,
  * not a production secrets filter: free text is deliberately inspectable. */
@@ -28,7 +29,7 @@ export class TraceLog {
   private sequence = 0;
   private pending = new Map<
     string,
-    { method: string; started: number; observer: boolean; runId?: string }
+    { method: string; started: number; observer: boolean; runId?: string; owner?: string }
   >();
   activeRun: string | undefined;
   teardownRun: string | undefined;
@@ -62,8 +63,14 @@ export class TraceLog {
     let method = 'unmatched response',
       observer = false,
       elapsedMs: number | undefined,
-      runId: string | undefined;
+      runId: string | undefined,
+      owner: string | undefined;
     if ('method' in message) {
+      try {
+        owner = `chat:${hostedPrincipal(message.params?._meta).id}`;
+      } catch {
+        /* No principal means no shared-host payload access. */
+      }
       method = message.method;
       observer =
         method === 'tools/call' &&
@@ -116,6 +123,7 @@ export class TraceLog {
       if (id !== undefined) {
         this.pending.set(`${incoming}:${typeof id}:${id}`, {
           method,
+          owner,
           started: performance.now(),
           observer,
           runId,
@@ -129,6 +137,7 @@ export class TraceLog {
         method = request.method;
         observer = request.observer;
         runId = request.runId;
+        owner = request.owner;
         elapsedMs = Math.round((performance.now() - request.started) * 10) / 10;
         this.pending.delete(key);
       }
@@ -151,6 +160,7 @@ export class TraceLog {
       ...(id !== undefined ? { requestId: id } : {}),
       ...(elapsedMs !== undefined ? { elapsedMs } : {}),
       observer,
+      owner,
       runId: observer ? undefined : runId,
       payload:
         observer && !('error' in message)

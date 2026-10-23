@@ -1,3 +1,4 @@
+import { sharedFingerprint } from '../../mcp-app-runtime/src/release.ts';
 import { createHash } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -28,7 +29,7 @@ export async function buildFingerprint(root: string): Promise<string> {
     'mcp.json',
     'tsconfig.json',
   ];
-  const hash = createHash('sha256');
+  const hash = createHash('sha256').update(await sharedFingerprint());
   for (const path of paths.sort()) {
     hash.update(path);
     hash.update('\0');

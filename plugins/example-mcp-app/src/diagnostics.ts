@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { LogStore } from './diagnostic-store.ts';
-import { snapshot } from './diagnostic-events.ts';
+import { LogStore } from '../../mcp-app-runtime/src/store.ts';
+import { snapshot } from '../../mcp-app-runtime/src/events.ts';
 import type { TraceEvent } from './contracts.ts';
 
 function eventId(value: string) {
@@ -14,7 +14,7 @@ export class Diagnostics {
     this.store = new LogStore('example-mcp-app', root);
   }
   private seen = new Map<string, number>();
-  record(connection: string, event: TraceEvent) {
+  record(connection: string, event: TraceEvent, owner = event.owner) {
     if (event.observer || event.provenance !== 'captured') return;
     if (event.sequence <= (this.seen.get(connection) ?? 0)) return;
     this.seen.set(connection, event.sequence);
@@ -30,6 +30,7 @@ export class Diagnostics {
           : eventId(`${connection}:${event.runId ?? event.sequence}`),
       time: event.time,
       source: event.source,
+      owner,
       method: event.method.slice(0, 120),
       direction: event.direction.slice(0, 120),
       phase: event.kind === 'response' ? 'result' : 'request',
@@ -37,6 +38,7 @@ export class Diagnostics {
       // The captured value is the existing frozen trace record. Its wire payload
       // keeps the graph recorder's masking, truncation and provenance markers.
       payload: snapshot(event),
+      retention: event.runId && event.runId !== 'startup' ? 'user' : 'background',
     });
   }
 }

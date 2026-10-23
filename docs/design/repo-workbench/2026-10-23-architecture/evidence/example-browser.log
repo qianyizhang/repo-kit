@@ -1,0 +1,24 @@
+
+> @repo-kit/example-mcp-app@0.4.0 test:browser
+> node scripts/build-test-host.ts && playwright test
+
+[WebServer] (node:3504) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:3623) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/browser.spec.ts:18:1 › real tool/resource wiring feeds one sequence and log; variants preserve actual error layers (3.0s)
+  ✓   2 tests/browser.spec.ts:53:1 › fixture variants never call the host, preserve drafts, and fit a narrow keyboard-accessible view (652ms)
+  ✓   3 tests/browser.spec.ts:86:1 › live sequence capture saves only the selected run and exposes recording health (1.4s)
+  ✓   4 tests/browser.spec.ts:118:1 › missing capabilities and trace failures are distinct from operation success (1.4s)
+  ✓   5 tests/browser.spec.ts:141:1 › message acknowledgment, rejection and timeout use SDK responses; uncertain resend is deliberate (12.0s)
+  ✓   6 tests/browser.spec.ts:166:1 › a composite journey uses real operations and requires an explicit click for every step (1.5s)
+  ✓   7 tests/browser.spec.ts:181:1 › actual partial-input notifications assemble a stable row and remain in the raw event log (5.2s)
+  ✓   8 tests/browser.spec.ts:194:1 › teardown during a pending real request aborts observation and cannot overwrite closed state (752ms)
+  ✓   9 tests/browser.spec.ts:208:1 › export, deliberate closure, theme and a fresh app lifetime use host wiring (1.6s)
+  ✓  10 tests/browser.spec.ts:230:1 › older builds block live operations without fixture fallback (658ms)
+  ✓  11 tests/browser.spec.ts:241:1 › composite continuation rechecks capabilities before the next operation (1.0s)
+
+  11 passed (30.7s)

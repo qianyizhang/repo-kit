@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "protocol": 1,
+  "source": {
+    "revision": null,
+    "dirty": null
+  },
+  "build": "8d0f1f2bb5dd",
+  "lockSha256": "b02f66d48cc0e798dc51d7ba05f1dcd5234ff40da8c44b557412b9cdc82dc663",
+  "sharedInputSha256": "99623a9c87f5832867321a9ea20c29cbdae941c6eb3c3379b826b51989538b4d",
+  "assets": [
+    {
+      "path": "app.html",
+      "bytes": 1206024,
+      "sha256": "31f0d2db160a3284ae0a73851b70b1b79a0be68a18713c95a05cef8368f32f57"
+    },
+    {
+      "path": "build.json",
+      "bytes": 25,
+      "sha256": "e22c70f2cab8bc14cd43a04067918a75d22aa35c18859a1b9a6ac3533d1ef434"
+    },
+    {
+      "path": "preview.mjs",
+      "bytes": 1245,
+      "sha256": "55deacb532ec3b630eb7fbebbced3e39e91dc6f77c30f04885c002cb3bbdde4c"
+    },
+    {
+      "path": "server.mjs",
+      "bytes": 985950,
+      "sha256": "b7fb151b07300eb608143773e58269cccea509d9f19a4106621ac7d0a34111ca"
+    },
+    {
+      "path": "tool-catalog.json",
+      "bytes": 8303,
+      "sha256": "3c5c9d2e0eddee28436727a3784d32b873f3fb1a4695f80a368cf9a800b465ea"
+    }
+  ]
+}

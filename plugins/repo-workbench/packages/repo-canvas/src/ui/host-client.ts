@@ -1,51 +1,25 @@
-import { App, applyDocumentTheme, type McpUiHostContext } from '@modelcontextprotocol/ext-apps';
-import { ErrorCode, McpError, type CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { backgroundActions } from '../model/operations.ts';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { HostSession } from '../../../../../mcp-app-runtime/src/host-session.ts';
+import { RuntimeError } from '../../../../../mcp-app-runtime/src/definition.ts';
+import { eventMetadataSchema } from '../../../../../mcp-app-runtime/src/events.ts';
 import { BUILD, VERSION } from '../model/build';
 import { AppDiagnostics, plainMessageFlow } from '../../../diagnostics/client';
-import { eventMetadataSchema } from '../../../diagnostics/events';
 
-/** Standard host protocol only. Repository binding and recovery live in host.ts. */
+/** Canvas adapter. Session policy belongs to HostSession; repository recovery to host.ts. */
 export class HostClient {
-  private readonly app = new App(
-    { name: 'Repo Canvas', version: VERSION },
-    { availableDisplayModes: ['inline', 'fullscreen'] },
-    { autoResize: true, strict: true },
-  );
-  private initialization?: Promise<void>;
-  private readonly lifetime = new AbortController();
-  readonly inspection = new AppDiagnostics({
-    name: 'Repo Canvas',
-    version: VERSION,
-    build: BUILD,
-    mode: 'hosted',
-    info: () => ({
-      host: this.app.getHostVersion(),
-      capabilities: this.app.getHostCapabilities(),
-      closed: this.lifetime.signal.aborted,
-    }),
-    flows: [
-      plainMessageFlow,
-      {
-        name: 'Selected map and notes · fixture',
-        steps: [
-          'App freezes selected map scope and notes',
-          'App → Server: create local discussion request',
-          'App → Host: text and bounded selected summary',
-          'Host acknowledgment is separate from conversation response',
-          'An agent reply can propose changes; Apply to draft and Save remain deliberate actions',
-        ],
-        request: { text: 'Review this module', selected: 'Chosen module and explicit notes only' },
-        reads: ['Request details, source and provenance are read separately only when needed'],
-      },
-    ],
-  });
+  #session: HostSession;
+  #onTarget: (value: unknown) => void;
+  readonly inspection: AppDiagnostics;
   lastMessageInteraction?: string;
-  constructor(onTarget: (value: unknown) => void) {
-    this.inspection.remote = async (name, args) => {
+  constructor(onTarget: (value: unknown) => void, connection: () => object = () => ({})) {
+    this.#onTarget = onTarget;
+    this.#session = this.create();
+    const remote = async (name: string, args: Record<string, unknown>) => {
       await this.ready();
-      const result = await this.app.callServerTool(
+      const result = await this.#session.callServerTool(
         { name, arguments: args },
-        { timeout: 5000, signal: this.lifetime.signal },
+        { timeout: 5000 },
       );
       if (result.isError)
         throw new Error(
@@ -53,76 +27,100 @@ export class HostClient {
         );
       return result.structuredContent;
     };
-    this.app.ontoolresult = (result) => onTarget(result.structuredContent);
-    this.app.onhostcontextchanged = (context) => this.present(context);
-    this.app.onteardown = () => {
-      this.lifetime.abort(new Error('Canvas closed'));
-      return {};
-    };
-  }
-  private present(context?: Partial<McpUiHostContext>) {
-    if (context?.theme) applyDocumentTheme(context.theme);
-    if (context?.locale) document.documentElement.lang = context.locale;
-    if (context?.displayMode) document.documentElement.dataset.displayMode = context.displayMode;
-  }
-  async ready() {
-    if (this.lifetime.signal.aborted) throw new Error('Canvas closed');
-    this.initialization ??= this.app
-      .connect(undefined, { timeout: 30000, signal: this.lifetime.signal })
-      .then(() => this.present(this.app.getHostContext()))
-      .catch((error: unknown) => {
-        this.initialization = undefined;
-        throw error;
-      });
-    return this.initialization;
-  }
-  private async observed<T extends { isError?: boolean }>(
-    method: string,
-    request: unknown,
-    run: () => Promise<T>,
-  ): Promise<T> {
-    return this.inspection.observe(method, request, async () => {
-      try {
-        return await run();
-      } catch (error) {
-        const closed = this.lifetime.signal.aborted;
-        const timeout =
-          !closed && error instanceof McpError && error.code === Number(ErrorCode.RequestTimeout);
-        const message = closed
-          ? 'Canvas closed'
-          : timeout
-            ? 'The host did not acknowledge the request. Delivery is uncertain; inspect the main chat before sending again.'
-            : String(error);
-        throw new Error(message, { cause: error });
-      }
+    this.inspection = new AppDiagnostics({
+      remote,
+      name: 'Repo Canvas',
+      version: VERSION,
+      build: BUILD,
+      mode: 'hosted',
+      info: () => ({
+        host: this.#session.getHostVersion(),
+        ...this.#session.snapshot(),
+        ...connection(),
+      }),
+      flows: [
+        plainMessageFlow,
+        {
+          name: 'Selected map and notes · fixture',
+          steps: [
+            'App freezes selected map scope and notes',
+            'App → Server: create local discussion request',
+            'App → Host: text and bounded selected summary',
+            'Host acknowledgment is separate from conversation response',
+            'A proposal still requires Apply to draft and Save',
+          ],
+          request: {
+            text: 'Review this module',
+            selected: 'Chosen module and explicit notes only',
+          },
+          reads: ['Request details, source and provenance are read separately only when needed'],
+        },
+      ],
     });
   }
-  async call(request: object, contextId?: string, timeout = 30000): Promise<CallToolResult> {
-    await this.ready();
-    return this.observed(
-      'tools/call',
-      { name: 'canvas_app', arguments: { request, ...(contextId ? { contextId } : {}) } },
-      () =>
-        this.app.callServerTool(
-          { name: 'canvas_app', arguments: { request, ...(contextId ? { contextId } : {}) } },
-          { timeout, signal: this.lifetime.signal },
-        ),
+  private create() {
+    return new HostSession(
+      {
+        name: 'Repo Canvas',
+        version: VERSION,
+        capabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
+      },
+      { ontoolresult: (result) => this.#onTarget(result.structuredContent) },
     );
+  }
+  async ready() {
+    if (this.#session.snapshot().phase === 'unavailable') {
+      await this.#session.dispose();
+      this.#session = this.create();
+    }
+    await this.#session.connect();
+  }
+  async call(
+    request: object,
+    contextId?: string,
+    timeout = 30000,
+    interaction?: string,
+  ): Promise<CallToolResult> {
+    await this.ready();
+    const action = 'action' in request ? String(request.action) : '';
+    const trace = { interaction: interaction ?? crypto.randomUUID(), callId: crypto.randomUUID() };
+    const payload = {
+      name: 'canvas_app',
+      arguments: { request, ...(contextId ? { contextId } : {}) },
+      _meta: { 'repo-kit/interaction': trace },
+    };
+    return this.inspection.observe(
+      `tools/call:canvas_app:${action}`,
+      payload,
+      () => this.#session.callServerTool(payload, { timeout }),
+      {
+        ...trace,
+        retention: interaction || !backgroundActions.includes(action) ? 'user' : 'background',
+      },
+    );
+  }
+  requireBuild(build: string) {
+    if (build !== BUILD)
+      this.#session.incompatible(
+        'UI and server builds differ. Reopen the panel after refreshing the plugin.',
+      );
   }
   async requireMessaging() {
     await this.ready();
-    if (!this.app.getHostCapabilities()?.message)
-      throw new Error('This host does not support app messages.');
+    if (!this.#session.getHostCapabilities()?.message)
+      throw new RuntimeError('unavailable', 'This host does not support app messages.');
   }
-  async sendMessage(text: string) {
+  async sendMessage(text: string, interaction: string = crypto.randomUUID()) {
     await this.requireMessaging();
     const payload = { role: 'user' as const, content: [{ type: 'text' as const, text }] };
-    const pending = this.observed('ui/message', payload, () =>
-      this.app.sendMessage(payload, { timeout: 30000, signal: this.lifetime.signal }),
+    this.lastMessageInteraction = interaction;
+    const result = await this.inspection.observe(
+      'ui/message',
+      payload,
+      () => this.#session.sendMessage(payload),
+      { interaction, retention: 'user' },
     );
-    this.lastMessageInteraction = this.inspection.lastInteraction;
-    const result = await pending;
-    if (result.isError) throw new Error('The host did not accept the message.');
+    if (result.isError) throw new RuntimeError('rejected', 'The host did not accept the message.');
   }
   diagnostics() {
     return this.inspection.log.events.map((event) => eventMetadataSchema.parse(event));

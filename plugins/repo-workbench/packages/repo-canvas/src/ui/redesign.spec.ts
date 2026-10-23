@@ -1,5 +1,4 @@
 import { hostDocument } from '../../../../tests/browser/host-fixture';
-import { APP_URI } from '../server/app-resource';
 import type { CanvasExchange } from '../model/bridge';
 import { test, expect } from '@playwright/test';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -380,7 +379,9 @@ test('discussion proposals require fresh consent and Apply leaves the saved map 
   const client = new Client({ name: 'discussion-review-test', version: '1' });
   await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:4318/mcp')));
   try {
-    const resource = (await client.readResource({ uri: APP_URI })).contents[0];
+    const resource = (
+      await client.readResource({ uri: (await client.listResources()).resources[0].uri })
+    ).contents[0];
     if (!('text' in resource)) throw new Error('Expected HTML resource');
     const messages: { content: { text: string }[] }[] = [];
     await page.exposeFunction(

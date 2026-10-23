@@ -1,3 +1,4 @@
+import { poll } from '../../../../../mcp-app-runtime/src/poller.ts';
 import { useCallback, useEffect, useRef, useState, useReducer } from 'react';
 import { parseDocument, type Architecture } from '../model/document';
 import { initialDraft, transitionDraft } from '../model/draft';
@@ -148,33 +149,40 @@ export function useCanvasDocument() {
     return () => window.removeEventListener('beforeunload', warn);
   }, []);
   useEffect(() => {
-    const timer = setInterval(() => {
-      const revision = state.current.revision;
-      if (!revision) return;
-      void request('state', undefined)
-        .then((data) => {
-          if ('needsRepository' in data) return;
-          setError('');
-          setSession((previous) =>
-            previous && previous.token !== data.token
-              ? { ...previous, token: data.token, plugin: data.plugin }
-              : previous,
-          );
-          if (revision !== state.current.revision) return;
-          if (!state.current.revision || data.revision === state.current.revision) return;
-          if (state.current.dirty) {
-            setConflict(true);
-            return;
-          }
-          data.document = parseDocument(data.document);
-          setSession(data);
-          dispatch({ type: 'refresh', document: data.document });
-          setConflict(false);
-          setNotice('Updated from the shared repo document.');
-        })
-        .catch((error: unknown) => setError(String(error)));
-    }, 3000);
-    return () => clearInterval(timer);
+    const stop = poll(
+      async (signal) => {
+        const revision = state.current.revision;
+        if (!revision) return;
+        await request('state', undefined)
+          .then((data) => {
+            if (signal.aborted) return;
+            if ('needsRepository' in data) return;
+            setError('');
+            setSession((previous) =>
+              previous && previous.token !== data.token
+                ? { ...previous, token: data.token, plugin: data.plugin }
+                : previous,
+            );
+            if (revision !== state.current.revision) return;
+            if (!state.current.revision || data.revision === state.current.revision) return;
+            if (state.current.dirty) {
+              setConflict(true);
+              return;
+            }
+            data.document = parseDocument(data.document);
+            setSession(data);
+            dispatch({ type: 'refresh', document: data.document });
+            setConflict(false);
+            setNotice('Updated from the shared repo document.');
+          })
+          .catch((error: unknown) => {
+            if (!signal.aborted) setError(String(error));
+            throw error;
+          });
+      },
+      { interval: 3000, immediate: false },
+    );
+    return stop;
   }, []);
   function edit(next: Architecture) {
     dispatch({ type: 'edit', document: next });

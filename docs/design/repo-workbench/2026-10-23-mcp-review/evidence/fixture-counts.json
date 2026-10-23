@@ -1,0 +1,25 @@
+{
+  "elapsedMs": 1350116,
+  "counters": {
+    "canvas:canvas_app:connect": 1,
+    "canvas:diagnostics_append:": 6184,
+    "canvas:canvas_app:state": 436,
+    "canvas:canvas_app:remember": 1,
+    "canvas:canvas_app:draft_read": 1,
+    "canvas:canvas_app:discussion_read": 654,
+    "canvas:canvas_app:agent_read": 1744,
+    "canvas:canvas_app:draft_write": 1,
+    "canvas:canvas_app:view_write": 250,
+    "canvas:canvas_app:diagnostics": 1,
+    "reports:diagnostics_append:": 14,
+    "reports:report_app:snapshot": 1,
+    "reports:report_app:status": 1,
+    "reports:report_app:refresh": 1,
+    "canvas:canvas_app:discussion_write": 2,
+    "reports:diagnostics_info:": 1,
+    "reports:diagnostics_tools:": 1,
+    "reports:report_app:evidence": 1,
+    "reports:report_app:trace": 1,
+    "reports:report_app:select_trace": 1
+  }
+}
