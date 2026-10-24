@@ -56,4 +56,4 @@ References: [WCAG](https://www.w3.org/TR/WCAG22/),
 [WAI evaluation](https://www.w3.org/WAI/test-evaluate/),
 [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/).
 
-User-feedback provenance: `docs/reviews/2026-10-23-ui-build-prevention.md` in repo-kit.
+User-feedback provenance: `docs/reviews/README.md` in repo-kit.

@@ -53,5 +53,5 @@ python3 /path/to/ui-discussion/scripts/validate_integration.py /absolute/round/i
 This checks catalog coverage, schemas, required fixture kinds and sequence
 references. It cannot certify source truth, privacy, usable layout or live host
 acceptance. Run the normal spatial/journey readiness check too, then inspect both
-rendered pages. Keep the round as dated evidence; promote accepted implementation
-contracts to the app's existing code/design owners.
+rendered pages. Promote accepted contracts to existing code/design owners and
+retire the temporary bundle with the main review.

@@ -52,70 +52,9 @@ turns; the default suite skips that opt-in check. Package tests cover isolated
 installation, two saved maps, upgrades and stale-context rejection. They do not
 replace desktop acceptance. Private logs and retained game evidence stay local.
 
-## Historical evidence
+## Historical limit
 
-### Extraction and first acceptance — 2026-10-20
-
-Baseline: repo-kit `dd21fd2`, game `9140fcf`; Node 24.21.0, npm 11.19.0,
-Codex CLI 0.147.0. Extraction retained game's 46 map modules, IDs, layout,
-connections, annotations and authored case. Source logs and retained evidence
-were not moved.
-
-`npm run check` and all 23 browser tests passed; native/loopback checks skipped
-in the restricted run passed separately. Tests covered configuration preservation,
-private backups, collisions, malformed TOML, symlink refusal, interrupted setup,
-per-project catalog isolation and saved-map/server restart behavior. Desktop
-activation and interaction acceptance were not part of those automated passes.
-
-At source `8260583d76a6`, installed runtime and Codex cache matched. The packaged
-plugin was enabled and the old direct `mcp_servers.repo_canvas` registration was
-absent. After the user reported restarting Codex, packaged `canvas_open`/`canvas_read`
-were available; context `6f2df992-e488-4164-83dd-3b21f462307f` rendered the
-user-default fixture with the correct path, Reader/Writer, shared-document status
-and side chat. Native message `eb255b8c-31ae-4268-ba59-3b398e5bbe90` reached the
-owning chat and a summary-only proposal returned. Its draft retained Writer at
-x=406, y=57; saved bytes were unchanged. Apply/Save remained pending.
-
-Fixtures and `acceptance.json` were retained at
-`/private/tmp/repo-workbench-acceptance-kioykqdj/`:
-
-| Fixture | Installation identity |
-| --- | --- |
-| `alpha` | `repo-workbench@repo-kit-93064a9de7c4`, 0.1.0 |
-| `beta` | `repo-workbench@repo-kit-794f2695b2df`, 0.1.1-acceptance |
-| `user-default` | Existing user-wide installation |
-
-Beta's version was an acceptance-only label for the same runtime, not a release.
-Repo setup suppressed the user identity only in the fixture project config;
-trust and live project activation were not tested. The INSTALL-1 observation in
-the table is from this CLI version, not a claim about every later host.
-
-### Retired connection flow — v0.1.1 and v0.1.2
-
-The old launch flow sent a single-use request to the owning chat and waited for
-`canvas_bind`; manual selection cancelled it. Native binding
-`f75c967e-dda3-4fd2-8770-b4b78b453ef4` connected project-index, and request
-`6e76de6d-049c-46c7-aa5d-57adc15cab33` received a lifecycle-map proposal.
-This proved the handoff/discussion route, not Save or restart recovery.
-
-Lost requests exposed a five-minute ticket lifetime, cancellation after an
-uncertain 30-second message acknowledgment, and premature unbound map polling.
-The v0.1.2 fix used a renewable 30-minute inactivity lease, independent polling,
-clear expiry/restart states and a waiting spinner. The screenshot alone did not
-establish which failure caused the original report.
-
-The registry initially had no entries; 22 unique Git projects from Codex's saved
-inventory were registered without changing repositories. Both launchers gained
-search/add-folder controls, successful opens remembered their roots, and serialized
-updates protected concurrent writes. Synthetic tests covered standalone selection
-and live catalog changes, including removal while an existing canvas stayed open.
-
-| Version | Recorded verification and limits |
-| --- | --- |
-| 0.1.1 | 12 model/MCP and 42 Node tests; skipped native/loopback checks passed separately; 24 browser journeys; desktop/740/390 px screenshots. User install/cache matched; the active chat still needed refresh. |
-| 0.1.2 | 12 model/MCP tests; 41 Node tests passed, two native/loopback skips; 24 browser journeys, including delayed acknowledgment, lease renewal/expiry, manual cancellation, no unbound polling and concurrent registry writes. Narrow/desktop captures inspected; installed/cache bytes matched. Native v0.1.2 acceptance was still pending. |
-
-The ticket, delayed-chat-binding and spinner-specific open checks are
-**superseded**, not passed: v0.2.0 removed that flow. CANVAS-1 and CANVAS-3 retain
-the current selection and recovery obligations; INSTALL-1/2 retain activation.
-Do not replay a removed connection protocol to close this record.
+The October extraction and connection-flow trials exercised synthetic fixtures;
+one native side-chat reply was observed. Apply/Save, restart recovery and the
+remaining desktop checks above were not completed. Old temporary fixture paths,
+version tables and retired connection-ticket details are no longer retained.

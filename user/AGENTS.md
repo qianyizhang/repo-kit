@@ -14,6 +14,8 @@ Repository contracts, runtimes and required checks govern their scope.
 - Before material automatic or background work, state its trigger, scope, extra
   work or retained data, and stop condition. Small lookups and routine checks need
   no ceremony. Reconcile saved goals and monitors with later user changes or stops.
+- For artifact creation, verification records or cleanup, follow
+  [artifact rules](practices/artifacts.md): major outcomes, one bundle, finite retention.
 - Verify changed failure paths through stable interfaces and preserve required gates.
 
 ## Communication

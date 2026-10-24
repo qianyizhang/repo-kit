@@ -70,9 +70,15 @@ class SkillLinksTest(unittest.TestCase):
                     self.assertTrue(path.exists(), "Dangling repository symlink")
 
     def test_relative_markdown_links_resolve(self) -> None:
-        paths = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
+        paths = (
+            subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT)
+            .decode()
+            .split("\0")
+        )
         for name in paths:
-            if name.endswith((".md", ".md.jinja")):
+            # Check the working deliverable, including additions and planned deletions.
+            # Surviving links to a deleted file still fail in local_link_errors.
+            if name.endswith((".md", ".md.jinja")) and (ROOT / name).is_file():
                 with self.subTest(document=name):
                     self.assertEqual(local_link_errors(ROOT / name, ROOT), [])
 

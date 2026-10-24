@@ -40,11 +40,8 @@ def scaffold(repo: Path, design_root: Path, app: str, day: str, topic: str, *, m
             raise ValueError(f"Design path contains a symlink: {path}")
     round_name = f"{day}-{topic}"
     target = app_home / round_name
-    index = app_home / "README.md"
     if target.exists() or target.is_symlink():
         raise ValueError(f"Round already exists; resume it or choose another topic: {target}")
-    if index.is_symlink() or (index.exists() and not index.is_file()):
-        raise ValueError(f"App index must be a regular file: {index}")
     values = {"APP": app, "ROUND": round_name, "ROUND_PATH": target.relative_to(repo).as_posix()}
 
     def render(name: str) -> str:
@@ -63,20 +60,18 @@ def scaffold(repo: Path, design_root: Path, app: str, day: str, topic: str, *, m
         readme += (
             "\n\n[MCP integration review](integration.html) — populate tool contracts and conversation fixtures.\n"
         )
-    app_index = index.read_text() if index.exists() else render("app.md")
     target.mkdir(parents=True, exist_ok=False)
     (target / "README.md").write_text(readme)
     (target / "index.html").write_text(prototype)
     if integration is not None:
         (target / "integration.html").write_text(integration)
-    index.write_text(app_index.rstrip() + f"\n\n- [{round_name}]({round_name}/README.md) — scaffold; unreviewed.\n")
     return target
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
-    parser.add_argument("--design-root", type=Path, default=Path("docs/design"))
+    parser.add_argument("--design-root", type=Path, default=Path(".artifacts/ui-discussion"))
     parser.add_argument("--app", type=slug, required=True)
     parser.add_argument("--date", required=True, help="Round date in the user's timezone, YYYY-MM-DD")
     parser.add_argument("--topic", type=slug, required=True)

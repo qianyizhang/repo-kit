@@ -36,7 +36,7 @@ receipt support is removed; backups retain the original instruction bytes.
 
 Pstack contributes selected, reviewed concepts; its full orchestration is not
 adopted. The existing six Matt skill snapshots stay unchanged. Dated research lives
-in [the source review](../reviews/2026-10-22-practice-library.md), separate from the
+in [the source review](../reviews/README.md), separate from the
 maintained defaults. iOS guidance is prospective; local Apple evidence is macOS.
 
 ## Reason and consequence

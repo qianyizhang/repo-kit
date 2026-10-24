@@ -13,7 +13,7 @@ document_class: coordination
 - **Serves**: scoped authority and consumer documentation lifecycle
 
 The user approved upstream retention rules followed by a qi cleanup trial.
-Keep knowledge in its nearest sufficient owner, preserve decisions and evidence,
+Keep knowledge in its nearest sufficient owner, preserve decisions and necessary evidence,
 and delete spent coordination after checking its remaining dependencies.
 
 ## Context
@@ -43,3 +43,11 @@ Consumers reconcile seeded backlog rules and preserve evidence-specific
 append-only obligations and machine-reader scope. Git recovery is sufficient for
 spent committed prose, but does not back up ignored artifacts. Trials should
 verify preserved meaning and reader dependencies, not optimize line counts.
+
+## 24 October 2026 clarification
+
+The user replaced indefinite review-evidence retention with major-outcome bundles.
+[Artifact rules](../../user/practices/artifacts.md) govern local working evidence;
+the portable documentation lifecycle carries the same closeout boundary.
+Keep a concise outcome when useful, delete spent captures/logs/hash receipts, and
+validate delivered behavior instead of freezing historical paperwork in tests.

@@ -76,4 +76,4 @@ runtime impact, correctness of a refactor or merge safety.
 Adapted concepts: Archify `25cf37080fc8b1dbe758a4efc3935b55f3327083`,
 `references/repository-authoring.md`, `references/authoring-defaults.md` and
 `delta/architecture-delta.mjs`. Our primitives, transport and feedback ownership
-remain local. See repo-kit's `docs/reviews/2026-10-23-archify.md` for the review.
+remain local. See repo-kit's `docs/reviews/README.md` for the review.

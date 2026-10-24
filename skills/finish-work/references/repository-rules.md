@@ -58,5 +58,6 @@ account state. Link the regression test and authentication contract. Offline
 success does not establish a successful live sign-in.
 
 Update a lesson when evidence changes its meaning. Retire duplicated guidance
-once the guard and authoritative contract carry it, retaining historical evidence
-in its existing owner. Never create empty ledgers across every repository.
+once the guard and authoritative contract carry it. Retain evidence only while a
+current claim or explicit retention obligation needs it. Never create empty
+ledgers across every repository.

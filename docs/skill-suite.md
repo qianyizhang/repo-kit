@@ -90,21 +90,11 @@ The lock owns the current selection. These records explain local additions:
   2026-10-14 migration retired generic wrappers, `glossary-drill` and the maintained
   `explain-layman` runtime/validator. Older Copier consumers still need separate
   baseline reconciliation. Specialized consumer skills remain locally owned.
-- [Finish-work study and trial](reviews/2026-10-14-finish-work.md): adoption was
-  approved on 2026-10-14; [the skill](../skills/finish-work/SKILL.md) owns closeout.
+- [Review outcomes](reviews/README.md) condense the finish-work trial, UI review
+  corrections and MCP construction rationale. Their skills own current procedures.
 - [Simplify-repository](../skills/simplify-repository/SKILL.md): imported on
   2026-10-19 from the [user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
   version 2, retaining its workflow, references, host metadata and icon.
-- [UI discussion correction](reviews/2026-10-22-ui-discussion.md): the
-  [Canvas round](design/repo-canvas/2026-10-21/README.md) and
-  [Example trial](design/example-mcp-app/2026-10-22-presentation/README.md)
-  informed [ui-discussion](../skills/ui-discussion/SKILL.md). App indexes route
-  current owners and source-pinned rounds.
-- [MCP construction review](reviews/2026-10-22-practice-library.md):
-  [mcp-app](../skills/mcp-app/SKILL.md) owns the construction workflow;
-  [the practice guide](../user/practices/mcp-apps.md) owns portable principles.
-  Its executable starter is copied and adapted, not automatically upgraded.
 
-Pre-migration working files and staged/unstaged patches, including uncommitted
-retired work, remain in `.recovery/skill-migration-20261014/` with SHA-256 manifests.
-Keep this recovery material until its remaining obligations are resolved.
+Temporary migration recovery is retained only for a named unresolved obligation;
+remove it after resolution under the [artifact rules](../user/practices/artifacts.md).

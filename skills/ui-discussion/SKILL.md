@@ -16,8 +16,8 @@ prototype does not establish the common ground this workflow needs.
 
 ## Recover context and scope
 
-Read the app index, current source/design owners, vocabulary and relevant previous
-rounds. Read `user/practices/ui-ux.md` in repo-kit, or the installed
+Read current source/design owners, vocabulary and any still-active review bundle.
+Read `user/practices/ui-ux.md` in repo-kit, or the installed
 `$CODEX_HOME/practices/ui-ux.md` elsewhere; follow the target repository's UI guide
 when it has its own binding. For MCP apps also read the applicable host guide.
 Keep the app's domain terms; propose clearer names only when current terms confuse.
@@ -31,11 +31,11 @@ or an explicit access limit, not a preference for the easiest journey.
 Record inaccessible states as coverage gaps. A source-only map
 remains provisional. Use safe fixtures; distinguish fixture, test host and live.
 
-Use the existing design home, otherwise `docs/design/<app>/<date>-<topic>/`.
-Resume a round for feedback on the same baseline; preserve reviewed revisions
-before replacing them. Keep existing date-only rounds in place. The app-level
-`README.md` links current owners, accepted rounds and short evidence-linked lessons.
-Dates use the user's timezone. Create the round with:
+Use the repository's temporary artifact home, otherwise
+`.artifacts/ui-discussion/<app>/<date>-<topic>/`, excluded from Git.
+Resume the same bundle for feedback on the same baseline. Keep only revisions
+needed for an open decision; the bundle links current source/design owners.
+Dates use the user's timezone. Create the bundle with:
 
 ```sh
 python3 /path/to/ui-discussion/scripts/scaffold.py \
@@ -134,10 +134,10 @@ separate from prototype/source checks.
 Close with coverage, findings, dispositions, changed elements, verification limits
 and the next step. Code/tests/tokens own implemented behavior; existing design and
 glossary owners hold accepted intent and terms. A defect does not rewrite intent.
-Round maps are dated projections, not a second product specification. Promote only
-durable accepted decisions and evidence-linked lessons to existing owners; keep
-historical maps as evidence and mark supersession. Do not save global agent memory.
-Private captures stay outside Git. Future rounds recheck these owners against code.
+Promote accepted decisions and unresolved work to existing owners, then delete
+spent review bundles under the repository's artifact rules. A requested final
+review may remain one bundle for its named use; there is no permanent round
+archive. Future reviews start from current owners and code.
 
 Before handing off a populated capture-based round, run the readiness diagnostic
 command in [the review-surface contract](references/review-surface.md#ready-to-show).

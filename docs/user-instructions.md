@@ -13,7 +13,7 @@ meaning in the repo. Skills own procedures. Delete text that changes no decision
 
 For additions, identify the failure they prevent, merge with the owning rule,
 retain necessary exceptions, and review source/version and meaningful examples.
-Keep dated research and attribution in [the source review](reviews/2026-10-22-practice-library.md).
+Keep necessary attribution in [review notes](reviews/README.md); retire spent research bundles.
 For vocabulary choices, use [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf).
 
 ## Sync

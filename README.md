@@ -93,16 +93,11 @@ its discovery pointer.
 
 ## Local artifacts
 
-Build output (`plugins/*/dist/`) and test fixtures are generated; installed apps
-and active tests may still need them. Fixture creators remove their own temporary
-directories at teardown. Retain failure captures through the test harness.
-
-`.cache/` holds rebuildable tool caches and legacy local output; review exact
-paths before cleanup. `.recovery/` is a temporary home for patches, migration snapshots and
-installation rollback packages, with original manifests preserved. Keep recovery
-bytes until their obligations are resolved. Tracked design rounds and source-pinned
-evidence stay with their owning documents. Never use a blanket cache deletion as
-a substitute for this classification.
+Follow [artifact and verification rules](user/practices/artifacts.md). Temporary
+review bundles live in ignored `.artifacts/<outcome>/`; closeout deletes them after
+promoting useful decisions. Build output, caches and recovery data keep their
+existing locations and are removed when no active process or recovery needs them.
+Completed review outcomes are condensed in [review notes](docs/reviews/README.md).
 
 ## Verify repo-kit
 
@@ -153,5 +148,5 @@ exercises that same generated app. The root tests cover generator safety and the
 MCP integration review validator; neither check alone verifies an app integration.
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
-slice, committing when requested. [Session analysis and trial](docs/reviews/2026-10-14-finish-work.md)
-record the evidence behind it; local bindings reuse each project's existing rules.
+slice, committing when requested. [Review notes](docs/reviews/README.md)
+summarize its adoption; local bindings reuse each project's existing rules.

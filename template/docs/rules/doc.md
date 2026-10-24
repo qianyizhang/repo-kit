@@ -2,7 +2,7 @@
 description: Rules for documentation, glossaries, and durable work-item records.
 scope: documentation rules
 status: stable
-last_update: 2026-09-11
+last_update: 2026-10-24
 document_class: coordination
 ---
 
@@ -52,8 +52,16 @@ source bytes, work record, or machine artifact.
 
 ## Lifecycle
 
-A report is warranted only for a durable finding, decision, or measurement
-worth citing. It declares one outcome: `promoted`, `inconclusive`, or
+A report is warranted only for a major outcome: a durable finding, accepted
+decision, release or end-to-end result worth citing. Keep its result, source
+revision, check summary, limits and essential supporting files in one bundle.
+Its README is the single manifest for outcome, source reference, final validation,
+limits and retention; no separate metadata file or per-step/per-file receipts.
+Routine logs, screenshots and intermediate receipts stay in the repository's
+ignored artifact area. Validate the final result and important failure paths;
+checks against historical paperwork are not product behavior tests.
+
+A retained report declares one outcome: `promoted`, `inconclusive`, or
 `archive_eligible`. An inconclusive report names its reason and review trigger;
 an archive-eligible report names its Archive ID and promoted destinations.
 
@@ -70,7 +78,9 @@ claim ledgers, and promotion receipts with no remaining purpose. Before removal:
 - preserve required content in its existing owner and repair incoming links,
   work-ID references, catalog registrations, and other machine readers;
 - respect source/evidence retention and explicit append-only obligations. Being
-  old or complete does not release those obligations.
+  old or complete does not release those explicit obligations. Otherwise delete
+  spent bundles at closeout. At maintenance, review leftovers older than 30 days;
+  continued retention needs a named active use and next review date.
 
 Keep a compact record where identity, lineage, acceptance evidence, or discovery
 still depends on it. Do not move or delete a record beyond its readers' supported

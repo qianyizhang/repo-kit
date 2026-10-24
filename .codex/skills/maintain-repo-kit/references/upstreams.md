@@ -14,7 +14,7 @@ as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
   **already-covered**; all 18 files in the six selected directories match the
   existing pinned snapshot. No refresh or additional skills were installed.
 - Review depth, concrete TypeScript counterexamples and primary platform sources
-  are recorded in the [practice-library review](../../../../docs/reviews/2026-10-22-practice-library.md).
+  are recorded in the [review summary](../../../../docs/reviews/README.md).
   Future additions follow [user instruction maintenance](../../../../docs/user-instructions.md).
 
 ## Shared suite adoption — 2026-10-14

@@ -65,6 +65,5 @@ commands and exceptions in the product repository.
   different builds. Report each verified layer; restarting a separate probe
   does not reload the desktop's server. Preserve drafts before reconnecting.
 
-Source reviews: `docs/reviews/2026-10-22-mcp-apps.md` and
-`docs/reviews/2026-10-23-ui-build-prevention.md` in repo-kit.
+Source review summary: `docs/reviews/README.md` in repo-kit.
 Keep product-specific commands and exceptions in their repository.

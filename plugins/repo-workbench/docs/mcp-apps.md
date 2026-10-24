@@ -4,7 +4,7 @@ This file owns Workbench's host and transport contracts. Portable principles liv
 in repo-kit's `user/practices/mcp-apps.md`, installed under
 `$CODEX_HOME/practices/mcp-apps.md`. [The README](../README.md) owns setup and commands;
 [Canvas design](canvas-design.md) owns map, draft and source-edit behavior.
-The source review is repo-kit's `docs/reviews/2026-10-22-mcp-apps.md`.
+The source review is repo-kit's `docs/reviews/README.md`.
 
 ## Reports and conversation context
 

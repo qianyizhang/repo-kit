@@ -30,7 +30,6 @@ active processes are excluded. Metadata rotates at 2 MiB per source. Explicit
 captures are limited to eight files of 2 MiB per session. No automatic payload
 capture, source reread, conversation message or uncertain-effect retry occurs.
 
-The independently distributed starter is a pinned adaptation, recorded in
-`skills/mcp-app/assets/starter-policy.json`. It has no background domain polling
-and keeps its smaller teaching contract. The receipt and its existing generated-app
-CI prevent silent drift; changes require semantic review and the starter gates.
+The independently distributed starter keeps a smaller teaching contract: no
+background domain polling and one 250-event budget. Its generated-app behavior
+tests and CI own verification; the skill delivery lock owns file integrity.

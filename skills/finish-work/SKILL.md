@@ -77,11 +77,12 @@ expected error identity, and retained state where relevant. Call counts, orderin
 and exact bytes are legitimate when they encode a contract, not just construction.
 Simple prose or cosmetic edits do not need invented tests.
 
-Preserve authoritative sources, historical results, and source-pinned evidence.
-Changed measured code needs a new evidence record, not silent replacement of an
-old result. Before deleting artifacts or published paths, establish their role,
-references, recovery, and deletion authority. Missing local references or large
-size alone do not establish disposability.
+Keep current contracts and evidence still needed for a retained claim. Bundle
+verification only for major outcomes under the repository's artifact rules;
+routine checks need a handoff result. A new measurement cannot silently replace
+an old claim. At closeout, promote decisions and unresolved work, then remove
+spent bundles within the authorized cleanup scope. Check active users, links,
+symlinks and explicit retention obligations before deletion.
 
 Run focused checks during fixes and the repository's required gates on the final
 relevant state. Reuse earlier results only if tested inputs, dependencies, and

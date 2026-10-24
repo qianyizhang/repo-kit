@@ -31,14 +31,11 @@ class UIDiscussionTest(unittest.TestCase):
     def create(self, topic="presentation", design_root=Path("docs/design")) -> Path:
         return MODULE.scaffold(self.root, design_root, "example", "2026-10-22", topic)
 
-    def test_round_links_and_existing_context_survive_next_round(self) -> None:
+    def test_existing_bundle_survives_next_round(self) -> None:
         first = self.create()
-        index = first.parent / "README.md"
-        index.write_text(index.read_text() + "\nAccepted terminology belongs in code/glossary.\n")
         prior = {p: p.read_bytes() for p in first.iterdir()}
         second = self.create("navigation")
-        self.assertIn(f"{second.name}/README.md", index.read_text())
-        self.assertIn("Accepted terminology", index.read_text())
+        self.assertFalse((first.parent / "README.md").exists())
         for path, data in prior.items():
             self.assertEqual(data, path.read_bytes())
         self.assertNotIn("{{APP}}", (second / "index.html").read_text())
@@ -68,16 +65,28 @@ class UIDiscussionTest(unittest.TestCase):
             self.create()
         self.assertEqual([], list(real.iterdir()))
 
-    def test_symlink_index_is_not_followed(self) -> None:
-        home = self.root / "docs/design/example"
-        home.mkdir(parents=True)
-        outside = self.root / "context.md"
-        outside.write_text("Preserve")
-        (home / "README.md").symlink_to(outside)
-        with self.assertRaisesRegex(ValueError, "regular file"):
-            self.create()
-        self.assertEqual("Preserve", outside.read_text())
-        self.assertEqual([home / "README.md"], list(home.iterdir()))
+    def test_cli_defaults_to_one_temporary_bundle(self) -> None:
+        run = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "skills/ui-discussion/scripts/scaffold.py"),
+                "--repo",
+                str(self.root),
+                "--app",
+                "example",
+                "--date",
+                "2026-10-24",
+                "--topic",
+                "review",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        target = self.root.resolve() / ".artifacts/ui-discussion/example/2026-10-24-review"
+        self.assertEqual(str(target), run.stdout.strip())
+        self.assertEqual({"README.md", "index.html"}, {p.name for p in target.iterdir()})
+        self.assertFalse((self.root / "docs").exists())
 
     def write_review(self, model: dict) -> Path:
         page = self.root / "index.html"

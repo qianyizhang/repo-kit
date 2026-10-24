@@ -8,9 +8,8 @@ onboarding and design discussion. Show core concepts, use cases and data flow.
 Prefer a small overview and selected nested concepts; supporting files and
 artifacts belong in source references, not separate nodes.
 
-For the reviewed reading, contextual authoring and grouping redesign, consult the
-[2026-10-21 annotated prototype](../../../docs/design/repo-canvas/2026-10-21/README.md).
-It is a preserved review reference; this contract records the implementation decisions.
+This contract owns the accepted reading, contextual authoring and grouping
+decisions. [Review notes](../../../docs/reviews/README.md) retain the brief rationale.
 
 ## Source and provenance
 
