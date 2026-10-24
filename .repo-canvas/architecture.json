@@ -21,13 +21,10 @@
       "parent": "repo",
       "name": "Authority & decisions",
       "kind": "concept",
-      "summary": "Root governance defines kit ownership. ADRs retain accepted trade-offs; optional Campaigns link uncertainty, work and evidence without owning them.",
+      "summary": "Root governance defines kit ownership. The core model retains accepted trade-offs; optional Campaigns link uncertainty, work and evidence without owning them.",
       "sources": [
         "AGENTS.md",
-        "docs/models.md",
-        "docs/adr/0001-scoped-authority-and-explicit-promotion.md",
-        "docs/adr/0002-campaigns-for-bounded-uncertainty.md",
-        "docs/adr/0006-shared-skill-delivery.md"
+        "docs/models.md"
       ],
       "x": 70,
       "y": 85
@@ -244,7 +241,7 @@
         "plugins/example-mcp-app/design.md",
         "plugins/example-mcp-app/src/app.ts",
         "plugins/example-mcp-app/src/observability.ts",
-        "plugins/example-mcp-app/tests/OUTCOMES.md"
+        "plugins/example-mcp-app/README.md"
       ],
       "x": 670,
       "y": 275
@@ -423,7 +420,7 @@
         "kind": "node",
         "id": "template"
       },
-      "text": "ADR-0006 explicitly supersedes ADR-0003's shared-skill delivery clause. Current copier.yml exports template/ only; generic skills use scripts/skills.py. Keep ADR-0003's consumer ownership/baseline rationale.",
+      "text": "Shared skills moved outside Copier on 14 October 2026. Current copier.yml exports template/ only; generic skills use scripts/skills.py. Consumer ownership and recorded-baseline rules remain; docs/models.md retains the accepted rationale.",
       "author": "agent"
     },
     {

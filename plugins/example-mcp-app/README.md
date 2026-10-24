@@ -149,8 +149,9 @@ exercise fixture isolation, correlation, errors, capability gating, timeout,
 keyboard, narrow layout, theme, export and teardown. On this Mac, run browser
 tests outside the restricted sandbox per the browser testing guide.
 
-The [outcome/wiring matrix](tests/OUTCOMES.md) lists each exercised path and its
-acceptance assertions.
+The executable tests own outcome assertions. The SDK host forwards tools/resources
+to the bundled server; conversation/context handling remains simulated. Passing
+those tests does not establish native Codex delivery.
 
 The native probe uses the actual desktop-bundled Codex app-server and installed
 plugin configuration, opens an ephemeral model-free thread, verifies plugin

@@ -12,8 +12,7 @@
     "plugin.json",
     "mcp.json",
     "README.md",
-    "design.md",
-    "tests/OUTCOMES.md"
+    "design.md"
   ],
   "scripts": {
     "build": "node scripts/build.ts",

@@ -12,8 +12,10 @@ maps, captures, test logs and per-file hash receipts have been removed.
 - **Example MCP App:** `43a08a4` implemented one scenario navigation, four actor
   lanes, ordered observed events and one observation store for inspection/export.
   [Design](../../plugins/example-mcp-app/design.md) and
-  [outcomes](../../plugins/example-mcp-app/tests/OUTCOMES.md) own the result.
-  SDK-fixture checks did not establish native conversation delivery.
+  [verification](../../plugins/example-mcp-app/README.md#verification) own the result.
+  SDK-fixture checks did not establish native conversation delivery. Native v0.3
+  acceptance was later recorded on 23 October at build `e0dbe92d7284`; it does
+  not cover the later observability build.
 - **Workbench ownership:** the 23–24 October review led to separate user/background
   retention, caller-scoped contexts, crash-recoverable discussion transactions,
   nested trace validation, shared host lifetimes, ReportSession and Example CI.

@@ -2,7 +2,7 @@
 description: Core concepts and relationships governing repo-kit's evolution and distribution.
 scope: repo-kit core model
 status: stable
-last_update: 2026-10-22
+last_update: 2026-10-24
 document_class: coordination
 ---
 
@@ -71,9 +71,19 @@ replace the recorded source revision.
 
 ## Decisions
 
-- [ADR-0001: Keep authority scoped and promotion explicit](adr/0001-scoped-authority-and-explicit-promotion.md)
-- [ADR-0002: Use Campaigns for bounded uncertainty](adr/0002-campaigns-for-bounded-uncertainty.md)
-- [ADR-0003: Manage shared cores and seed consumer bindings](adr/0003-managed-cores-and-seeded-bindings.md)
+The former ADR-0001–0007 records are condensed here. This table keeps the
+accepted trade-offs; linked owners define current procedures.
 
-- [ADR-0006: Deliver shared skills separately from governance](adr/0006-shared-skill-delivery.md)
-- [ADR-0007: Maintain personal instructions at user scope](adr/0007-personal-user-instructions.md)
+| Decision | Reason and current owner |
+| --- | --- |
+| **Scoped authority** · 17 August | Newer or copied evidence does not overrule the concern's owner. Promotion and consumer propagation remain explicit, separate actions. See the product boundary above. |
+| **Bounded Campaigns** · 17 August | Work items alone cannot represent changing uncertainty across sessions. A Campaign links existing work rather than adding a tracker, schema or authority. Adapted from Wayfinder; [upstream attribution](../.codex/skills/maintain-repo-kit/references/upstreams.md#mattpocockskills). |
+| **Managed doctrine, local bindings** · 17 August | Managing everything would overwrite local meaning; seeding everything would leave shared fixes stranded. Copier owns portable governance; `_skip_if_exists` owns the seed list. A recorded commit is a valid baseline without a release tag. |
+| **Finite artifact retention** · 11 September, revised 24 October | Blanket archival preserves spent reporting. Age alone does not release explicit obligations. [Artifact rules](../user/practices/artifacts.md) now require major-outcome bundles and removal of spent evidence after useful decisions are promoted. Required contracts can expose code defects; code does not automatically overrule them. |
+| **Current claims, conditional recovery records** · 21 September | Current ownership uses one mutable claim table; material implementation history stays in its work record. Durable output is needed for implementation or independent continuation, not every short read-only lookup. See [coordination terms](../template/docs/rules/agentic-glossary.md#coordination). |
+| **Shared skills outside Copier** · 14 October, revised 23 October | One guarded user installation avoids per-repo copies and decouples skill updates from governance migrations. [Skill maintenance](skill-suite.md) and the lock own selection, upstream provenance and declared entrypoint adaptations. This replaces the former Copier skill-delivery decision; metadata/licenses and consumer-specific meaning remain protected. Teams choosing repo-scoped delivery must avoid competing discovery names. |
+| **Personal instructions outside Copier** · 22 October | One versioned source avoids copied defaults. [Instruction maintenance](user-instructions.md) owns explicit guarded sync and recovery; `AGENTS.md` is canonical, Claude files are pointers, and project contracts remain local. Personal macOS defaults are not mandatory for other kit users. There is no reverse sync or background updater. |
+
+Older consumers still require the [migration handoff](../.codex/skills/maintain-repo-kit/references/migration-handoff.md).
+For new significant trade-offs, use the existing owner when a compact decision
+fits; create a separate ADR only when its rationale needs a distinct document.

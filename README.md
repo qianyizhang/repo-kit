@@ -35,7 +35,7 @@ python3.12 scripts/skills.py check
 See [pinning, update review, recovery and local mappings](docs/skill-suite.md).
 Shared skills are no longer copied by Copier. Project-specific skills stay local.
 
-The [core model](docs/models.md) and [decision records](docs/adr/) explain how
+The [core model and decisions](docs/models.md) explain how
 Candidates, Campaigns, the portable product, and consumer bindings relate.
 
 ## Repo Workbench

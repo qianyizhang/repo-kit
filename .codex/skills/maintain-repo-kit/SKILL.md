@@ -17,7 +17,7 @@ changes personal guidance in `user/`, the shared `skills/` bundle, governance
 
 Use a Campaign only when a destination spans sessions and material fog must be
 revisited. It links the frontier, work, evidence, learning, and decisions while
-their existing owners retain authority; see [ADR-0002](../../../docs/adr/0002-campaigns-for-bounded-uncertainty.md).
+their existing owners retain authority; see [the Campaign model](../../../docs/models.md#deliberate-evolution).
 
 ## Start with evidence
 

@@ -86,7 +86,7 @@ no copied local rules, mandatory ledger or repeated confirmation.
 
 The lock owns the current selection. These records explain local additions:
 
-- [Shared delivery decision](adr/0006-shared-skill-delivery.md): the initial
+- [Shared delivery decision](models.md#decisions): the initial
   2026-10-14 migration retired generic wrappers, `glossary-drill` and the maintained
   `explain-layman` runtime/validator. Older Copier consumers still need separate
   baseline reconciliation. Specialized consumer skills remain locally owned.

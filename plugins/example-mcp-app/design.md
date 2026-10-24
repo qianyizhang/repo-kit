@@ -67,7 +67,7 @@ reports. `server.ts` owns tools/resources; `preview.ts` serves standalone fixtur
 The real-server SDK harness lives only under `tests/`.
 
 Native plugin installation, active panel rendering, actual message arrival and
-model responses remain separate acceptance checks. See `tests/OUTCOMES.md`.
+model responses remain separate acceptance checks. See [verification](README.md#verification) and the executable tests.
 
 ## Shared diagnostics adoption
 
