@@ -1,3 +1,4 @@
+import { exportFileMap } from '../file-map/index.ts';
 import { ReportSession } from './session.ts';
 import { RuntimeError } from '../../../mcp-app-runtime/src/definition.ts';
 import { ScopedRegistry, hostedPrincipal } from '../../../mcp-app-runtime/src/registry.ts';
@@ -159,6 +160,20 @@ export function reportsMcp() {
   const result = (value: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(value) }],
   });
+  server.registerTool(
+    'file_map',
+    {
+      title: 'Repository file map',
+      description:
+        'Export an offline Git-index file map for an explicit repository. Reads index/object metadata, not working file bodies; untracked and ignored files excluded. Writes one fresh temporary bundle and returns paths/counts, not the full inventory. Optional reviews file contains author judgments pinned to indexed identities. No source mutations or cleanup.',
+      inputSchema: {
+        repo: z.string().refine(isAbsolute, 'Use an absolute repository path'),
+        reviews: z.string().refine(isAbsolute, 'Use an absolute reviews path').optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    },
+    guarded(async (args: { repo: string; reviews?: string }) => result(await exportFileMap(args))),
+  );
   server.registerTool(
     'usage_summary',
     {

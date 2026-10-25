@@ -106,8 +106,25 @@ void test('packed npm installation runs independently with scripts disabled and 
       await mkdir(repo);
       execFileSync('git', ['init', '-q', repo]);
       await writeFile(resolve(repo, 'README.md'), name);
+      execFileSync('git', ['-C', repo, 'add', 'README.md']);
       return repo;
     }),
+  );
+  for (const repo of repos) {
+    const fileMap = JSON.parse(
+      execFileSync(
+        process.execPath,
+        [cli, 'file-map', '--out', resolve(temporary, `file-map-${repo.split('/').at(-1)!}`)],
+        { cwd: repo, encoding: 'utf8' },
+      ),
+    ) as { repo: string; paths: number; file: string };
+    assert.equal(fileMap.repo, repo);
+    assert.equal(fileMap.paths, 1);
+    assert.match(await readFile(fileMap.file, 'utf8'), /What belongs here/);
+  }
+  assert.match(
+    await readFile(resolve(installed, 'skills/repo-file-map/SKILL.md'), 'utf8'),
+    /file_map/,
   );
   const client = new Client({ name: 'packed-consumer', version: '1' });
   await client.connect(

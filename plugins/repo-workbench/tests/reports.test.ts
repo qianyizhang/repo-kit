@@ -57,6 +57,7 @@ void test('delivered reports: discovery, isolation, frozen discussion, pinned la
     'diagnostics_events',
     'diagnostics_info',
     'diagnostics_tools',
+    'file_map',
     'report_app',
     'report_provenance',
     'trace_event_text',

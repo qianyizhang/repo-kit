@@ -357,7 +357,8 @@ test('plain report message has a frozen inspector and an explicit one-interactio
     capture.events.every((item: { interaction: string }) => item.interaction === event.interaction),
   ).toBe(true);
   await inspector.getByRole('button', { name: 'Tools', exact: true }).click();
-  await expect(inspector.locator('details')).toHaveCount(14);
+  await expect(inspector.locator('details')).toHaveCount(15);
+  await expect(inspector.locator('details').filter({ hasText: 'file_map' })).toHaveCount(1);
   await inspector.getByRole('button', { name: 'Conversation flow', exact: true }).click();
   await expect(inspector).toContainText('Plain message · fixture');
   await page.locator('#theme').click();

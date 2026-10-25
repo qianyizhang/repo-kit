@@ -1,21 +1,23 @@
 # Repo Workbench
 
-Repository architecture and recorded coding-session review. Canvas, usage and
-trace are MCP Apps in the current Codex chat and also work standalone. Session
+Repository architecture, file inventories and recorded coding-session review.
+Canvas, usage and trace are MCP Apps in the current Codex chat and also work standalone. Session
 review and usage retain offline HTML exports. Runtime needs no model process,
 API key, account or network service.
 
 ## Entry points
 
-| Task                   | Codex MCP App                                                                 | Standalone                                               |
+| Task                   | Codex tool / app                                                              | Standalone                                               |
 | ---------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------- |
+| File inventory         | `file_map({repo: "/absolute/repo"})`                                          | `repo-workbench file-map --repo /absolute/repo`          |
 | Architecture           | `canvas_open({repo: "/absolute/repo"})`                                       | `repo-workbench canvas --repo /absolute/repo`            |
 | Usage                  | `usage_open({roots?: ["/absolute/log-root"]})`                                | `repo-workbench usage --serve` or offline export         |
 | Recorded trace         | `trace_open({session: "SESSION_ID", roots?: [...]})` or full trace from usage | Full trace from local usage                              |
 | Authored evidence case | Open its standalone export                                                    | `repo-workbench trace --repo ... --input ... --case ...` |
 
 Canvas proposals require Apply to draft, then Save; source edits have a separate
-reviewed save. Reports read recorded evidence. See [Canvas](docs/canvas-design.md),
+reviewed save. File maps export offline reports; see [file inventory](docs/file-map.md).
+Reports read recorded evidence. See [Canvas](docs/canvas-design.md),
 [session review](docs/session-review.md), and [usage](docs/usage.md) for behavior.
 [MCP integration](docs/mcp-apps.md) owns message attachments, context expiry,
 connection recovery and diagnostics.

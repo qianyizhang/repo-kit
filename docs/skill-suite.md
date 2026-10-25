@@ -4,6 +4,10 @@
 owns selection, delivered hashes, upstream revisions and original hashes, and
 local adaptations with their reasons. Preserve upstream attribution and licenses.
 Skills install once per user; repository-specific skills and contracts stay local.
+Workbench ships its own [file-map skill](../plugins/repo-workbench/skills/repo-file-map/SKILL.md)
+and runtime; it is not installed by this shared-skill sync. Cleanup implementation
+uses `simplify-repository`.
+
 Copier delivers `template/` governance separately. Local discovery here contains
 only `maintain-repo-kit`.
 

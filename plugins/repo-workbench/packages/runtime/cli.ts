@@ -5,6 +5,7 @@ import {
   unregisterRepository,
   registryFile,
 } from './repositories.ts';
+import { runCli as fileMap } from '../file-map/index.ts';
 import { canvasServer } from './canvas-server.ts';
 import { setup } from './setup.ts';
 import { createServer } from 'node:http';
@@ -17,6 +18,7 @@ import { Repository } from '../repo-canvas/src/server/repository.ts';
 const [command, ...args] = process.argv.slice(2);
 try {
   if (command === 'setup') console.log(JSON.stringify(await setup(args), null, 2));
+  else if (command === 'file-map') await fileMap(args);
   else if (command === 'usage') await usage(args);
   else if (command === 'trace') await trace(args);
   else if (command === 'repos') {
@@ -106,7 +108,7 @@ try {
     }
   } else if (!command || command === '--help')
     console.log(
-      'repo-workbench repos list | add PATH [--name NAME] | remove PATH\nrepo-workbench serve [--port N]\nrepo-workbench canvas [--repo DIR] [--port N] [--validate]\nrepo-workbench usage [--root LOG_DIR ...] [--out NEW_DIR] [--cache DIR] [--serve]\nrepo-workbench trace --repo DIR --input DIR --case FILE [--out NEW_DIR]\nrepo-workbench setup --scope user|repo [--repo DIR]',
+      'repo-workbench repos list | add PATH [--name NAME] | remove PATH\nrepo-workbench serve [--port N]\nrepo-workbench canvas [--repo DIR] [--port N] [--validate]\nrepo-workbench file-map [--repo DIR] [--out NEW_DIR] [--reviews FILE]\nrepo-workbench usage [--root LOG_DIR ...] [--out NEW_DIR] [--cache DIR] [--serve]\nrepo-workbench trace --repo DIR --input DIR --case FILE [--out NEW_DIR]\nrepo-workbench setup --scope user|repo [--repo DIR]',
     );
   else throw new Error(`Unknown command: ${command}`);
 } catch (error) {

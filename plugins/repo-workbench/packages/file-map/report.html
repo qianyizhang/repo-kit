@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Repository file map</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #182a2a;
+      --muted: #526564;
+      --line: #d6dfdc;
+      --paper: #f4f6f2;
+      --accent: #216555;
+      --warm: #956329;
+      font-family: system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+    }
+    header,
+    main {
+      max-width: 1550px;
+      margin: auto;
+      padding: 28px 36px;
+    }
+    header {
+      padding-bottom: 12px;
+    }
+    .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px;
+      font-weight: 750;
+      color: var(--accent);
+    }
+    h1 {
+      font-size: 34px;
+      letter-spacing: -0.04em;
+      margin: 8px 0;
+    }
+    h2 {
+      font-size: 16px;
+      margin: 0 0 16px;
+    }
+    p {
+      line-height: 1.6;
+    }
+    .muted,
+    small {
+      color: var(--muted);
+    }
+    #source {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+    button,
+    select,
+    input {
+      border: 1px solid var(--line);
+      background: white;
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: var(--ink);
+    }
+    button {
+      cursor: pointer;
+    }
+    button:hover {
+      background: #eaf1ec;
+    }
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid #bd8236;
+      outline-offset: 2px;
+    }
+    button[aria-pressed='true'] {
+      border-color: var(--accent);
+      background: #e3efe8;
+    }
+    label {
+      font-size: 12px;
+      color: var(--muted);
+      display: grid;
+      gap: 6px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-block: 1px solid var(--line);
+      margin: 22px 0 0;
+      padding: 20px 0;
+      gap: 18px;
+    }
+    .stat strong {
+      display: block;
+      font-size: 27px;
+      font-weight: 650;
+      letter-spacing: -0.04em;
+    }
+    .stat span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .overview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 28px;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 20px;
+      min-width: 0;
+    }
+    .bars {
+      display: grid;
+      gap: 6px;
+      max-height: 270px;
+      overflow: auto;
+    }
+    .bar {
+      width: 100%;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
+      background: #fff;
+      border: 0;
+      padding: 9px 10px;
+    }
+    .bar:before {
+      content: '';
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--width);
+      background: #edf2eb;
+      max-width: 100%;
+    }
+    .bar span {
+      position: relative;
+    }
+    .bar .barline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+    }
+    .bar .barname {
+      overflow-wrap: anywhere;
+    }
+    .crumb {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .crumb strong {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .filters {
+      display: flex;
+      align-items: end;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .search {
+      flex: 1;
+      min-width: 180px;
+    }
+    #results {
+      font-size: 12px;
+      min-height: 20px;
+      margin: 12px 0;
+    }
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 22px;
+      align-items: start;
+    }
+    .tablewrap {
+      min-width: 0;
+      overflow: auto;
+      max-height: 660px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: white;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 12px;
+    }
+    th {
+      text-align: left;
+      position: sticky;
+      top: 0;
+      background: #edf1ed;
+      z-index: 1;
+      font-weight: 600;
+    }
+    td,
+    th {
+      padding: 12px 14px;
+      border-bottom: 1px solid #e5ebe6;
+      vertical-align: top;
+    }
+    td:first-child {
+      width: 52%;
+      overflow-wrap: anywhere;
+    }
+    td:nth-child(3) {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    td button {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: 0;
+      text-align: left;
+      background: none;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    tr.selected {
+      background: #e6f0e9;
+    }
+    .tag {
+      font-size: 11px;
+      display: inline-block;
+      border-radius: 4px;
+      background: #eef1ed;
+      padding: 3px 6px;
+    }
+    .action-remove,
+    .action-consolidate {
+      background: #f4e6d2;
+      color: #754a12;
+    }
+    .action-keep {
+      background: #e0eee5;
+      color: #265f43;
+    }
+    #inspector {
+      position: sticky;
+      top: 16px;
+      max-height: 680px;
+      overflow: auto;
+    }
+    #inspector h2 {
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    dl {
+      display: grid;
+      grid-template-columns: 86px minmax(0, 1fr);
+      gap: 9px;
+      font-size: 12px;
+    }
+    dt {
+      color: var(--muted);
+    }
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    #inspector p,
+    #inspector li {
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    #inspector ul {
+      padding-left: 18px;
+    }
+    .notice {
+      border-left: 3px solid #c59c58;
+      padding-left: 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .empty {
+      padding: 35px;
+      text-align: center;
+      color: var(--muted);
+    }
+    footer {
+      margin-top: 26px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .enhanced {
+      display: none;
+    }
+    .js .enhanced {
+      display: block;
+    }
+    .js .static {
+      display: none;
+    }
+    @media (max-width: 1000px) {
+      .workspace {
+        grid-template-columns: minmax(0, 1fr) 285px;
+      }
+      header,
+      main {
+        padding: 22px;
+      }
+      .overview {
+        gap: 16px;
+      }
+    }
+    @media (max-width: 760px) {
+      .overview,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      header,
+      main {
+        padding: 18px;
+      }
+      h1 {
+        font-size: 29px;
+      }
+      #inspector {
+        position: static;
+        max-height: none;
+      }
+      .tablewrap {
+        max-height: 480px;
+      }
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .filters .search {
+        grid-column: 1 / -1;
+      }
+      .filters label,
+      .filters input,
+      .filters select {
+        min-width: 0;
+        width: 100%;
+      }
+      .tablewrap table {
+        min-width: 640px;
+      }
+      .bar .barline {
+        font-size: 11px;
+      }
+    }
+  </style>
+  <header>
+    <div class="eyebrow">Repository review · Git index</div>
+    <h1>What belongs here?</h1>
+    <p class="muted">
+      Explore file nature, follow the evidence, and decide what still earns its place.
+    </p>
+    <div id="source"></div>
+    <div id="stats" class="stats"></div>
+  </header>
+  <main>
+    <section class="enhanced">
+      <div class="overview">
+        <div class="panel">
+          <h2>Where files accumulate</h2>
+          <div class="crumb">
+            <button id="up" type="button">↑ Parent</button><strong id="folder-label">/</strong>
+          </div>
+          <div id="folders" class="bars"></div>
+        </div>
+        <div class="panel">
+          <h2>Nature of the files</h2>
+          <p class="muted" style="font-size: 12px; margin-top: -7px">
+            Path hints until reviewed. Bars show file count; labels include bytes.
+          </p>
+          <div id="natures" class="bars"></div>
+        </div>
+      </div>
+      <div class="filters">
+        <label class="search"
+          >Find a file or review<input
+            id="search"
+            type="search"
+            placeholder="Path, rationale or evidence…"
+        /></label>
+        <label
+          >Nature<select id="nature">
+            <option value="">All natures</option>
+          </select></label
+        >
+        <label
+          >Action<select id="action">
+            <option value="">All actions</option>
+            <option>unreviewed</option>
+            <option>keep</option>
+            <option>inspect</option>
+            <option>consolidate</option>
+            <option>remove</option>
+          </select></label
+        >
+        <label
+          >Order<select id="sort">
+            <option value="path">Path</option>
+            <option value="size">Largest first</option>
+            <option value="copies">Identical blobs first</option>
+          </select></label
+        >
+        <button id="reset" type="button">Reset</button>
+      </div>
+      <p id="results" role="status" aria-live="polite"></p>
+      <div class="workspace">
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">File</th>
+                <th scope="col">Nature</th>
+                <th scope="col">Indexed size</th>
+                <th scope="col">Action</th>
+              </tr>
+            </thead>
+            <tbody id="files"></tbody>
+          </table>
+          <div id="empty" class="empty" hidden>No matching files. Change a filter or reset.</div>
+        </div>
+        <aside id="inspector" class="panel" aria-label="File details">
+          <h2>Select a file</h2>
+          <p class="muted">Inspect its classification, Git state and review evidence.</p>
+        </aside>
+      </div>
+    </section>
+    <section class="static">
+      <h2>Complete file inventory</h2>
+      <p>
+        Indexed bytes; path classifications are hints. Reviews are author judgments. Untracked and
+        ignored files are excluded.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Path</th>
+            <th>Nature</th>
+            <th>Bytes</th>
+            <th>Action</th>
+            <th>Basis and review</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!--STATIC_ROWS-->
+        </tbody>
+      </table>
+    </section>
+    <footer>
+      <p class="notice">
+        This report proposes no automatic deletion. A path hint or identical blob does not establish
+        non-use. Indexed bytes exclude Git history, working-tree changes, untracked files and
+        ignored caches. LFS entries measure pointer blobs, not hydrated assets.
+      </p>
+      <details>
+        <summary>Snapshot scope and staged deletions</summary>
+        <p id="limits"></p>
+      </details>
+    </footer>
+  </main>
+  <script>
+    const inventory = /*INVENTORY*/ null;
+    if (inventory) {
+      const $ = (id) => document.getElementById(id);
+      const el = (tag, text, cls) => {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = text;
+        if (cls) n.className = cls;
+        return n;
+      };
+      const bytes = (n) =>
+        n === null
+          ? 'unknown'
+          : n < 1024
+            ? `${n} B`
+            : n < 1048576
+              ? `${(n / 1024).toFixed(1)} KiB`
+              : `${(n / 1048576).toFixed(1)} MiB`;
+      const sum = (rows) => rows.reduce((n, f) => n + (f.size ?? 0), 0);
+      const all = inventory.files;
+      let folder = '',
+        selected = '',
+        direct = false;
+      $('source').textContent =
+        `${inventory.repo} · ${inventory.head.slice(0, 12)} · ${new Date(inventory.created).toLocaleString()}`;
+      const proposals = all.filter((f) => ['remove', 'consolidate'].includes(f.action));
+      [
+        [all.length, 'indexed paths'],
+        [bytes(sum(all)), 'known indexed bytes'],
+        [
+          `${all.filter((f) => f.action !== 'unreviewed').length} / ${all.length}`,
+          'files with author review',
+        ],
+        [proposals.length, 'consolidation / removal proposals'],
+      ].forEach(([v, l]) => {
+        const s = el('div', undefined, 'stat');
+        s.append(el('strong', v), el('span', l));
+        $('stats').append(s);
+      });
+      $('limits').textContent =
+        `${all.filter((f) => f.size === null).length} entries have unknown size. ${all.filter((f) => f.changes.length).length} paths have pending changes. Staged deletions excluded from the index: ${inventory.staged_deletions.length ? inventory.staged_deletions.join(', ') : 'none'}. Classification covers indexed paths; supplied review evidence has not been automatically adjudicated.`;
+      [...new Set(all.map((f) => f.nature))].sort().forEach((n) => {
+        const o = el('option', n);
+        o.value = n;
+        $('nature').append(o);
+      });
+      function bar(parent, name, rows, max, onClick, pressed = false) {
+        const b = el('button', undefined, 'bar');
+        b.type = 'button';
+        b.style.setProperty('--width', `${(100 * rows.length) / Math.max(1, max)}%`);
+        b.setAttribute('aria-pressed', String(pressed));
+        const line = el('span', undefined, 'barline');
+        line.append(
+          el('span', name, 'barname'),
+          el('span', `${rows.length} · ${bytes(sum(rows))}`),
+        );
+        b.append(line);
+        b.onclick = onClick;
+        parent.append(b);
+      }
+      function overview() {
+        const scope = all.filter((f) => f.path.startsWith(folder)),
+          folders = new Map(),
+          natures = new Map();
+        scope.forEach((f) => {
+          const tail = f.path.slice(folder.length),
+            child = tail.includes('/') ? tail.split('/')[0] + '/' : '(files here)';
+          if (!folders.has(child)) folders.set(child, []);
+          folders.get(child).push(f);
+          if (!natures.has(f.nature)) natures.set(f.nature, []);
+          natures.get(f.nature).push(f);
+        });
+        $('folder-label').textContent = folder || '/';
+        $('up').disabled = !folder && !direct;
+        $('folders').replaceChildren();
+        $('natures').replaceChildren();
+        const maximum = (m) => Math.max(1, ...[...m.values()].map((r) => r.length));
+        [...folders]
+          .sort((a, b) => b[1].length - a[1].length)
+          .forEach(([n, r]) =>
+            bar($('folders'), n, r, maximum(folders), () => {
+              if (n !== '(files here)') {
+                folder += n;
+                direct = false;
+                render();
+              } else {
+                direct = !direct;
+                render();
+              }
+            }),
+          );
+        [...natures]
+          .sort((a, b) => b[1].length - a[1].length)
+          .forEach(([n, r]) =>
+            bar(
+              $('natures'),
+              n,
+              r,
+              maximum(natures),
+              () => {
+                $('nature').value = $('nature').value === n ? '' : n;
+                render();
+              },
+              $('nature').value === n,
+            ),
+          );
+      }
+      function inspect(f) {
+        selected = f.path;
+        const box = $('inspector');
+        box.replaceChildren(el('h2', f.path));
+        const dl = el('dl');
+        [
+          ['Nature', f.nature],
+          ['Action', f.action],
+          ['Indexed size', bytes(f.size)],
+          ['Git state', f.changes.join(', ') || 'clean'],
+          ['Mode', f.mode],
+          ['Blob', f.oid || 'conflicted'],
+        ].forEach(([k, v]) => dl.append(el('dt', k), el('dd', v)));
+        box.append(dl, el('p', f.basis, 'muted'));
+        box.append(
+          el(
+            'p',
+            f.reason ||
+              'No semantic review yet. Inspect content, consumers and retention duties before proposing a change.',
+          ),
+        );
+        if (f.evidence.length) {
+          box.append(el('h2', 'Evidence'));
+          const ul = el('ul');
+          f.evidence.forEach((e) => ul.append(el('li', e)));
+          box.append(ul);
+        }
+        if (f.copies > 1) {
+          box.append(el('h2', `${f.copies} identical indexed blobs`));
+          const ul = el('ul');
+          all
+            .filter((x) => x.oid === f.oid && x.mode === f.mode && x.path !== f.path)
+            .forEach((x) => ul.append(el('li', x.path)));
+          box.append(ul, el('p', 'Identical bytes may serve distinct consumers.', 'muted'));
+        }
+        for (const tr of $('files').rows)
+          tr.classList.toggle('selected', tr.dataset.path === selected);
+      }
+      function render() {
+        overview();
+        const q = $('search').value.toLowerCase(),
+          n = $('nature').value,
+          a = $('action').value;
+        const rows = all.filter(
+          (f) =>
+            f.path.startsWith(folder) &&
+            (!direct || !f.path.slice(folder.length).includes('/')) &&
+            (!n || f.nature === n) &&
+            (!a || f.action === a) &&
+            (!q || [f.path, f.reason, ...f.evidence].join(' ').toLowerCase().includes(q)),
+        );
+        rows.sort(
+          (a, b) =>
+            ($('sort').value === 'size'
+              ? (b.size ?? -1) - (a.size ?? -1)
+              : $('sort').value === 'copies'
+                ? b.copies - a.copies
+                : 0) || a.path.localeCompare(b.path),
+        );
+        const frag = document.createDocumentFragment();
+        rows.forEach((f) => {
+          const tr = el('tr');
+          tr.dataset.path = f.path;
+          tr.classList.toggle('selected', f.path === selected);
+          const path = el('td'),
+            b = el('button', f.path);
+          b.type = 'button';
+          b.onclick = () => inspect(f);
+          path.append(b);
+          const action = el('td');
+          action.append(el('span', f.action, `tag action-${f.action}`));
+          tr.append(path, el('td', f.nature), el('td', bytes(f.size)), action);
+          frag.append(tr);
+        });
+        $('files').replaceChildren(frag);
+        $('empty').hidden = rows.length > 0;
+        $('results').textContent =
+          `${direct ? 'Files in this folder · ' : ''}${rows.length} of ${all.length} paths · ${bytes(sum(rows))} known indexed bytes · ${rows.filter((f) => f.action === 'unreviewed').length} unreviewed`;
+        if (selected && !rows.some((f) => f.path === selected)) {
+          selected = '';
+          $('inspector').replaceChildren(
+            el('h2', 'Select a file'),
+            el('p', 'Inspect its classification, Git state and review evidence.', 'muted'),
+          );
+        }
+      }
+      $('up').onclick = () => {
+        if (direct) direct = false;
+        else folder = folder.replace(/[^/]+\/$/, '');
+        render();
+      };
+      $('reset').onclick = () => {
+        folder = '';
+        direct = false;
+        $('search').value = '';
+        $('nature').value = '';
+        $('action').value = '';
+        $('sort').value = 'path';
+        render();
+      };
+      ['search', 'nature', 'action', 'sort'].forEach((id) =>
+        $(id).addEventListener(id === 'search' ? 'input' : 'change', render),
+      );
+      render();
+      document.documentElement.classList.add('js');
+    }
+  </script>
+</html>

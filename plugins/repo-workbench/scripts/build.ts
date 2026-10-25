@@ -45,6 +45,10 @@ const html = read('index.html')
     (_tag, path: string) => `<style>${read(path).replace(/<\/style/gi, '<\\/style')}</style>`,
   );
 await writeFile(resolve(assets, 'canvas.html'), html);
+await writeFile(
+  resolve(assets, 'file-map.html'),
+  await readFile(resolve(root, 'packages/file-map/report.html'), 'utf8'),
+);
 const reportTheme = await readFile(resolve(root, 'packages/reports/theme.css'), 'utf8');
 const review = await outputs({
   configFile: resolve(root, 'packages/session-review/vite.config.ts'),
