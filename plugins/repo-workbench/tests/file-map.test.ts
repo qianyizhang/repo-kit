@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, realpath } from 'node
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { scan, applyReviews, exportFileMap, type FileRow } from '../packages/file-map/index.ts';
-import { HostTestClient } from './host-client.ts';
+import { HostTestClient } from '../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { z } from 'zod';
 

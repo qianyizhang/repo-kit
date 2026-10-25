@@ -6,7 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdtemp, mkdir, readFile, writeFile, rm, realpath, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { HostTestClient as Client } from './host-client.ts';
+import { HostTestClient as Client } from '../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { createFixture } from '../packages/usage/fixture.ts';
 import type { Snapshot } from '../packages/repo-canvas/src/model/document.ts';

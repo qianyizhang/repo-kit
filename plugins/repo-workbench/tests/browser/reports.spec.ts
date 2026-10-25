@@ -4,7 +4,7 @@ import { eventSchema } from '../../../mcp-app-runtime/src/events.ts';
 import { scan } from '../../packages/usage/scan.ts';
 import { render, runtime } from '../../packages/usage/build.ts';
 import { test, expect, type Page } from '@playwright/test';
-import { HostTestClient as Client } from '../host-client.ts';
+import { HostTestClient as Client } from '../../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { mkdtemp, mkdir, readFile, rm, appendFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';

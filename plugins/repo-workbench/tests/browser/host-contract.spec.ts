@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { HostTestClient as Client } from '../host-client.ts';
+import { HostTestClient as Client } from '../../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import { mkdtemp, writeFile, rm, realpath } from 'node:fs/promises';

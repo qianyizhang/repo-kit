@@ -33,3 +33,6 @@ capture, source reread, conversation message or uncertain-effect retry occurs.
 The independently distributed starter keeps a smaller teaching contract: no
 background domain polling and one 250-event budget. Its generated-app behavior
 tests and CI own verification; the skill delivery lock owns file integrity.
+
+`tests/host-client.ts` owns the native-host identity fixture shared by both
+plugin test suites. Test callers import it directly; production bundles do not.

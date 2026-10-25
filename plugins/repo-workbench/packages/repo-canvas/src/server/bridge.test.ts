@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { HostTestClient as Client } from '../../../../tests/host-client.ts';
+import { HostTestClient as Client } from '../../../../../mcp-app-runtime/tests/host-client.ts';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HostTestClient as Client } from './host-client.ts';
+import { HostTestClient as Client } from '../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { snapshotSchema } from '../src/contracts.ts';
 import { z } from 'zod';

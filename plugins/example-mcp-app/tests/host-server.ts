@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { HostTestClient as Client } from './host-client.ts';
+import { HostTestClient as Client } from '../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
   CallToolRequestSchema,

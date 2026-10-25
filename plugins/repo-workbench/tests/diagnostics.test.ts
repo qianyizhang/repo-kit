@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { HostTestClient as Client } from './host-client.ts';
+import { HostTestClient as Client } from '../../mcp-app-runtime/tests/host-client.ts';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { z } from 'zod';
 import { ObservableServer } from '../packages/diagnostics/server.ts';
