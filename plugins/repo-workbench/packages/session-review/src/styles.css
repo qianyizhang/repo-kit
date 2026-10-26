@@ -252,13 +252,17 @@ label select {
   position: relative;
 }
 .tooltip {
-  display: none;
+  display: block;
   position: absolute;
   z-index: 20;
   left: 0;
-  top: calc(100% + 8px);
+  top: 100%;
   width: 260px;
   max-width: 80vw;
+  padding-top: 8px;
+}
+.tooltip-content {
+  display: block;
   padding: 10px 12px;
   background: var(--tooltip-bg);
   color: var(--tooltip-ink);
@@ -267,9 +271,8 @@ label select {
   font-weight: 400;
   box-shadow: 0 4px 15px #0002;
 }
-.help-target:hover > .tooltip,
-.help-target:focus > .tooltip {
-  display: block;
+.help-target:hover > .tooltip {
+  z-index: 21;
 }
 .conversation-card,
 .process-card {

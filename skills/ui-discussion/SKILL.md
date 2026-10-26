@@ -99,6 +99,9 @@ spatial map, with discoverable next actions and explicit state transitions.
 
 Apply the UI/UX guide to the mapped evidence. Link each finding to element IDs,
 state and journey step, with a concrete effect and a possible improvement.
+For each exercised check, name the state, action and observed result. Use the
+guide's concrete checks after mapping; mark untested runtime behavior unverified.
+Group repeated symptoms by their shared cause and rank by user impact.
 
 - Compare facts and actions across regions and states. Flag duplicate information,
   duplicate feature entry points and ambiguous terms. Distinguish purposeful

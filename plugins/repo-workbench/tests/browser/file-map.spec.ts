@@ -28,6 +28,30 @@ test('file map: filters, inspection, reset, empty results and narrow layout', as
   await writeFile(resolve(out, 'report.html'), await render(inventory));
   try {
     await page.goto(`/test-results/${basename(out)}/report.html`);
+    // The editable area must remain identifiable before focus supplies a ring.
+    const contrast = await page.getByLabel('Find a file or review').evaluate((input) => {
+      const luminance = (color: string) => {
+        const rgb = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number);
+        const linear = rgb.map((v) => {
+          const x = v / 255;
+          return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+        });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      };
+      const style = getComputedStyle(input);
+      const border = luminance(style.borderColor);
+      return [
+        style.backgroundColor,
+        getComputedStyle(document.documentElement).backgroundColor,
+      ].map((color) => {
+        const background = luminance(color);
+        return (Math.max(border, background) + 0.05) / (Math.min(border, background) + 0.05);
+      });
+    });
+    expect(Math.min(...contrast)).toBeGreaterThanOrEqual(3);
     await expect(page.locator('#files tr')).toHaveCount(2);
     await page.getByRole('button', { name: 'docs/guide.md', exact: true }).click();
     await expect(page.getByLabel('File details')).toContainText('README.md:1');

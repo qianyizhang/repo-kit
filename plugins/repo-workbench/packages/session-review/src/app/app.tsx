@@ -8,6 +8,7 @@ import { Story } from '../curation/story.tsx';
 import { Process } from '../curation/process.tsx';
 import { Compare } from '../curation/compare.tsx';
 import { Sources } from './sources.tsx';
+import { Help } from './ui.tsx';
 import type { View } from './state.ts';
 function Coverage() {
   const { document, state, visible, events, turns } = useReview();
@@ -50,12 +51,9 @@ function Coverage() {
   return (
     <div id="coverage-summary">
       {metrics.map(([label, tip]) => (
-        <span key={label} className="help-target" tabIndex={0}>
-          {label}
-          <span role="tooltip" className="tooltip">
-            {tip}
-          </span>
-        </span>
+        <Help key={label} trigger={label}>
+          {tip}
+        </Help>
       ))}
     </div>
   );

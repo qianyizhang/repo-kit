@@ -57,6 +57,11 @@ as unconfirmed. Distinguish defects, simplifications, evidence/documentation
 corrections, and already-known or out-of-scope issues. Do not count a finding as
 fixed until its change and verification exist.
 
+For UI changes, classify findings as introduced, regressed or pre-existing against
+the accepted review base. Check removed labels, focus handling, recovery and motion
+guards for equivalent replacements. Follow changed shared controls or tokens to
+their affected surfaces and disclose any uninspected consumers.
+
 An independent reviewer is useful for risky or broad changes when delegation is
 authorized. Give it the pinned slice, task brief, and local contracts; withhold
 the implementer's conclusions. Keep review read-only and give edits one owner.

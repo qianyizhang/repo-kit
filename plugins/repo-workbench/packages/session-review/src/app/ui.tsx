@@ -1,11 +1,44 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useReview } from './context.tsx';
-export function Help({ label, children }: { label?: string; children: ReactNode }) {
+export function Help({
+  label,
+  trigger = '?',
+  children,
+}: {
+  label?: string;
+  trigger?: ReactNode;
+  children: ReactNode;
+}) {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      setOpen(false);
+    };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [open]);
   return (
-    <span className="help-target" tabIndex={0} aria-label={label}>
-      {label ? '?' : null}
-      <span role="tooltip" className="tooltip">
-        {children}
+    <span
+      className="help-target"
+      tabIndex={0}
+      aria-label={label}
+      aria-describedby={id}
+      onFocus={() => setOpen(true)}
+      onBlur={(event) => {
+        if (!event.currentTarget.matches(':hover')) setOpen(false);
+      }}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.matches(':focus-within')) setOpen(false);
+      }}
+    >
+      {trigger}
+      <span id={id} role="tooltip" className="tooltip" hidden={!open}>
+        <span className="tooltip-content">{children}</span>
       </span>
     </span>
   );

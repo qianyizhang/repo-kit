@@ -13,6 +13,9 @@
   terminology and decisions in the product's existing design owner; code remains
   the source of truth for implemented behavior. Use `ui-discussion` when a full
   shared map and review are needed.
+- In reviews, separate accessibility requirements from style heuristics. Judge
+  density, type and motion against the product's intent and demonstrated failures;
+  a different preferred value is not a defect.
 
 ## Layout and disclosure
 
@@ -48,6 +51,17 @@
   Test realistic content and affected empty, long, loading, error and dirty states.
 - Check keyboard/focus, contrast, non-color cues, target size, overflow, text scaling,
   themes and reduced motion where affected. Respect platform input conventions.
+- For hover/focus content, verify pointer travel into it and dismissal without
+  moving focus when it obscures other content. Check the real open/close path.
+- Measure text and necessary control cues against their rendered adjacent colors.
+  Distinguish control boundaries from decorative dividers; one failing role does
+  not justify changing every use of a shared color.
+- Associate field-specific errors with their inputs and make correction reachable.
+  Keep form-level failures and conflict/uncertain-save recovery distinct; a
+  validation pattern must not enable unsafe repeat actions.
+- Check narrow reflow and text enlargement separately. Necessary two-dimensional
+  content, such as a data table, may scroll within its region; verify readable
+  cells, access to full values and a visible cue to hidden content.
 - Exercise the actual flow and inspect the whole screen and sibling surfaces.
   Capture meaningful visual changes; automated checks alone do not establish
   accessibility or visual quality.

@@ -32,6 +32,15 @@ maps, captures, test logs and per-file hash receipts have been removed.
 
 ## Guidance outcomes and attribution
 
+- **Interfaces, 26 October:** adapted concrete hover/focus, contrast-role,
+  field-error and reflow checks from [Jakub Krehel's Interfaces skills](https://github.com/jakubkrehel/skills/tree/592aedc44d7d5b3e29740984252902f3e5402a1c)
+  (MIT, version 1.17.0) into the existing UI/UX guide. UI discussion owns evidence
+  reporting; finish-work owns change classification. Two synthetic browser trials
+  reproduced Workbench tooltip and input-boundary defects; a committed-source
+  Saul review identified an unverified field-error improvement candidate. These
+  same-agent trials do not establish a quality advantage or accessibility
+  conformance. Exact aesthetic recipes, blanket severity and a second review
+  framework were not adopted. No upstream skill files were imported.
 - **Finish-work, 14 October:** a small synthetic comparison found both the normal
   prompt and the skill fixed the same state-reset defect. The skill made candidate
   and regression checks more explicit; a repeat produced no edits. No general

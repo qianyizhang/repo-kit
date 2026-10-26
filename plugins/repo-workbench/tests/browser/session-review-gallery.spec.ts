@@ -15,6 +15,49 @@ test.afterAll(async () => {
   await server?.close();
 });
 
+test('help remains hoverable and Escape dismisses it without moving focus', async ({
+  page,
+}, info) => {
+  await page.goto(url + '?fixture=parallel');
+  const trigger = page.locator('#coverage-summary .help-target').first();
+  const tooltip = trigger.getByRole('tooltip');
+  await trigger.focus();
+  await expect(tooltip).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Shift+Tab');
+  await expect(tooltip).toBeVisible();
+  await page.keyboard.press('Tab');
+  await page.mouse.move(0, 0);
+  await trigger.hover();
+  const box = (await trigger.boundingBox())!;
+  await page.mouse.move(box.x + 10, box.y + box.height + 4);
+  await expect(tooltip).toBeVisible();
+  await tooltip.hover();
+  await expect(tooltip).toBeVisible();
+  await page.screenshot({ path: info.outputPath('help-pointer.png') });
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toBeHidden();
+  await page.mouse.move(0, 0);
+  await trigger.hover();
+  await expect(tooltip).toBeVisible();
+  await page.getByRole('button', { name: 'Conversation', exact: true }).click();
+  const searchHelp = page.getByLabel('About conversation search', { exact: true });
+  await searchHelp.focus();
+  await expect(searchHelp.getByRole('tooltip')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(searchHelp.getByRole('tooltip')).toBeHidden();
+  await expect(searchHelp).toBeFocused();
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.mouse.move(0, 0);
+  await trigger.focus();
+  await expect(tooltip).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: info.outputPath('help-narrow.png') });
+});
+
 test('development examples use the actual renderer and keep uncertain evidence separate', async ({
   page,
 }, info) => {
