@@ -98,7 +98,8 @@ The lock owns the current selection. These records explain local additions:
   corrections and MCP construction rationale. Their skills own current procedures.
 - [Simplify-repository](../skills/simplify-repository/SKILL.md): imported on
   2026-10-19 from the [user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
-  version 2, retaining its workflow, references, host metadata and icon.
+  version 2. The local workflow now uses scope-driven discovery and delegates final
+  closeout to `finish-work`; upstream references, host metadata and icon remain.
 
 Temporary migration recovery is retained only for a named unresolved obligation;
 remove it after resolution under the [artifact rules](../user/practices/artifacts.md).

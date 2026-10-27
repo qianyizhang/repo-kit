@@ -1,4 +1,4 @@
 interface:
   display_name: "Finish Work"
-  short_description: "Review, verify, and commit a completed work slice"
-  default_prompt: "Use $finish-work to review and finish this slice, fix supported findings, run the relevant checks, and commit the scoped result."
+  short_description: "Review and verify a completed work slice"
+  default_prompt: "Use $finish-work to review and finish this slice, reuse applicable evidence, fix supported findings, and run the required checks. Commit only if requested."
