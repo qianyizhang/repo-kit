@@ -41,8 +41,9 @@ host/model steps to complete the graph.
 Include App info, connection/delivery/save state, tool catalog, each interaction's
 payload inspector, and log-failure/standalone states in the spatial inventory and
 journeys. Inspect a real payload in the running app. Record source-only findings
-as provisional. Feedback on the integration page freezes the selected tool or
-fixture and the inspected baseline.
+as provisional. Use host browser annotations on the selected tool or fixture. Resolve feedback
+against that selection and the inspected baseline; this supplement has no separate
+comment form or export flow.
 
 Validate the supplement before handoff:
 

@@ -1,761 +1,2225 @@
 <!doctype html>
 <html lang="en">
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{{APP}} · UI/UX anatomy review</title>
-  <style>
-    :root {
-      color-scheme: light dark;
-      font:
-        15px/1.5 system-ui,
-        sans-serif;
-      --bg: #f5f4ef;
-      --card: #fff;
-      --ink: #25342e;
-      --line: #cbd2cb;
-      --accent: #176f5c;
-      --mark: #eedca5;
-    }
-    * {
-      box-sizing: border-box;
-    }
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--ink);
-    }
-    h1 {
-      font-size: 1.5rem;
-    }
-    h2 {
-      font-size: 1.1rem;
-    }
-    h3 {
-      font-size: 1rem;
-    }
-    h1,
-    h2,
-    h3,
-    p {
-      margin: 0 0 0.7rem;
-    }
-    button,
-    select,
-    textarea {
-      font: inherit;
-      color: inherit;
-    }
-    button,
-    select {
-      padding: 0.45rem 0.7rem;
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      background: var(--card);
-      cursor: pointer;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-    button[aria-pressed="true"] {
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-    :focus-visible {
-      outline: 3px solid var(--accent);
-      outline-offset: 3px;
-    }
-    header {
-      padding: 1.25rem 1.6rem;
-      border-bottom: 1px solid var(--line);
-    }
-    .row {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-    .tag {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-    }
-    nav {
-      margin-top: 1rem;
-    }
-    main {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 340px;
-      gap: 1.2rem;
-      padding: 1.3rem;
-      max-width: 1800px;
-      margin: auto;
-    }
-    article,
-    aside {
-      min-width: 0;
-    }
-    .panel,
-    aside {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      padding: 1rem;
-    }
-    .toolbar {
-      margin-bottom: 1rem;
-    }
-    #viewport {
-      overflow: auto;
-    }
-    #stage.actual {
-      width: max-content;
-    }
-    #stage.actual #capture {
-      width: auto;
-      max-width: none;
-    }
-    #stage {
-      position: relative;
-      border: 1px solid var(--line);
-      line-height: 0;
-    }
-    #capture {
-      width: 100%;
-      display: block;
-    }
-    #blank {
-      line-height: 1.6;
-      padding: 3rem 1rem;
-    }
-    #marks {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-    .mark {
-      position: absolute;
-      pointer-events: auto;
-      border: 1px solid transparent;
-      background: transparent;
-      border-radius: 0;
-      padding: 0;
-      line-height: 1;
-    }
-    .mark span {
-      position: absolute;
-      top: 0;
-      left: 0;
-      background: var(--mark);
-      color: #302916;
-      border: 1px solid #806f42;
-      padding: 4px;
-      font-size: 11px;
-      border-radius: 3px;
-    }
-    .mark:hover,
-    .mark.selected {
-      border: 2px solid var(--accent);
-      background: #29876b22;
-    }
-    .mark.participant {
-      border: 2px dashed var(--accent);
-    }
-    #coverage {
-      margin-top: 0.6rem;
-      font-size: 0.85rem;
-    }
-    dl {
-      margin: 0;
-    }
-    dt {
-      font-weight: 650;
-      margin-top: 0.7rem;
-    }
-    dd {
-      margin: 0.15rem 0;
-      overflow-wrap: anywhere;
-    }
-    textarea {
-      width: 100%;
-      min-height: 90px;
-      background: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: 5px;
-      padding: 0.6rem;
-    }
-    form {
-      margin-top: 1.2rem;
-    }
-    details {
-      margin-top: 1rem;
-    }
-    summary {
-      cursor: pointer;
-    }
-    pre {
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
-    .table-wrap {
-      overflow: auto;
-    }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      font-size: 0.9rem;
-    }
-    td,
-    th {
-      text-align: left;
-      padding: 0.6rem;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-    }
-    .finding {
-      border-bottom: 1px solid var(--line);
-      padding: 1rem 0;
-    }
-    .step {
-      margin-bottom: 1rem;
-    }
-    .muted {
-      font-size: 0.85rem;
-    }
-    .empty {
-      padding: 1rem;
-      border: 1px dashed var(--line);
-    }
-    [hidden] {
-      display: none !important;
-    }
-    #inventory-count {
-      margin: 0.5rem 0;
-    }
-    #notice {
-      margin-top: 0.7rem;
-      font-size: 0.85rem;
-    }
-    #provenance {
-      font-size: 0.85rem;
-    }
-    #element-list {
-      max-height: 260px;
-      overflow: auto;
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-    }
-    @media (max-width: 1050px) {
-      main {
-        grid-template-columns: 1fr;
-      }
-      header {
-        padding: 1rem;
-      }
-      aside {
-        max-height: none;
-      }
-    }
-    @media (prefers-color-scheme: dark) {
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{{APP}} · UI review</title>
+    <style>
       :root {
-        --bg: #1b211e;
-        --card: #242d27;
-        --ink: #e4e9e3;
-        --line: #4d5c51;
-        --accent: #94d5b8;
+        color-scheme: light;
+        --bg: #f5f6f8;
+        --surface: #fff;
+        --ink: #23272f;
+        --muted: #5c6470;
+        --line: #e1e4e9;
+        --accent: #245bce;
+        --selected: #edf3ff;
+        --change: #9b5b08;
+        --change-bg: #fff6e7;
+        --highlight: #ffe28a;
+        --highlight-border: #edc342;
+        --highlight-ink: #3b2c08;
+        font:
+          14px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
       }
-    }
-  </style>
-  <header>
-    <p class="tag">Review frame · <span id="revision"></span></p>
-    <h1>{{APP}} · UI/UX anatomy</h1>
-    <p id="scope"></p>
-    <p id="coverage-gaps" hidden></p>
-    <details>
-      <summary>Baseline and coverage scope</summary>
-      <p id="provenance"></p>
-    </details>
-    <nav class="row" aria-label="Review dimensions">
-      <!-- MCP_REVIEW -->
-      <button data-view="layout" aria-pressed="true">1 · Spatial UI</button>
-      <button data-view="inventory" aria-pressed="false">
-        Component inventory
-      </button>
-      <button data-view="journey" aria-pressed="false">2 · Temporal UX</button>
-      <button data-view="audit" aria-pressed="false">
-        3 · Audit and proposals
-      </button>
-    </nav>
-  </header>
-  <main>
-    <article>
-      <section id="layout-panel" class="panel">
-        <div class="row toolbar">
-          <label for="screen">Layout state</label
-          ><select id="screen"></select
-          ><button id="labels" aria-pressed="true">Element labels</button
-          ><button id="size" aria-pressed="false">Actual size</button>
-        </div>
-        <section id="journey-panel" hidden>
-          <div class="row toolbar">
-            <label for="journey">Primary journey</label
-            ><select id="journey"></select
-            ><button id="previous">Previous step</button
-            ><button id="next">Next step</button>
-          </div>
-          <h2 id="journey-title"></h2>
-          <p id="goal"></p>
-          <p id="endpoints" class="muted"></p>
-          <div class="step">
-            <h3 id="step-title"></h3>
-            <p id="step-summary"></p>
-            <details>
-              <summary>Cues, deferred detail and recovery</summary>
-              <dl id="step-detail"></dl>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      summary,
+      select {
+        cursor: pointer;
+      }
+      button {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 11px;
+      }
+      button:hover {
+        background: var(--bg);
+      }
+      button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      button[aria-pressed="true"] {
+        background: var(--selected);
+        color: var(--accent);
+        border-color: #c9d8f7;
+      }
+      a {
+        color: var(--accent);
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 19px;
+        font-weight: 650;
+        letter-spacing: -0.35px;
+      }
+      h2 {
+        font-size: 17px;
+        letter-spacing: -0.2px;
+      }
+      h3 {
+        font-size: 13px;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .spacer {
+        flex: 1;
+      }
+      .app-header {
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        padding: 15px 22px 0;
+      }
+      .heading-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      .revision {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .coverage {
+        position: relative;
+        margin-left: auto;
+        font-size: 12px;
+      }
+      .coverage > summary {
+        list-style: none;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 5px 10px;
+      }
+      .coverage > summary::after {
+        content: " ⌄";
+        color: var(--muted);
+      }
+      .coverage[open] > summary {
+        background: var(--bg);
+      }
+      .coverage-popover {
+        position: absolute;
+        z-index: 20;
+        right: 0;
+        top: 34px;
+        width: min(570px, calc(100vw - 32px));
+        background: var(--surface);
+        border: 1px solid var(--line);
+        box-shadow: 0 12px 28px #1821311a;
+        border-radius: 8px;
+        padding: 18px;
+      }
+      .coverage-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .coverage-grid ul {
+        padding-left: 17px;
+        margin: 7px 0 0;
+      }
+      .coverage-grid li + li {
+        margin-top: 5px;
+      }
+      .baseline {
+        border-top: 1px solid var(--line);
+        margin-top: 14px;
+        padding-top: 10px;
+      }
+      .baseline summary {
+        color: var(--muted);
+      }
+      .baseline p {
+        font-size: 12px;
+        margin-top: 8px;
+        overflow-wrap: anywhere;
+      }
+      .topnav {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+        margin-top: 13px;
+      }
+      .topnav button {
+        border: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 0;
+        padding: 9px 0;
+        background: transparent;
+        font-size: 13px;
+      }
+      .topnav button[aria-pressed="true"] {
+        border-bottom-color: var(--accent);
+        color: var(--accent);
+      }
+      .topnav .hint {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 228px minmax(0, 1fr);
+        max-width: 1760px;
+        margin: auto;
+        min-height: calc(100vh - 110px);
+      }
+      .navigator {
+        background: var(--surface);
+        border-right: 1px solid var(--line);
+        padding: 14px 10px;
+        position: sticky;
+        top: 0;
+        align-self: start;
+        height: calc(100vh - 110px);
+        overflow: auto;
+      }
+      .nav-heading {
+        padding: 0 7px 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .segment {
+        display: flex;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 2px;
+        gap: 2px;
+      }
+      .segment button {
+        font-size: 11px;
+        border: 0;
+        padding: 3px 9px;
+        border-radius: 4px;
+        background: transparent;
+      }
+      .segment button[aria-pressed="true"] {
+        box-shadow: 0 1px 3px #17213115;
+        background: var(--surface);
+      }
+      .nav-overview {
+        width: 100%;
+        text-align: left;
+        border-color: transparent;
+        font-size: 13px;
+        padding: 7px 9px;
+        margin-bottom: 9px;
+      }
+      .tree-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .tree-list .tree-list {
+        margin-left: 14px;
+        border-left: 1px solid #eceef2;
+        padding-left: 5px;
+      }
+      .tree-row {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        min-height: 31px;
+        border-radius: 5px;
+      }
+      .tree-row.active {
+        background: var(--selected);
+        color: var(--accent);
+      }
+      .tree-row:hover {
+        background: var(--bg);
+      }
+      .tree-fold {
+        border: 0;
+        background: transparent;
+        padding: 2px;
+        width: 23px;
+        font-size: 11px;
+        flex-shrink: 0;
+      }
+      .tree-indent {
+        width: 23px;
+        flex-shrink: 0;
+      }
+      .tree-item {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        text-align: left;
+        border: 0;
+        background: transparent;
+        border-radius: 4px;
+        padding: 5px 4px;
+        min-width: 0;
+        flex: 1;
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .tree-item:hover {
+        background: transparent;
+      }
+      .tree-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .nature-icon {
+        color: var(--muted);
+        font-size: 11px;
+        width: 12px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .dot {
+        height: 5px;
+        width: 5px;
+        border-radius: 50%;
+        background: var(--change);
+        margin-right: 8px;
+        flex-shrink: 0;
+      }
+      .workspace {
+        padding: 20px 24px 30px;
+        min-width: 0;
+      }
+      .workspace-head {
+        margin-bottom: 16px;
+      }
+      .breadcrumbs {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 9px;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+      .breadcrumbs button {
+        background: none;
+        border: 0;
+        padding: 0;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .workspace-head .purpose {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 13px;
+        max-width: 900px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        font-size: 12px;
+      }
+      .state-tabs {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+      }
+      .state-tabs button {
+        border-color: transparent;
+        background: transparent;
+        color: var(--muted);
+        padding: 5px 8px;
+      }
+      .state-tabs button[aria-pressed="true"] {
+        background: var(--selected);
+        color: var(--accent);
+      }
+      .change-strip {
+        display: flex;
+        gap: 8px;
+        overflow: auto;
+        padding: 1px 0 12px;
+      }
+      .change-strip button {
+        white-space: nowrap;
+        font-size: 12px;
+        border-left: 3px solid #c18b3e;
+      }
+      .change-strip button[aria-pressed="true"] {
+        background: var(--change-bg);
+        color: var(--change);
+        border-color: #ecd2ac;
+      }
+      .change-drawer {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-left: 3px solid #c18b3e;
+        border-radius: 7px;
+        padding: 13px 15px;
+        margin-bottom: 14px;
+      }
+      .change-drawer .row {
+        margin-bottom: 7px;
+      }
+      .change-drawer h3 {
+        font-size: 14px;
+      }
+      .change-drawer .status {
+        font-size: 11px;
+        color: var(--change);
+      }
+      .change-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .change-grid strong {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 600;
+        margin-bottom: 3px;
+      }
+      .change-grid p {
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .change-evidence {
+        font-size: 12px;
+        margin-top: 10px;
+      }
+      .change-evidence p {
+        margin-top: 6px;
+        color: var(--muted);
+      }
+      .visuals {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+      }
+      .visuals.comparing {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .visual-panel {
+        min-width: 0;
+      }
+      .visual-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 7px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .visual-label .pill {
+        border: 1px solid var(--line);
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+      }
+      .stage {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid #d4d9e0;
+        border-radius: 7px;
+        background: #e9ecf1;
+      }
+      .stage svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      .stage > p {
+        padding: 40px 22px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .roi-layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .roi {
+        position: absolute;
+        border: 1px solid #7a96c4;
+        border-radius: 2px;
+        background: transparent;
+        padding: 0;
+        pointer-events: auto;
+        z-index: 1;
+      }
+      .roi:hover,
+      .roi:focus-visible,
+      .roi.selected {
+        border: 2px solid var(--highlight-border);
+        background: #f7cf4933;
+        box-shadow: 0 0 0 1px #624b0a99;
+      }
+      .roi .badge {
+        display: block;
+        position: absolute;
+        left: 0;
+        top: 0;
+        transform: none;
+        padding: 3px 6px;
+        color: #fff;
+        background: var(--accent);
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: normal;
+        width: max-content;
+        overflow-wrap: anywhere;
+        border-radius: 4px 4px 0 0;
+        pointer-events: none;
+      }
+      .roi.change {
+        border: 2px dashed var(--highlight-border);
+        background: #f7cf4929;
+      }
+      .roi.change .badge {
+        background: var(--highlight);
+        color: var(--highlight-ink);
+      }
+      .roi.change:hover,
+      .roi.change.selected {
+        border-style: solid;
+      }
+      .visual-note {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 8px;
+      }
+      .component-facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid var(--line);
+      }
+      .component-facts h3 {
+        color: var(--muted);
+        font-weight: 500;
+        font-size: 11px;
+        margin-bottom: 5px;
+      }
+      .component-facts ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-size: 12px;
+      }
+      .component-facts li + li {
+        margin-top: 4px;
+      }
+      .source-details {
+        margin-top: 15px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .source-details summary {
+        display: inline-block;
+      }
+      .source-details dl {
+        display: grid;
+        grid-template-columns: 92px 1fr;
+        gap: 6px 12px;
+        margin: 12px 0 0;
+      }
+      .source-details dt {
+        color: var(--muted);
+      }
+      .source-details dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      .table-wrap {
+        overflow: auto;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        text-align: left;
+        font-size: 12px;
+      }
+      th {
+        font-weight: 500;
+        color: var(--muted);
+        background: #fafbfc;
+      }
+      th,
+      td {
+        padding: 10px 13px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td button {
+        border: 0;
+        padding: 0;
+        background: none;
+        color: var(--ink);
+        text-align: left;
+      }
+      td button:hover {
+        color: var(--accent);
+        background: none;
+      }
+      .table-code {
+        color: var(--muted);
+        font-size: 10px;
+        display: block;
+        margin-top: 2px;
+      }
+      .journey-select {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px;
+        font-size: 12px;
+        margin: 0 0 10px;
+      }
+      .journey-step {
+        width: 100%;
+        display: flex;
+        gap: 9px;
+        align-items: flex-start;
+        border: 0;
+        text-align: left;
+        background: transparent;
+        font-size: 12px;
+        padding: 9px 8px;
+        margin-bottom: 3px;
+      }
+      .journey-step .number {
+        font-size: 10px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        min-width: 19px;
+        text-align: center;
+        margin-top: 1px;
+      }
+      .step-facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        padding: 13px 15px;
+        border-radius: 7px;
+        margin-bottom: 16px;
+      }
+      .step-facts h3 {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+      .step-facts p {
+        font-size: 12px;
+      }
+      .journey-context {
+        font-size: 12px;
+        margin-top: 10px;
+        color: var(--muted);
+      }
+      .journey-context dl {
+        display: grid;
+        grid-template-columns: 70px 1fr;
+        gap: 7px;
+        margin: 10px 0;
+      }
+      .journey-context dd {
+        margin: 0;
+      }
+      #hover-card {
+        position: fixed;
+        z-index: 40;
+        width: 270px;
+        background: var(--surface);
+        color: var(--ink);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 9px 24px #1721311c;
+        padding: 12px;
+        pointer-events: auto;
+        font-size: 12px;
+      }
+      #hover-card strong {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      #hover-card p {
+        color: var(--muted);
+      }
+      #hover-card .preview-facts {
+        margin-top: 8px;
+        font-size: 11px;
+      }
+      #hover-card .preview-foot {
+        margin-top: 9px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .empty {
+        padding: 32px;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+      }
+      @media (min-width: 1700px) {
+        .workspace {
+          padding: 24px 32px;
+        }
+      }
+      @media (max-width: 1280px) {
+        .visuals.comparing {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 800px) {
+        .shell {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+        .workspace {
+          padding: 16px;
+        }
+        .navigator {
+          padding: 12px 7px;
+        }
+        .coverage-grid {
+          gap: 14px;
+        }
+        .visuals.comparing {
+          grid-template-columns: 1fr;
+        }
+        .change-grid {
+          grid-template-columns: 1fr;
+        }
+        .revision {
+          display: none;
+        }
+      }
+      @media (max-width: 570px) {
+        .app-header {
+          padding: 12px 14px 0;
+        }
+        .shell {
+          grid-template-columns: 148px minmax(0, 1fr);
+        }
+        .workspace {
+          padding: 12px;
+        }
+        .nav-heading {
+          padding: 0 0 9px;
+          display: block;
+        }
+        .segment {
+          margin-top: 6px;
+          width: max-content;
+        }
+        .tree-item {
+          font-size: 11px;
+        }
+        .tree-fold,
+        .tree-indent {
+          width: 16px;
+        }
+        .nature-icon {
+          display: none;
+        }
+        .tree-list .tree-list {
+          margin-left: 6px;
+          padding-left: 2px;
+        }
+        .topnav .hint {
+          display: none;
+        }
+        .component-facts,
+        .step-facts {
+          grid-template-columns: 1fr;
+        }
+        .coverage-grid {
+          grid-template-columns: 1fr;
+        }
+        .coverage-popover {
+          right: -4px;
+        }
+        .heading-row {
+          gap: 7px;
+        }
+        h1 {
+          font-size: 17px;
+        }
+      }
+      .roi:hover .badge,
+      .roi:focus-visible .badge,
+      .roi.selected .badge {
+        background: var(--highlight);
+        color: var(--highlight-ink);
+      }
+      .table-wrap table {
+        table-layout: fixed;
+      }
+      .table-wrap th:nth-child(1) {
+        width: 23%;
+      }
+      .table-wrap th:nth-child(2) {
+        width: 36%;
+      }
+      .table-wrap th:nth-child(3) {
+        width: 25%;
+      }
+      .table-wrap th:nth-child(4) {
+        width: 16%;
+      }
+      .table-wrap td {
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .table-wrap td strong {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .table-secondary {
+        margin-top: 5px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .preview-button {
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+      }
+      .table-thumb {
+        width: 100%;
+        height: 54px;
+        pointer-events: none;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .table-thumb svg {
+        height: 100%;
+        width: 100%;
+        object-fit: contain;
+      }
+      .table-thumb .roi-layer .badge {
+        display: none;
+      }
+      .table-thumb .roi {
+        pointer-events: none;
+      }
+      .table-thumb .roi:not(.selected) {
+        display: none;
+      }
+      .table-thumb .roi.selected {
+        border-width: 2px;
+      }
+      #table-filters {
+        padding: 4px 7px;
+      }
+      #table-filters > label {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin: 12px 0 5px;
+      }
+      #table-filters input[type="search"],
+      #table-filters select {
+        width: 100%;
+        padding: 7px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 5px;
+        font-size: 12px;
+      }
+      #table-filters .filter-check {
+        display: flex;
+        gap: 5px;
+        align-items: start;
+        margin: 18px 0;
+      }
+      #table-count {
+        margin-top: 14px;
+      }
+      .table-image-preview {
+        margin-top: 10px;
+        max-height: 300px;
+        overflow: auto;
+      }
+      .pinned-row td {
+        background: #f8faff;
+      }
+      .pinned-row .row {
+        margin-bottom: 10px;
+      }
+      .pinned-image {
+        max-height: 430px;
+        overflow: auto;
+      }
+      .look-for {
+        font-size: 13px;
+        margin: 7px 0 12px;
+        color: var(--ink);
+      }
+      .visual-label {
+        font-weight: 600;
+        color: var(--ink);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .visuals.comparing .visual-panel {
+        padding: 10px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+      }
+      @media (max-width: 700px) {
+        .table-wrap table {
+          min-width: 560px;
+        }
+      }
+      .stage:not(.table-thumb) {
+        border-radius: 7px 7px 0 0;
+      }
+      .image-caption {
+        min-height: 30px;
+        box-sizing: border-box;
+        padding: 6px 10px;
+        border: 1px solid var(--line);
+        border-top: 0;
+        border-radius: 0 0 7px 7px;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 11px;
+        line-height: 1.5;
+        text-align: left;
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      #comparison-scale {
+        margin: 0 0 8px;
+      }
+      .image-area {
+        position: relative;
+        line-height: 0;
+      }
+      .table-thumb .image-area {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="heading-row">
+        <h1>{{APP}} · UI review</h1>
+        <span class="revision" id="revision"></span>
+        <details class="coverage" id="coverage">
+          <summary>Coverage</summary>
+          <div class="coverage-popover">
+            <div class="coverage-grid">
+              <section>
+                <h3>Covered</h3>
+                <ul id="covered"></ul>
+              </section>
+              <section>
+                <h3>Missing</h3>
+                <ul id="missing"></ul>
+              </section>
+            </div>
+            <details class="baseline">
+              <summary>Source & capture</summary>
+              <p id="baseline"></p>
+              <p id="scope"></p>
             </details>
           </div>
-        </section>
-        <h2 id="screen-title">Current layout</h2>
-        <div id="viewport">
-          <div id="stage">
-            <img id="capture" alt="" hidden />
-            <div id="blank">
-              No inspected layout has been added. Capture the actual scoped
-              screens and map their components before defining journeys or
-              proposing a redesign.
+        </details>
+      </div>
+      <nav class="topnav" aria-label="Review sections">
+        <button data-section="ui" aria-pressed="true">UI map</button
+        ><button data-section="ux" aria-pressed="false">UX journeys</button
+        ><!-- MCP_REVIEW --><span class="hint"
+          >Use browser annotations for feedback</span
+        >
+      </nav>
+    </header>
+    <div class="shell">
+      <aside class="navigator" aria-label="Component navigator">
+        <div id="component-navigation">
+          <div class="nav-heading">
+            <span class="small muted">Components</span>
+            <div class="segment" aria-label="Component view">
+              <button id="tree-view" aria-pressed="true">Tree</button
+              ><button id="table-view" aria-pressed="false">Table</button>
             </div>
-            <div id="marks"></div>
+          </div>
+          <button class="nav-overview" id="overview" aria-pressed="true">
+            ▦ Overview
+          </button>
+          <ul
+            class="tree-list"
+            id="component-tree"
+            aria-label="Components"
+          ></ul>
+        </div>
+        <section id="table-filters" hidden aria-label="Component filters">
+          <label for="filter-search">Search</label
+          ><input id="filter-search" type="search" placeholder="Components" />
+          <label for="filter-nature">Nature</label
+          ><select id="filter-nature">
+            <option value="">All types</option>
+          </select>
+          <label for="filter-region">Region</label
+          ><select id="filter-region">
+            <option value="">All regions</option>
+          </select>
+          <label class="filter-check"
+            ><input id="filter-changes" type="checkbox" /> Has proposed
+            changes</label
+          >
+          <p id="table-count" class="small muted"></p>
+        </section>
+        <div id="journey-navigation" hidden>
+          <div class="nav-heading small muted">Journeys</div>
+          <select
+            class="journey-select"
+            id="journey"
+            aria-label="Journey"
+          ></select>
+          <div id="journey-steps"></div>
+          <details class="journey-context">
+            <summary>Goal & endpoints</summary>
+            <dl id="journey-context"></dl>
+          </details>
+        </div>
+      </aside>
+      <main class="workspace">
+        <div class="workspace-head">
+          <div class="breadcrumbs" id="breadcrumbs"></div>
+          <div class="row">
+            <h2 id="selection-title">Overview</h2>
+            <span class="spacer"></span
+            ><button id="changes" aria-pressed="false" hidden>Changes</button>
+          </div>
+          <p class="purpose" id="selection-purpose"></p>
+          <div class="toolbar" id="visual-toolbar">
+            <div
+              class="state-tabs"
+              id="states"
+              aria-label="Focused states"
+            ></div>
+            <span class="spacer"></span
+            ><button id="compare" aria-pressed="false" hidden>
+              Compare proposal
+            </button>
           </div>
         </div>
-        <p id="coverage"></p>
-        <div id="element-list" aria-label="Components in this state"></div>
-      </section>
-      <section id="inventory-panel" class="panel" hidden>
-        <h2>Shared component vocabulary</h2>
-        <p id="inventory-count"></p>
-        <div class="table-wrap">
+        <div id="table-panel" class="table-wrap" hidden>
           <table>
             <thead>
               <tr>
-                <th>ID / name</th>
-                <th>Parent / location</th>
-                <th>Facts</th>
-                <th>Actions</th>
-                <th>Reveal / instances</th>
+                <th>Component</th>
+                <th>Purpose &amp; behavior</th>
+                <th>State / location</th>
+                <th>Preview</th>
               </tr>
             </thead>
-            <tbody id="inventory"></tbody>
+            <tbody id="component-table"></tbody>
           </table>
         </div>
-      </section>
-      <section id="audit-panel" class="panel" hidden>
-        <h2>Evidence-led findings</h2>
-        <p>
-          Compare shared facts and actions, then trace navigation and disclosure
-          through the journey. Overlap candidates need judgment; repeated access
-          may be useful.
-        </p>
-        <div id="findings"></div>
-        <h2>Same-state overlap candidates</h2>
-        <div id="overlaps"></div>
-      </section>
-    </article>
-    <aside aria-label="Element commentary">
-      <h2>Element commentary</h2>
-      <p class="muted">
-        Select a badge on the actual layout or a component in the inventory.
-      </p>
-      <dl id="commentary"></dl>
-      <form id="feedback">
-        <label for="comment">Feedback on this element or journey step</label
-        ><textarea id="comment" required></textarea>
-        <p id="draft-context" class="muted"></p>
-        <button id="keep" type="submit">Keep comment</button>
-      </form>
-      <details>
-        <summary id="comment-count">Comments (0)</summary>
-        <div id="comments"></div>
-      </details>
-      <button id="export" type="button">Export comments</button>
-      <p id="notice" role="status">
-        Comments stay in this page until exported. No app operations are
-        performed.
-      </p>
-      <details id="export-preview" hidden>
-        <summary>Selectable JSON</summary>
-        <pre id="export-text"></pre>
-      </details>
-    </aside>
-  </main>
-  <script id="review-data" type="application/json">
-    {
-      "revision": "inventory-draft-1",
-      "scope": "Incomplete scaffold. Define scoped screens, states and exclusions, then populate from inspected evidence. No product layout or user journey has been inferred.",
-      "baseline": "Record source revision/build, capture origin and time, viewport, and fixture/live status.",
-      "coverageGaps": [],
-      "screens": [],
-      "elements": [],
-      "journeys": [],
-      "findings": []
-    }
-  </script>
-  <script>
-    const model = JSON.parse(
-      document.getElementById("review-data").textContent,
-    );
-    const $ = (id) => document.getElementById(id);
-    if (model.coverageGaps?.length) {
-      $("coverage-gaps").hidden = false;
-      $("coverage-gaps").textContent = "Coverage gaps: " + model.coverageGaps
-        .map((gap) => `${gap.scope} — ${gap.reason}`).join("; ");
-    }
-    let view = "layout",
-      screenId = model.screens[0]?.id ?? "",
-      selected = "",
-      journeyId = model.journeys[0]?.id ?? "",
-      stepIndex = 0,
-      draftTarget = null;
-    const comments = [];
-    const screen = () => model.screens.find((s) => s.id === screenId);
-    const journey = () => model.journeys.find((j) => j.id === journeyId);
-    const step = () => journey()?.steps[stepIndex];
-    function node(tag, text) {
-      const n = document.createElement(tag);
-      n.textContent = text;
-      return n;
-    }
-    function entry(list, name, value) {
-      list.append(node("dt", name), node("dd", value || "Not recorded"));
-    }
-    function context() {
-      return {
-        revision: model.revision,
-        view,
-        screen: screenId,
-        kind: screen()?.kind ?? "",
-        element: selected || null,
-        journey: view === "journey" ? journeyId : null,
-        step: view === "journey" ? stepIndex : null,
-      };
-    }
-    function inspect(id, scroll = false) {
-      selected = id;
-      const e = model.elements.find((e) => e.id === id);
-      $("commentary").replaceChildren();
-      if (e) {
-        for (const [key, value] of Object.entries({
-          "ID / shared name": `${e.id} · ${e.name}`,
-          Parent: e.parent || "Root",
-          Location: e.location,
-          Purpose: e.purpose,
-          Facts:
-            (e.facts || []).join("; ") ||
-            "None; child components may own facts",
-          Actions: (e.actions || []).join("; ") || "None",
-          "Visibility / reveal": e.reveal,
-          "Instances / exceptions": e.instances,
-          "Source owner": e.source,
-        }))
-          entry($("commentary"), key, value);
-      } else
-        $("commentary").append(
-          node(
-            "p",
-            model.elements.length
-              ? "Select a component to inspect its shared name and contract."
-              : "No components mapped. Coverage is incomplete.",
-          ),
-        );
-      document
-        .querySelectorAll(".mark")
-        .forEach((n) =>
-          n.classList.toggle("selected", n.dataset.element === id),
-        );
-      if (scroll)
-        document.querySelector("aside").scrollIntoView({ block: "nearest" });
-    }
-    function choose(id) {
-      inspect(id, true);
-    }
-    function renderScreen() {
-      const s = screen();
-      $("screen").value = screenId;
-      $("screen-title").textContent = s
-        ? `${s.kind === "proposed" ? "Proposed" : "Current"} · ${s.name}`
-        : "Current layout";
-      $("capture").hidden = !s?.image;
-      $("blank").hidden = !!s?.image;
-      if (s?.image) {
-        $("capture").src = s.image;
-        $("capture").alt = `${s.kind} layout: ${s.name}`;
-      } else $("capture").removeAttribute("src");
-      $("marks").replaceChildren();
-      $("element-list").replaceChildren();
-      const participants = view === "journey" ? step()?.elements || [] : [];
-      if (selected && !(s?.marks || []).some((m) => m.element === selected))
-        selected = "";
-      for (const mark of s?.marks || []) {
-        const e = model.elements.find((e) => e.id === mark.element);
-        const button = node("button", "");
-        button.type = "button";
-        button.className = "mark";
-        button.dataset.element = mark.element;
-        button.setAttribute(
-          "aria-label",
-          `${mark.element} · ${e?.name || "Unmapped component"}`,
-        );
-        button.style.cssText = `left:${mark.x}%;top:${mark.y}%;width:${mark.w}%;height:${mark.h}%;`;
-        const badge = node("span", mark.element);
-        badge.style.left = `${mark.labelX ?? 0}%`;
-        badge.style.top = `${mark.labelY ?? 0}%`;
-        button.append(badge);
-        button.classList.toggle(
-          "participant",
-          participants.includes(mark.element),
-        );
-        button.onclick = () => choose(mark.element);
-        $("marks").append(button);
+        <div id="detail-panel">
+          <div id="step-facts" class="step-facts" hidden></div>
+          <div id="change-strip" class="change-strip" hidden></div>
+          <section id="change-drawer" class="change-drawer" hidden></section>
+          <p id="comparison-scale" class="small muted" hidden></p>
+          <div class="visuals" id="visuals">
+            <section class="visual-panel">
+              <div class="visual-label">
+                <span id="current-label">Current · Overview</span
+                ><span class="pill" id="current-kind">Capture</span>
+              </div>
+              <div class="stage" id="current-stage">
+                <p>No inspected layout yet.</p>
+              </div>
+              <p class="visual-note" id="current-note"></p>
+            </section>
+            <section class="visual-panel" id="proposed-panel" hidden>
+              <div class="visual-label">
+                <span id="after-label">Proposed</span
+                ><span class="pill">Model</span>
+              </div>
+              <div class="stage" id="proposed-stage"></div>
+              <p class="visual-note" id="proposed-note"></p>
+            </section>
+          </div>
+          <section
+            class="component-facts"
+            id="component-facts"
+            hidden
+          ></section>
+          <details class="source-details" id="source-details" hidden>
+            <summary>Component details</summary>
+            <dl id="source-facts"></dl>
+          </details>
+        </div>
+      </main>
+    </div>
+    <div id="hover-card" role="tooltip" hidden></div>
+    <script id="review-data" type="application/json">
+      {
+        "revision": "map-draft-1",
+        "scope": "Incomplete scaffold. Name included surfaces and exclusions.",
+        "baseline": "Record source revision/build, capture origin and time, viewport, and fixture/live status.",
+        "covered": [],
+        "missing": [],
+        "coverageGaps": [],
+        "screens": [],
+        "elements": [],
+        "journeys": [],
+        "findings": []
       }
-      for (const id of [...new Set((s?.marks || []).map((m) => m.element))]) {
-        const e = model.elements.find((e) => e.id === id);
-        const b = node("button", `${id} · ${e?.name || "Unmapped"}`);
-        b.onclick = () => choose(id);
-        $("element-list").append(b);
+    </script>
+    <script>
+      const model = JSON.parse(
+        document.getElementById("review-data").textContent,
+      );
+      const $ = (id) => document.getElementById(id);
+      const elements = new Map(model.elements.map((e) => [e.id, e]));
+      const screens = new Map(model.screens.map((s) => [s.id, s]));
+      const currentScreens = model.screens.filter((s) => s.kind === "current");
+      const overviewId =
+        model.overviewScreen ||
+        currentScreens.find((s) => s.role === "overview")?.id ||
+        currentScreens[0]?.id ||
+        "";
+      const children = (id) =>
+        model.elements.filter((e) => (e.parent || "") === id);
+      let selected = "",
+        screenId = overviewId,
+        section = "ui",
+        mode = "tree",
+        showChanges = false,
+        compare = false,
+        activeFinding = "",
+        journeyId = model.journeys[0]?.id || "",
+        stepIndex = 0,
+        hoverTimer,
+        hoverAnchor = null,
+        tableQuery = "",
+        tableNature = "",
+        tableRegion = "",
+        tableChanges = false,
+        pinnedPreview = "";
+      const expanded = new Set(
+        model.elements.filter((e) => !e.parent).map((e) => e.id),
+      );
+      const MAX_DETAIL_ZOOM = 1.5;
+      let stageSequence = 0;
+      function el(tag, text, cls) {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = text;
+        if (cls) n.className = cls;
+        return n;
       }
-      $("marks").hidden = $("labels").getAttribute("aria-pressed") !== "true";
-      $("coverage").textContent = s
-        ? `${new Set(s.marks.map((m) => m.element)).size} component types mapped in this state. ${s.coverage || "Visual reconciliation not recorded; completeness unverified."}`
-        : "Coverage: no inspected screens or components.";
-      inspect(selected);
-    }
-    function renderJourney() {
-      const j = journey(),
-        s = step();
-      $("journey").value = journeyId;
-      $("journey-title").textContent = j?.name || "No journey mapped";
-      $("goal").textContent =
-        j?.goal ||
-        "Complete the spatial inventory, then define a primary goal and its observed steps.";
-      $("endpoints").textContent = j
-        ? `Start: ${j.start} · Success: ${j.success}`
-        : "";
-      $("step-title").textContent = s
-        ? `${stepIndex + 1} / ${j.steps.length} · ${s.name}`
-        : "";
-      $("step-summary").textContent = s ? `${s.action} → ${s.after}` : "";
-      $("step-detail").replaceChildren();
-      if (s) {
-        for (const [key, value] of Object.entries({
-          Before: s.before,
-          "Visible cue": s.cue,
-          "Still deferred": s.deferred,
-          "Back / recovery": s.recovery,
-        }))
-          entry($("step-detail"), key, value);
-        screenId = s.screen;
-        selected = s.elements[0] || "";
+      function button(text, action, cls) {
+        const b = el("button", text, cls);
+        b.type = "button";
+        b.onclick = action;
+        return b;
       }
-      $("previous").disabled = !s || stepIndex === 0;
-      $("next").disabled = !s || stepIndex >= j.steps.length - 1;
-      renderScreen();
-    }
-    function setView(next) {
-      view = next;
-      document
-        .querySelectorAll("[data-view]")
-        .forEach((b) =>
-          b.setAttribute("aria-pressed", String(b.dataset.view === view)),
+      function list(id, values, empty) {
+        $(id).replaceChildren(
+          ...(values.length ? values : [empty]).map((v) => el("li", v)),
         );
-      $("layout-panel").hidden = !["layout", "journey"].includes(view);
-      $("journey-panel").hidden = view !== "journey";
-      $("inventory-panel").hidden = view !== "inventory";
-      $("audit-panel").hidden = view !== "audit";
-      $("screen").disabled = view === "journey";
-      if (view === "journey") renderJourney();
-      else renderScreen();
-    }
-    function renderInventory() {
-      $("inventory-count").textContent =
-        `${model.elements.length} component types · ${model.screens.length} captured states. Counts do not prove completeness; reconcile each state visually.`;
-      for (const e of model.elements) {
-        const tr = document.createElement("tr"),
-          td = document.createElement("td"),
-          b = node("button", `${e.id} · ${e.name}`);
-        b.onclick = () => {
-          const s = model.screens.find((s) =>
-            s.marks.some((m) => m.element === e.id),
+      }
+      function pair(dl, label, value) {
+        dl.append(el("dt", label), el("dd", value || "—"));
+      }
+      function nature(e) {
+        return (
+          e.nature ||
+          (children(e.id).length
+            ? "container"
+            : e.actions?.length
+              ? "control"
+              : e.facts?.length
+                ? "content"
+                : "region")
+        );
+      }
+      function icon(e) {
+        return (
+          {
+            container: "▧",
+            navigation: "▥",
+            control: "◇",
+            content: "≡",
+            metadata: "·",
+            status: "◉",
+            region: "▧",
+          }[nature(e)] || "·"
+        );
+      }
+      function primaryFindings() {
+        return model.findings.filter(
+          (f) =>
+            !/^(?:retain(?:ed)?|keep|verified)\b/i.test(
+              f.status || f.kind || "",
+            ),
+        );
+      }
+      function contains(parent, id) {
+        if (!parent) return true;
+        let current = elements.get(id);
+        while (current) {
+          if (current.id === parent) return true;
+          current = elements.get(current.parent);
+        }
+        return false;
+      }
+      function viewFor(id) {
+        const e = elements.get(id);
+        if (!e)
+          return (
+            model.overviewElement ||
+            model.elements.find((e) => !e.parent)?.id ||
+            ""
           );
-          if (s) screenId = s.id;
-          choose(e.id);
-        };
-        td.append(b);
-        tr.append(td);
-        for (const text of [
-          `${e.parent || "Root"} · ${e.location || ""}`,
-          (e.facts || []).join("; "),
-          (e.actions || []).join("; "),
-          `${e.reveal || ""} · ${e.instances || ""}`,
-        ])
-          tr.append(node("td", text));
-        $("inventory").append(tr);
+        return e.view || (children(id).length ? id : e.parent) || id;
       }
-    }
-    function renderAudit() {
-      for (const f of model.findings) {
-        const block = node("section", "");
-        block.className = "finding";
-        block.append(node("h3", `${f.id} · ${f.kind} · ${f.status}`));
-        const list = node("dl", "");
-        for (const [key, value] of Object.entries({
-          Evidence: f.evidence,
-          Effect: f.effect,
-          Proposal: f.proposal,
-        }))
-          entry(list, key, value);
-        block.append(list);
-        const b = node("button", `Locate ${f.elements.join(", ")}`);
-        b.onclick = () => {
-          screenId = f.screen;
-          if (f.journey) {
-            journeyId = f.journey;
-            stepIndex = f.step ?? 0;
-            setView("journey");
-          } else setView("layout");
-          inspect(f.elements[0] || "");
-        };
-        block.append(b);
-        $("findings").append(block);
+      function levelMarks(s, id) {
+        const owner = viewFor(id),
+          ids = new Set(children(owner).map((e) => e.id));
+        if (!ids.size && owner) ids.add(owner);
+        if (id && !children(id).length) ids.add(id);
+        return (s?.marks || []).filter((m) => ids.has(m.element));
       }
-      if (!model.findings.length)
-        $("findings").append(
-          node("p", "No findings recorded. This is not a passing audit."),
+      function selectedFindings() {
+        return primaryFindings().filter((f) => {
+          if (section === "ux") {
+            const st = currentStep();
+            return f.journey
+              ? f.journey === journeyId && f.step === stepIndex
+              : st &&
+                  f.screen === st.screen &&
+                  f.elements.some((id) => st.elements.includes(id));
+          }
+          return (
+            !selected ||
+            (f.changedElements || f.elements).some((id) =>
+              contains(selected, id),
+            )
+          );
+        });
+      }
+      function comparisonFindings() {
+        return selectedFindings().filter(
+          (f) => f.proposedScreen && f.beforeLabel && f.afterLabel && f.lookFor,
         );
-      let count = 0;
-      for (const s of model.screens.filter((s) => s.kind === "current")) {
-        for (const field of ["facts", "actions"]) {
-          const groups = new Map();
-          for (const id of new Set(s.marks.map((m) => m.element))) {
-            const e = model.elements.find((e) => e.id === id);
-            for (const value of new Set(e?.[field] || [])) {
-              const ids = groups.get(value) || [];
-              ids.push(id);
-              groups.set(value, ids);
-            }
-          }
-          for (const [value, ids] of groups) {
-            if (ids.length < 2) continue;
-            count++;
-            const p = node(
-              "p",
-              `${s.name} · ${field}: ${value} → ${ids.join(", ")}. Review whether this overlap is necessary.`,
-            );
-            $("overlaps").append(p);
-          }
+      }
+      function comparisonFinding() {
+        const fs = comparisonFindings();
+        return fs.find((f) => f.id === activeFinding) || fs[0];
+      }
+      function screenFor(id) {
+        const e = elements.get(id);
+        if (e?.screen && screens.has(e.screen)) return e.screen;
+        return (
+          currentScreens.find((s) => s.marks.some((m) => m.element === id))
+            ?.id || overviewId
+        );
+      }
+      function markFor(s, id) {
+        return s?.marks.find((m) => m.element === id);
+      }
+      function padded(r, pad = 2) {
+        const x = Math.max(0, r.x - pad),
+          y = Math.max(0, r.y - pad);
+        return {
+          x,
+          y,
+          w: Math.min(100, r.x + r.w + pad) - x,
+          h: Math.min(100, r.y + r.h + pad) - y,
+        };
+      }
+      function contextCrop(s, r) {
+        const minW = Math.min(
+          100,
+          ((400 * (s.pixelRatio || 1)) / (s.width || 1600)) * 100,
+        );
+        if (r.w >= minW) return r;
+        const w = minW,
+          h = Math.min(
+            100,
+            Math.max(
+              r.h,
+              ((140 * (s.pixelRatio || 1)) / (s.height || 1000)) * 100,
+            ),
+          );
+        return {
+          x: Math.max(0, Math.min(100 - w, r.x + (r.w - w) / 2)),
+          y: Math.max(0, Math.min(100 - h, r.y + (r.h - h) / 2)),
+          w,
+          h,
+        };
+      }
+      function parentCrop(s, id) {
+        const owner = elements.get(viewFor(id));
+        if (owner?.focus && owner.screen === s?.id) return owner.focus;
+        const m = markFor(s, owner?.id);
+        if (m) return contextCrop(s, padded(m));
+        return s?.focus || { x: 0, y: 0, w: 100, h: 100 };
+      }
+      function cropFor(s) {
+        if (section === "ux") {
+          const st = currentStep();
+          if (st?.focus) return st.focus;
+          if (s?.focus) return s.focus;
+        }
+        return selected
+          ? parentCrop(s, selected)
+          : s?.focus || { x: 0, y: 0, w: 100, h: 100 };
+      }
+
+      function proposedFor() {
+        return screens.get(comparisonFinding()?.proposedScreen);
+      }
+
+      function hideHover() {
+        clearTimeout(hoverTimer);
+        hoverAnchor = null;
+        $("hover-card").hidden = true;
+        document
+          .querySelectorAll(".image-caption[data-rest]")
+          .forEach((n) => (n.textContent = n.dataset.rest));
+      }
+      function captionFor(stage) {
+        let caption = stage.nextElementSibling;
+        if (!caption || !caption.matches(".visual-note,.image-caption")) {
+          caption = el("div", undefined, "image-caption");
+          stage.after(caption);
+        }
+        caption.className = "image-caption";
+        return caption;
+      }
+      function delayHide() {
+        clearTimeout(hoverTimer);
+        hoverTimer = setTimeout(hideHover, 140);
+      }
+      function positionPreview(target) {
+        const card = $("hover-card"),
+          r = target.getBoundingClientRect(),
+          w = card.offsetWidth,
+          h = card.offsetHeight;
+        let left,
+          top = r.top;
+        if (r.right + 9 + w <= window.innerWidth - 12) left = r.right + 9;
+        else if (r.left - 9 - w >= 12) left = r.left - 9 - w;
+        else {
+          left = Math.max(12, Math.min(r.left, window.innerWidth - w - 12));
+          top =
+            r.bottom + 9 + h <= window.innerHeight - 12
+              ? r.bottom + 9
+              : r.top - h - 9;
+        }
+        card.style.left = Math.max(12, left) + "px";
+        card.style.top =
+          Math.max(12, Math.min(top, window.innerHeight - h - 12)) + "px";
+      }
+      function fitBadge(target) {
+        const badge = target.querySelector(".badge"),
+          stage = target.closest(".stage");
+        if (!badge || !stage) return;
+        badge.style.left = "0px";
+        badge.style.maxWidth = Math.max(40, stage.clientWidth - 8) + "px";
+        const r = badge.getBoundingClientRect(),
+          bounds = stage.getBoundingClientRect();
+        let shift = Math.min(0, bounds.right - 4 - r.right);
+        if (r.left + shift < bounds.left + 4) shift = bounds.left + 4 - r.left;
+        badge.style.left = shift + "px";
+      }
+      function hover(e, target, imagePreview = false) {
+        fitBadge(target);
+        if (!imagePreview) {
+          const stage = target.closest(".stage") || $("current-stage");
+          captionFor(stage).textContent = e.id + " · " + e.name;
+        }
+        clearTimeout(hoverTimer);
+        const card = $("hover-card");
+        card.replaceChildren(
+          el("strong", e.name),
+          el("p", e.purpose || e.location),
+        );
+        card.style.width =
+          Math.min(imagePreview ? 440 : 270, window.innerWidth - 24) + "px";
+        if (imagePreview) {
+          const stage = el("div", undefined, "stage table-image-preview");
+          stage.id = "hover-image";
+          card.append(stage);
+          drawStage(
+            "hover-image",
+            screens.get(screenFor(e.id)),
+            parentCrop(screens.get(screenFor(e.id)), e.id),
+            false,
+            { focusId: e.id, preview: true },
+          );
+        } else {
+          const values = (e.facts || []).slice(0, 2);
+          if (values.length)
+            card.append(el("div", values.join(" · "), "preview-facts"));
+          card.append(el("div", nature(e) + " · " + e.id, "preview-foot"));
+        }
+        card.hidden = false;
+        hoverAnchor = target;
+        positionPreview(target);
+      }
+
+      function hoverTarget(n, e, imagePreview = false) {
+        n.onpointerenter = () => hover(e, n, imagePreview);
+        n.onpointerleave = delayHide;
+        n.onfocus = () => hover(e, n, imagePreview);
+        n.onblur = delayHide;
+      }
+      $("hover-card").onpointerenter = () => clearTimeout(hoverTimer);
+      $("hover-card").onpointerleave = delayHide;
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          hideHover();
+          $("coverage").open = false;
+        }
+      });
+      function openAncestors(id) {
+        let e = elements.get(id);
+        while (e?.parent) {
+          expanded.add(e.parent);
+          e = elements.get(e.parent);
         }
       }
-      if (!count)
-        $("overlaps").append(
-          node(
-            "p",
-            "No named overlaps detected. Semantic duplication and repeated instances still require visual review.",
-          ),
+      function choose(id, preferred) {
+        const leaf = !children(id).length;
+        const keepFrame =
+          leaf &&
+          viewFor(id) === viewFor(selected) &&
+          markFor(screens.get(screenId), id);
+        screenId = keepFrame
+          ? screenId
+          : leaf
+            ? preferred || screenFor(id)
+            : screenFor(id);
+        selected = id;
+        mode = "tree";
+        compare = false;
+        activeFinding = "";
+        openAncestors(id);
+        if (children(id).length) expanded.add(id);
+        hideHover();
+        render();
+      }
+      function overview() {
+        selected = "";
+        screenId = overviewId;
+        mode = "tree";
+        compare = false;
+        activeFinding = "";
+        hideHover();
+        render();
+      }
+      function treeBranch(parent) {
+        const ul = el("ul", undefined, "tree-list");
+        for (const e of children(parent)) {
+          const li = el("li"),
+            row = el(
+              "div",
+              undefined,
+              "tree-row" + (selected === e.id ? " active" : ""),
+            );
+          if (children(e.id).length) {
+            const fold = button(
+              expanded.has(e.id) ? "⌄" : "›",
+              () => {
+                expanded.has(e.id) ? expanded.delete(e.id) : expanded.add(e.id);
+                renderNavigator();
+              },
+              "tree-fold",
+            );
+            fold.setAttribute(
+              "aria-label",
+              (expanded.has(e.id) ? "Collapse " : "Expand ") + e.name,
+            );
+            fold.setAttribute("aria-expanded", String(expanded.has(e.id)));
+            row.append(fold);
+          } else row.append(el("span", "", "tree-indent"));
+          const b = button("", () => choose(e.id), "tree-item");
+          b.setAttribute("aria-label", e.name);
+          if (selected === e.id) b.setAttribute("aria-current", "true");
+          b.append(
+            el("span", icon(e), "nature-icon"),
+            el("span", e.name, "tree-name"),
+          );
+          hoverTarget(b, e);
+          row.append(b);
+          if (primaryFindings().some((f) => f.elements.includes(e.id))) {
+            const dot = el("span", "", "dot");
+            dot.title = "Proposed change";
+            row.append(dot);
+          }
+          li.append(row);
+          if (expanded.has(e.id)) li.append(treeBranch(e.id));
+          ul.append(li);
+        }
+        return ul;
+      }
+      function renderNavigator() {
+        $("component-tree").replaceChildren(...treeBranch("").children);
+        $("overview").setAttribute(
+          "aria-pressed",
+          String(!selected && mode === "tree"),
         );
-    }
-    $("revision").textContent = model.revision;
-    $("scope").textContent = model.scope;
-    $("provenance").textContent = model.baseline;
-    model.screens.forEach((s) =>
-      $("screen").add(new Option(`${s.kind} · ${s.name}`, s.id)),
-    );
-    model.journeys.forEach((j) => $("journey").add(new Option(j.name, j.id)));
-    $("screen").disabled = !model.screens.length;
-    $("screen").onchange = () => {
-      screenId = $("screen").value;
-      renderScreen();
-    };
-    $("journey").onchange = () => {
-      journeyId = $("journey").value;
-      stepIndex = 0;
-      renderJourney();
-    };
-    $("previous").onclick = () => {
-      stepIndex--;
-      renderJourney();
-    };
-    $("next").onclick = () => {
-      stepIndex++;
-      renderJourney();
-    };
-    document
-      .querySelectorAll("[data-view]")
-      .forEach((b) => (b.onclick = () => setView(b.dataset.view)));
-    $("labels").onclick = () => {
-      const show = $("labels").getAttribute("aria-pressed") !== "true";
-      $("labels").setAttribute("aria-pressed", String(show));
-      $("marks").hidden = !show;
-    };
-    $("capture").onerror = () => {
-      $("capture").hidden = true;
-      $("marks").hidden = true;
-      $("blank").hidden = false;
-      $("blank").textContent =
-        "Capture failed to load. Repair this evidence link before reviewing the layout.";
-    };
-    $("size").onclick = () => {
-      const actual = $("size").getAttribute("aria-pressed") !== "true";
-      $("size").setAttribute("aria-pressed", String(actual));
-      $("stage").classList.toggle("actual", actual);
-    };
-    $("comment").oninput = () => {
-      if (!$("comment").value.trim()) draftTarget = null;
-      else if (!draftTarget) draftTarget = context();
-      $("draft-context").textContent = draftTarget
-        ? `Draft target: ${draftTarget.element || "whole state"} · ${draftTarget.screen || "unmapped"} · ${draftTarget.view}${draftTarget.journey ? " · " + draftTarget.journey + " / step " + (draftTarget.step + 1) : ""}`
-        : "";
-    };
-    $("feedback").onsubmit = (event) => {
-      event.preventDefault();
-      const text = $("comment").value.trim();
-      if (!text) return;
-      const record = { ...(draftTarget || context()), comment: text };
-      comments.push(record);
-      $("comments").append(
-        node(
-          "p",
-          `${record.element || "whole state"} / ${record.screen}: ${text}`,
-        ),
+        $("tree-view").setAttribute("aria-pressed", String(mode === "tree"));
+        $("table-view").setAttribute("aria-pressed", String(mode === "table"));
+        $("component-tree").hidden = mode === "table";
+        $("overview").hidden = mode === "table";
+      }
+      function regionFor(e) {
+        const root = viewFor("");
+        let node = e;
+        while (node.parent && node.parent !== root)
+          node = elements.get(node.parent);
+        return children(node.id).length && node.id !== root
+          ? node.id
+          : "window";
+      }
+      function renderTable() {
+        const rows = model.elements.filter((e) => {
+          const search = [
+            e.id,
+            e.name,
+            e.purpose,
+            ...(e.facts || []),
+            ...(e.actions || []),
+          ]
+            .join(" ")
+            .toLowerCase();
+          return (
+            (!tableQuery || search.includes(tableQuery)) &&
+            (!tableNature || nature(e) === tableNature) &&
+            (!tableRegion || regionFor(e) === tableRegion) &&
+            (!tableChanges ||
+              primaryFindings().some((f) =>
+                (f.changedElements || f.elements).includes(e.id),
+              ))
+          );
+        });
+        $("table-count").textContent =
+          rows.length + " of " + model.elements.length + " components";
+        const body = $("component-table");
+        body.replaceChildren();
+        for (const e of rows) {
+          const row = el("tr"),
+            name = el("td"),
+            purpose = el("td"),
+            state = el("td"),
+            visual = el("td");
+          name.append(
+            el("strong", e.name),
+            el("span", e.id + " · " + nature(e), "table-code"),
+          );
+          purpose.append(el("p", e.purpose));
+          if (e.actions?.length)
+            purpose.append(
+              el("p", e.actions.slice(0, 2).join(" · "), "table-secondary"),
+            );
+          state.append(
+            el("p", e.reveal),
+            el("p", e.location, "table-secondary"),
+          );
+          const b = button(
+            "",
+            () => {
+              pinnedPreview = pinnedPreview === e.id ? "" : e.id;
+              hideHover();
+              renderTable();
+            },
+            "preview-button",
+          );
+          b.setAttribute("aria-label", "Preview " + e.name);
+          b.setAttribute("aria-expanded", String(pinnedPreview === e.id));
+          const mini = el("div", undefined, "stage table-thumb");
+          mini.id = "thumb-" + e.id;
+          b.append(mini, el("span", "Preview", "table-code"));
+          visual.append(b);
+          hoverTarget(b, e, true);
+          row.append(name, purpose, state, visual);
+          body.append(row);
+          const sc = screens.get(screenFor(e.id));
+          drawStage(mini.id, sc, parentCrop(sc, e.id), false, {
+            focusId: e.id,
+            preview: true,
+            thumbnail: true,
+          });
+          if (pinnedPreview === e.id) {
+            const expandedRow = el("tr", undefined, "pinned-row"),
+              cell = el("td");
+            cell.colSpan = 4;
+            const header = el("div", undefined, "row");
+            header.append(
+              el("strong", e.name),
+              el(
+                "span",
+                elements.get(viewFor(e.id))?.name || "Overview",
+                "muted small",
+              ),
+              el("span", undefined, "spacer"),
+              button("Close preview", () => {
+                pinnedPreview = "";
+                renderTable();
+              }),
+            );
+            const image = el("div", undefined, "stage pinned-image");
+            image.id = "pinned-image";
+            cell.append(header, image);
+            expandedRow.append(cell);
+            body.append(expandedRow);
+            drawStage(image.id, sc, parentCrop(sc, e.id), false, {
+              focusId: e.id,
+              preview: true,
+            });
+          }
+        }
+        if (!rows.length) {
+          const row = el("tr"),
+            cell = el("td", "No matching components.");
+          cell.colSpan = 4;
+          row.append(cell);
+          body.append(row);
+        }
+      }
+
+      function drawStage(target, s, crop, isProposed = false, options = {}) {
+        const focusId = options.focusId ?? selected;
+        const finding =
+          compare && !options.preview ? comparisonFinding() : null;
+        const stage = $(target);
+        const version = String(++stageSequence);
+        stage.dataset.render = version;
+        stage.replaceChildren();
+        stage.style.maxWidth = "none";
+        const identity = focusId
+          ? focusId + " · " + elements.get(focusId)?.name
+          : finding
+            ? (finding.changedElements || finding.elements).join(" / ") +
+              " · " +
+              finding.title
+            : section === "ux"
+              ? currentStep()?.name || "Journey step"
+              : "Overview";
+        const caption = options.thumbnail ? null : captionFor(stage);
+        function setCaption(suffix = "") {
+          if (caption) {
+            caption.dataset.rest = identity + suffix;
+            caption.textContent = identity + suffix;
+            caption.style.maxWidth = stage.style.maxWidth;
+          }
+        }
+        setCaption(s ? "" : " · no capture");
+        if (!s) {
+          stage.append(el("p", "No inspected layout yet."));
+          return;
+        }
+        const img = new Image();
+        img.onload = () => {
+          if (stage.dataset.render !== version) return;
+          const w = img.naturalWidth,
+            h = img.naturalHeight,
+            ns = "http://www.w3.org/2000/svg";
+          stage.style.maxWidth =
+            focusId || finding || section === "ux"
+              ? `${((crop.w * w) / 100 / (s.pixelRatio || 1)) * MAX_DETAIL_ZOOM}px`
+              : "none";
+          if (options.thumbnail) {
+            stage.style.maxWidth = "none";
+            const ratio = Math.max(1, stage.clientWidth) / 54;
+            const cw = (crop.w * w) / 100,
+              ch = (crop.h * h) / 100;
+            const nw = Math.max(cw, ch * ratio),
+              nh = Math.max(ch, cw / ratio);
+            crop = {
+              x: crop.x + ((cw - nw) / w) * 50,
+              y: crop.y + ((ch - nh) / h) * 50,
+              w: (nw / w) * 100,
+              h: (nh / h) * 100,
+            };
+          }
+          const svg = document.createElementNS(ns, "svg");
+          svg.setAttribute(
+            "viewBox",
+            `${(crop.x * w) / 100} ${(crop.y * h) / 100} ${(crop.w * w) / 100} ${(crop.h * h) / 100}`,
+          );
+          svg.setAttribute("role", "img");
+          svg.setAttribute(
+            "aria-label",
+            (isProposed ? "Proposed" : "Current") +
+              " " +
+              (focusId ? elements.get(focusId)?.name : s.name),
+          );
+          const image = document.createElementNS(ns, "image");
+          image.setAttribute("href", s.image);
+          image.setAttribute("width", w);
+          image.setAttribute("height", h);
+          svg.append(image);
+          const imageArea = el("div", undefined, "image-area");
+          imageArea.append(svg);
+          stage.append(imageArea);
+          const layer = el("div", undefined, "roi-layer");
+          const relevant = selectedFindings();
+          const marks = finding
+            ? s.marks.filter((m) =>
+                (finding.changedElements || finding.elements).includes(
+                  m.element,
+                ),
+              )
+            : options.preview
+              ? s.marks.filter((m) => m.element === focusId)
+              : section === "ux"
+                ? s.marks.filter((m) =>
+                    (currentStep()?.elements || []).includes(m.element),
+                  )
+                : levelMarks(s, focusId);
+          for (const m of [...marks].sort((a, b) => b.w * b.h - a.w * a.h)) {
+            const e = elements.get(m.element);
+            if (!e) continue;
+            const left = ((m.x - crop.x) / crop.w) * 100,
+              top = ((m.y - crop.y) / crop.h) * 100,
+              width = (m.w / crop.w) * 100,
+              height = (m.h / crop.h) * 100;
+            if (
+              left + width <= 0 ||
+              top + height <= 0 ||
+              left >= 100 ||
+              top >= 100
+            )
+              continue;
+            const changing =
+              showChanges &&
+              relevant.some((f) =>
+                (f.changedElements || f.elements).includes(e.id),
+              );
+            const isSelected = focusId === e.id;
+            if (options.thumbnail && !isSelected) continue;
+            const b = button(
+              "",
+              () => {
+                if (!isProposed && !options.preview && !finding)
+                  choose(e.id, s.id);
+              },
+              "roi" +
+                (isSelected ? " selected" : "") +
+                (changing ? " change" : ""),
+            );
+            b.dataset.element = e.id;
+            b.style.cssText = `left:${left}%;top:${top}%;width:${width}%;height:${height}%;`;
+            b.setAttribute("aria-label", e.id + " · " + e.name);
+            const badge = el("span", undefined, "badge");
+            badge.append(el("span", e.id, "short"));
+            b.append(badge);
+            if (options.preview) {
+              b.style.pointerEvents = "none";
+              b.tabIndex = -1;
+              b.setAttribute("aria-hidden", "true");
+            }
+            if (!options.preview) hoverTarget(b, e);
+            if (finding) b.classList.add("change");
+            layer.append(b);
+          }
+          imageArea.append(layer);
+          if (!options.thumbnail)
+            layer.querySelectorAll(".roi").forEach(fitBadge);
+          setCaption();
+          if (
+            target === "hover-image" &&
+            !$("hover-card").hidden &&
+            hoverAnchor?.isConnected
+          )
+            positionPreview(hoverAnchor);
+        };
+        img.onerror = () => {
+          if (stage.dataset.render !== version) return;
+          stage.replaceChildren(
+            el("p", "Capture unavailable. See Coverage for this gap."),
+          );
+          setCaption(" · capture unavailable");
+        };
+        stage.dataset.screen = s.id;
+        img.src = s.image;
+      }
+      function renderFacts() {
+        const e = elements.get(selected);
+        $("component-facts").hidden = !e;
+        $("source-details").hidden = !e;
+        if (!e) return;
+        const facts = $("component-facts");
+        facts.replaceChildren();
+        for (const [name, values] of [
+          ["Shows", e.facts || []],
+          ["Actions", e.actions || []],
+        ]) {
+          if (!values.length) continue;
+          const sec = el("section");
+          sec.append(el("h3", name));
+          const ul = el("ul");
+          for (const value of values) ul.append(el("li", value));
+          sec.append(ul);
+          facts.append(sec);
+        }
+        facts.hidden = !facts.children.length;
+        const dl = $("source-facts");
+        dl.replaceChildren();
+        for (const [name, value] of [
+          ["ID", e.id],
+          ["Nature", nature(e)],
+          ["Location", e.location],
+          ["Revealed", e.reveal],
+          ["Instances", e.instances],
+          ["Source", e.source],
+        ])
+          pair(dl, name, value);
+      }
+      function renderStates() {
+        const box = $("states");
+        box.replaceChildren();
+        if (!selected || section === "ux") return;
+        const e = elements.get(selected);
+        const candidates =
+          e.states?.map((id) => screens.get(id)).filter(Boolean) ||
+          currentScreens.filter(
+            (s) =>
+              s.marks.some((m) => m.element === selected) &&
+              s.role !== "overview",
+          );
+        if (candidates.length < 2) return;
+        for (const s of candidates) {
+          const b = button(
+            s.shortName || s.name,
+            () => {
+              screenId = s.id;
+              compare = false;
+              renderVisual();
+            },
+            "",
+          );
+          b.setAttribute("aria-pressed", String(screenId === s.id));
+          box.append(b);
+        }
+      }
+      function renderChanges() {
+        const fs = selectedFindings();
+        $("changes").hidden = !fs.length;
+        $("changes").textContent = "Changes · " + fs.length;
+        $("changes").setAttribute("aria-pressed", String(showChanges));
+        const strip = $("change-strip");
+        strip.hidden = !showChanges;
+        strip.replaceChildren();
+        for (const f of fs) {
+          const b = button(f.title || f.kind, () => {
+            activeFinding = f.id;
+            compare = !!f.proposedScreen;
+            showChanges = true;
+            renderVisual();
+          });
+          b.setAttribute("aria-pressed", String(activeFinding === f.id));
+          strip.append(b);
+        }
+        const f = compare
+          ? comparisonFinding()
+          : model.findings.find((f) => f.id === activeFinding);
+        const drawer = $("change-drawer");
+        drawer.hidden = !f || !showChanges;
+        drawer.replaceChildren();
+        if (drawer.hidden) return;
+        const title = el("div", undefined, "row");
+        title.append(
+          el("h3", f.title || f.kind),
+          el("span", f.status, "status"),
+        );
+        drawer.append(title);
+        if (f.lookFor) drawer.append(el("p", f.lookFor, "look-for"));
+        const grid = el("div", undefined, "change-grid");
+        for (const [label, text] of [
+          [f.benefit ? "Benefit" : "Effect", f.benefit || f.effect],
+          ["Trade-off", f.tradeoff || f.proposal],
+        ]) {
+          const col = el("div");
+          col.append(el("strong", label), el("p", text));
+          grid.append(col);
+        }
+        drawer.append(grid);
+        const evidence = el("details", undefined, "change-evidence");
+        evidence.append(
+          el("summary", "Evidence & proposal"),
+          el("p", f.evidence),
+          el("p", f.proposal),
+        );
+        drawer.append(evidence);
+      }
+
+      function currentJourney() {
+        return model.journeys.find((j) => j.id === journeyId);
+      }
+      function currentStep() {
+        return currentJourney()?.steps[stepIndex];
+      }
+      function renderJourney() {
+        const j = currentJourney(),
+          st = currentStep();
+        $("journey").value = journeyId;
+        $("journey-steps").replaceChildren();
+        for (const [i, s] of (j?.steps || []).entries()) {
+          const b = button(
+            "",
+            () => {
+              stepIndex = i;
+              selected = "";
+              screenId = s.screen;
+              activeFinding = "";
+              render();
+            },
+            "journey-step",
+          );
+          b.setAttribute("aria-pressed", String(i === stepIndex));
+          b.append(el("span", String(i + 1), "number"), el("span", s.name));
+          $("journey-steps").append(b);
+        }
+        const dl = $("journey-context");
+        dl.replaceChildren();
+        for (const [k, v] of [
+          ["Goal", j?.goal],
+          ["Start", j?.start],
+          ["Success", j?.success],
+        ])
+          pair(dl, k, v);
+        const box = $("step-facts");
+        box.replaceChildren();
+        for (const [k, v] of [
+          ["Before", st?.before],
+          [
+            "Action → result",
+            st ? st.action + " → " + st.after : "No steps mapped.",
+          ],
+        ]) {
+          const sec = el("section");
+          sec.append(el("h3", k), el("p", v || "—"));
+          box.append(sec);
+        }
+        const recovery = el("details", undefined, "journey-context");
+        recovery.append(el("summary", "Cue, deferred detail & recovery"));
+        const extra = el("dl");
+        for (const [k, v] of [
+          ["Cue", st?.cue],
+          ["Deferred", st?.deferred],
+          ["Recovery", st?.recovery],
+        ])
+          pair(extra, k, v);
+        recovery.append(extra);
+        box.append(recovery);
+      }
+      function matchedCrops(a, b) {
+        const first = cropFor(a),
+          second = cropFor(b);
+        if (
+          ![a, b].every((s) =>
+            [s?.width, s?.height, s?.pixelRatio].every(
+              (v) => Number.isFinite(v) && v > 0,
+            ),
+          )
+        )
+          return { first, second, matched: false };
+        const logical = (s, crop) => {
+          const ids =
+            comparisonFinding()?.changedElements ||
+            comparisonFinding()?.elements ||
+            [];
+          const ms = ids.map((id) => markFor(s, id)).filter(Boolean);
+          const m = ms.length
+            ? {
+                x: Math.min(...ms.map((m) => m.x)),
+                y: Math.min(...ms.map((m) => m.y)),
+                w:
+                  Math.max(...ms.map((m) => m.x + m.w)) -
+                  Math.min(...ms.map((m) => m.x)),
+                h:
+                  Math.max(...ms.map((m) => m.y + m.h)) -
+                  Math.min(...ms.map((m) => m.y)),
+              }
+            : crop;
+          return {
+            x: (m.x * s.width) / 100 / s.pixelRatio,
+            y: (m.y * s.height) / 100 / s.pixelRatio,
+            w: (m.w * s.width) / 100 / s.pixelRatio,
+            h: (m.h * s.height) / 100 / s.pixelRatio,
+          };
+        };
+        const one = logical(a, first),
+          two = logical(b, second),
+          padding = 16;
+        const width = Math.max(one.w, two.w) + padding * 2;
+        const height = Math.max(one.h, two.h) + padding * 2;
+        const framed = (s, rect) => ({
+          x: (((rect.x - padding) * s.pixelRatio) / s.width) * 100,
+          y: (((rect.y - padding) * s.pixelRatio) / s.height) * 100,
+          w: ((width * s.pixelRatio) / s.width) * 100,
+          h: ((height * s.pixelRatio) / s.height) * 100,
+        });
+        return { first: framed(a, one), second: framed(b, two), matched: true };
+      }
+      function renderVisual() {
+        const s = screens.get(screenId),
+          e = elements.get(selected),
+          st = section === "ux" ? currentStep() : null;
+        $("selection-title").textContent = st?.name || e?.name || "Overview";
+        $("selection-purpose").textContent = st
+          ? currentJourney()?.name || ""
+          : e?.purpose ||
+            model.overviewDescription ||
+            "Select a region to inspect its details.";
+        const crumbs = $("breadcrumbs");
+        crumbs.replaceChildren();
+        crumbs.hidden = !e && !st;
+        crumbs.append(
+          button("Overview", () => {
+            section = "ui";
+            overview();
+          }),
+        );
+        if (e)
+          crumbs.append(el("span", "/"), el("span", e.id + " · " + nature(e)));
+        if (st)
+          crumbs.append(el("span", "/"), el("span", "Step " + (stepIndex + 1)));
+        const owner = elements.get(viewFor(selected));
+        $("current-label").textContent = selected
+          ? (owner?.name || "Overview") + " · peer level"
+          : st
+            ? "Step detail"
+            : "Overview";
+        $("current-kind").textContent = s?.origin || "Capture";
+        $("current-kind").title = s?.note || "";
+        renderStates();
+        renderChanges();
+        const candidates = comparisonFindings(),
+          f = comparisonFinding(),
+          proposed = proposedFor();
+        $("compare").hidden = !candidates.length;
+        $("visual-toolbar").hidden =
+          !$("states").children.length && !candidates.length;
+        $("compare").textContent = compare
+          ? "Close comparison"
+          : "Compare changes";
+        $("compare").setAttribute("aria-pressed", String(compare));
+        $("proposed-panel").hidden = !compare || !proposed;
+        $("visuals").classList.toggle("comparing", compare && !!proposed);
+        const before = compare && f ? screens.get(f.screen) : s;
+        const comparison =
+          compare && proposed ? matchedCrops(before, proposed) : null;
+        $("comparison-scale").hidden = !comparison;
+        $("comparison-scale").textContent = comparison?.matched
+          ? "Matched scale"
+          : "Scale unverified · capture dimensions or density are missing";
+        $("proposed-panel").querySelector(".pill").title = proposed?.note || "";
+        if (comparison) {
+          $("current-label").textContent = "Before · " + f.beforeLabel;
+          $("after-label").textContent = "Proposed · " + f.afterLabel;
+        }
+        drawStage(
+          "current-stage",
+          before,
+          comparison?.first || cropFor(before),
+        );
+        if (comparison) {
+          drawStage("proposed-stage", proposed, comparison.second, true);
+        }
+        renderFacts();
+      }
+      function render() {
+        hideHover();
+        $("component-navigation").hidden = section !== "ui";
+        $("journey-navigation").hidden = section !== "ux";
+        document
+          .querySelectorAll("[data-section]")
+          .forEach((b) =>
+            b.setAttribute(
+              "aria-pressed",
+              String(section === b.dataset.section),
+            ),
+          );
+        $("table-panel").hidden = section !== "ui" || mode !== "table";
+        $("detail-panel").hidden = section === "ui" && mode === "table";
+        $("step-facts").hidden = section !== "ux";
+        $("visual-toolbar").hidden = section === "ui" && mode === "table";
+        if (section === "ux") {
+          renderJourney();
+          screenId = currentStep()?.screen || overviewId;
+        }
+        renderNavigator();
+        $("table-filters").hidden = section !== "ui" || mode !== "table";
+        if (section === "ui" && mode === "table") {
+          renderTable();
+          $("selection-title").textContent = "Components";
+          $("selection-purpose").textContent =
+            "Hover or focus a preview to see the component in context. Click to keep it open.";
+          $("breadcrumbs").replaceChildren();
+          $("changes").hidden = true;
+        } else renderVisual();
+      }
+      $("tree-view").onclick = () => {
+        mode = "tree";
+        render();
+      };
+      $("table-view").onclick = () => {
+        mode = "table";
+        render();
+      };
+      $("overview").onclick = overview;
+      $("changes").onclick = () => {
+        showChanges = !showChanges;
+        if (!showChanges) {
+          activeFinding = "";
+          compare = false;
+        }
+        renderVisual();
+      };
+      $("compare").onclick = () => {
+        compare = !compare;
+        if (compare) {
+          showChanges = true;
+          activeFinding = comparisonFinding()?.id || "";
+        }
+        renderVisual();
+      };
+      document.querySelectorAll("[data-section]").forEach(
+        (b) =>
+          (b.onclick = () => {
+            section = b.dataset.section;
+            selected = "";
+            compare = false;
+            activeFinding = "";
+            render();
+          }),
       );
-      $("comment-count").textContent = `Comments (${comments.length})`;
-      $("comment").value = "";
-      draftTarget = null;
-      $("draft-context").textContent = "";
-      $("notice").textContent =
-        "Comment kept. Export before closing or reloading.";
-    };
-    $("export").onclick = () => {
-      const output = JSON.stringify(
-        { title: document.title, revision: model.revision, comments },
-        null,
-        2,
+      $("journey").onchange = () => {
+        journeyId = $("journey").value;
+        stepIndex = 0;
+        render();
+      };
+      $("revision").textContent = model.revision;
+      $("baseline").textContent = model.baseline;
+      $("scope").textContent = model.scope;
+      list(
+        "covered",
+        model.covered?.length
+          ? model.covered
+          : currentScreens
+              .filter((s) => s.role === "overview" || !s.role)
+              .map((s) => s.shortName || s.name),
+        "Nothing mapped yet.",
       );
-      $("export-text").textContent = output;
-      $("export-preview").hidden = false;
-      $("export-preview").open = true;
-      $("export-preview").scrollIntoView({ block: "nearest" });
-      const url = URL.createObjectURL(
-          new Blob([output], { type: "application/json" }),
-        ),
-        link = document.createElement("a");
-      link.href = url;
-      link.download = "ui-discussion-comments.json";
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    };
-    renderInventory();
-    renderAudit();
-    renderScreen();
-  </script>
+      list(
+        "missing",
+        model.missing?.length
+          ? model.missing
+          : (model.coverageGaps || []).map((g) => g.scope),
+        "No declared gaps.",
+      );
+      for (const j of model.journeys) {
+        const opt = el("option", j.name);
+        opt.value = j.id;
+        $("journey").append(opt);
+      }
+      for (const value of [...new Set(model.elements.map(nature))].sort()) {
+        const option = el("option", value);
+        option.value = value;
+        $("filter-nature").append(option);
+      }
+      const regions = new Map(
+        model.elements.map((e) => [
+          regionFor(e),
+          regionFor(e) === "window"
+            ? "Window controls"
+            : elements.get(regionFor(e))?.name,
+        ]),
+      );
+      for (const [id, name] of regions) {
+        const option = el("option", name);
+        option.value = id;
+        $("filter-region").append(option);
+      }
+      $("filter-search").oninput = () => {
+        tableQuery = $("filter-search").value.toLowerCase().trim();
+        renderTable();
+      };
+      $("filter-nature").onchange = () => {
+        tableNature = $("filter-nature").value;
+        renderTable();
+      };
+      $("filter-region").onchange = () => {
+        tableRegion = $("filter-region").value;
+        renderTable();
+      };
+      $("filter-changes").onchange = () => {
+        tableChanges = $("filter-changes").checked;
+        renderTable();
+      };
+      render();
+    </script>
+  </body>
 </html>

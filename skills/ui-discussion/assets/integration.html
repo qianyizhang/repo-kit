@@ -10,9 +10,11 @@
       box-sizing: border-box;
     }
     :root {
-      color-scheme: light dark;
+      color-scheme: light;
+      background: #f5f6f8;
+      color: #23272f;
       font:
-        16px/1.5 system-ui,
+        14px/1.5 system-ui,
         sans-serif;
     }
     body {
@@ -22,7 +24,39 @@
       overflow-wrap: anywhere;
     }
     h1 {
-      font-size: 1.6rem;
+      font-size: 20px;
+    }
+    h2 {
+      font-size: 16px;
+    }
+    button,
+    select {
+      border: 1px solid #e1e4e9;
+      border-radius: 6px;
+      background: #fff;
+    }
+    :focus-visible {
+      outline: 2px solid #245bce;
+      outline-offset: 3px;
+    }
+    header {
+      margin-bottom: 20px;
+    }
+    nav {
+      margin-top: 14px;
+    }
+    #gaps,
+    #baseline {
+      color: #5c6470;
+      font-size: 12px;
+    }
+    section {
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    a {
+      color: #245bce;
     }
     nav {
       display: flex;
@@ -31,14 +65,10 @@
     }
     button,
     select,
-    textarea {
+    input {
       font: inherit;
       padding: 0.5rem;
       max-width: 100%;
-    }
-    textarea {
-      width: 100%;
-      min-height: 80px;
     }
     pre {
       white-space: pre-wrap;
@@ -79,8 +109,14 @@
   <header>
     <a href="index.html">← Spatial UI and journeys</a>
     <h1>{{APP}} · MCP integration</h1>
-    <p id="baseline"></p>
-    <p id="gaps"></p>
+    <details>
+      <summary>Coverage & source</summary>
+      <p id="gaps"></p>
+      <details>
+        <summary>Source & capture</summary>
+        <p id="baseline"></p>
+      </details>
+    </details>
     <nav>
       <a href="#tools">Tools and server operations</a
       ><a href="#conversation">Conversation flow</a
@@ -100,7 +136,7 @@
     <select id="fixture"></select>
     <p id="fixture-origin"></p>
     <div id="sequence"></div>
-    <details open>
+    <details>
       <summary>Exact example request, result and reads</summary>
       <pre id="fixture-payload"></pre>
     </details>
@@ -110,15 +146,6 @@
     <p id="log-policy"></p>
     <h2>Standalone operation</h2>
     <p id="standalone"></p>
-  </section>
-  <section>
-    <h2>Feedback</h2>
-    <label for="comment">Comment on the selected tool or example</label
-    ><textarea id="comment"></textarea>
-    <p id="target"></p>
-    <button id="keep">Keep comment</button
-    ><button id="export">Show export</button>
-    <pre id="comments"></pre>
   </section>
   <script id="mcp-review-data" type="application/json">
     {
@@ -136,9 +163,6 @@
         document.getElementById("mcp-review-data").textContent,
       ),
       $ = (id) => document.getElementById(id);
-    const comments = [];
-    let target = null,
-      selected = { kind: "catalog", id: null };
     function node(tag, text) {
       const n = document.createElement(tag);
       n.textContent = text;
@@ -186,7 +210,6 @@
           ),
         );
         $("tool-detail").append(detail);
-        selected = { kind: "tool", id: tool.name };
       }
     }
     function renderFixture() {
@@ -194,7 +217,6 @@
       $("sequence").replaceChildren();
       if (!fixture) return;
       $("fixture-origin").textContent = `${fixture.mode} · ${fixture.source}`;
-      selected = { kind: "fixture", id: fixture.id };
       for (const step of fixture.sequence) {
         const row = node("div", "");
         row.className = "step";
@@ -220,26 +242,6 @@
     $("fixture").onchange = renderFixture;
     $("log-policy").textContent = data.logPolicy || "Not inspected";
     $("standalone").textContent = data.standalone || "Not inspected";
-    $("comment").oninput = () => {
-      if (!$("comment").value.trim()) target = null;
-      else target ??= { baseline: data.baseline, ...selected };
-      $("target").textContent = target ? JSON.stringify(target) : "";
-    };
-    $("keep").onclick = () => {
-      if (!$("comment").value.trim()) return;
-      comments.push({ ...target, comment: $("comment").value });
-      $("comment").value = "";
-      target = null;
-      $("target").textContent =
-        `${comments.length} comments kept locally; export before closing.`;
-    };
-    $("export").onclick = () => {
-      $("comments").textContent = JSON.stringify(
-        { baseline: data.baseline, comments },
-        null,
-        2,
-      );
-    };
     renderTool();
     renderFixture();
   </script>

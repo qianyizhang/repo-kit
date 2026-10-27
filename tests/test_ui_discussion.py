@@ -161,7 +161,13 @@ class UIDiscussionTest(unittest.TestCase):
             facts=[],
             actions=["save draft"],
         )
-        model["screens"][0].update(name="Draft ready", coverage="Save and its container reconciled in the fixture.")
+        model["screens"][0].update(
+            name="Draft ready",
+            coverage="Save and its container reconciled in the fixture.",
+            width=1440,
+            height=1000,
+            pixelRatio=1,
+        )
         model["journeys"][0].update(
             name="Save draft", goal="Retain edits", start="Unsaved draft", success="Saved status"
         )
@@ -266,3 +272,115 @@ class UIDiscussionTest(unittest.TestCase):
             result = VALIDATOR.diagnose(self.write_review(model))
             self.assertIn("geometry/number", [d["code"] for d in result["diagnostics"]])
             json.dumps(result, allow_nan=False)
+
+    def test_focus_and_comparison_references_fail_closed(self) -> None:
+        for issue in ("focus-bounds", "focus-type", "overview", "component-state", "comparison-base", "proposal"):
+            with self.subTest(issue=issue):
+                model = self.ready_model()
+                if issue == "focus-bounds":
+                    model["screens"][0]["focus"] = {"x": 80, "y": 0, "w": 30, "h": 40}
+                elif issue == "focus-type":
+                    model["elements"][0]["focus"] = False
+                elif issue == "overview":
+                    model["overviewScreen"] = "absent"
+                elif issue == "component-state":
+                    model["elements"][0]["states"] = ["absent"]
+                elif issue == "comparison-base":
+                    model["screens"].append(
+                        {**model["screens"][0], "id": "proposal", "kind": "proposed", "basedOn": "absent"}
+                    )
+                else:
+                    model["findings"][0]["proposedScreen"] = "ready"
+                result = VALIDATOR.diagnose(self.write_review(model))
+                self.assertFalse(result["ok"])
+                self.assertEqual("blocked", result["status"])
+
+    def test_distinct_siblings_need_distinct_rois_but_parent_can_contain_child(self) -> None:
+        model = self.ready_model()
+        model["elements"].append({**model["elements"][0], "id": "A2", "name": "Cancel"})
+        model["screens"][0]["marks"].append({**model["screens"][0]["marks"][0], "element": "A2"})
+        result = VALIDATOR.diagnose(self.write_review(model))
+        self.assertIn("geometry/duplicate-roi", [d["code"] for d in result["diagnostics"]])
+        model["screens"][0]["marks"][1]["x"] = 50
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+        model["elements"][1]["parent"] = "A1"
+        model["screens"][0]["marks"][1]["x"] = 10
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+
+    def test_local_focus_and_proposed_pair_preserve_component_identity(self) -> None:
+        model = self.ready_model()
+        model["overviewScreen"] = "ready"
+        model["elements"][0].update(nature="control", screen="ready", states=["ready"])
+        model["screens"][0].update(role="overview", focus={"x": 5, "y": 15, "w": 40, "h": 50})
+        model["screens"].append(
+            {**model["screens"][0], "id": "proposal", "kind": "proposed", "basedOn": "ready", "role": "detail"}
+        )
+        model["findings"][0].update(
+            proposedScreen="proposal",
+            beforeLabel="Current save placement",
+            afterLabel="Proposed save placement",
+            lookFor="Compare the marked Save control.",
+        )
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+
+    def test_detail_and_comparison_captures_must_include_the_named_component(self) -> None:
+        for target in ("screen", "states", "proposedScreen"):
+            with self.subTest(target=target):
+                model = self.ready_model()
+                model["screens"].append({**model["screens"][0], "id": "empty", "marks": []})
+                if target == "screen":
+                    model["elements"][0]["screen"] = "empty"
+                elif target == "states":
+                    model["elements"][0]["states"] = ["empty"]
+                else:
+                    model["screens"][1]["kind"] = "proposed"
+                    model["findings"][0]["proposedScreen"] = "empty"
+                result = VALIDATOR.diagnose(self.write_review(model))
+                self.assertFalse(result["ok"])
+                expected = "reference/comparison-roi" if target == "proposedScreen" else "reference/component-roi"
+                self.assertIn(expected, [d["code"] for d in result["diagnostics"]])
+
+    def test_visual_context_owner_must_be_an_ancestor(self) -> None:
+        model = self.ready_model()
+        model["elements"].append({**model["elements"][0], "id": "A2", "parent": "A1"})
+        model["screens"][0]["marks"].append({"element": "A2", "x": 15, "y": 25, "w": 10, "h": 10})
+        model["elements"][1]["view"] = "A1"
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+        for owner in ("A2", "missing", False, []):
+            with self.subTest(owner=owner):
+                model["elements"][1]["view"] = owner
+                result = VALIDATOR.diagnose(self.write_review(model))
+                self.assertIn("reference/view-owner", [d["code"] for d in result["diagnostics"]])
+
+    def test_comparison_requires_visual_guidance(self) -> None:
+        model = self.ready_model()
+        model["screens"].append({**model["screens"][0], "id": "proposal", "kind": "proposed", "basedOn": "ready"})
+        model["findings"][0]["proposedScreen"] = "proposal"
+        result = VALIDATOR.diagnose(self.write_review(model))
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(
+            {"/findings/0/beforeLabel", "/findings/0/afterLabel", "/findings/0/lookFor"},
+            {d["subject"]["path"] for d in result["diagnostics"]},
+        )
+        model["findings"][0].update(
+            beforeLabel="Old placement", afterLabel="New placement", lookFor="Compare the numbered Save control."
+        )
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+
+    def test_ready_comparison_requires_scale_for_both_captures(self) -> None:
+        model = self.ready_model()
+        model["screens"].append({**model["screens"][0], "id": "proposal", "kind": "proposed"})
+        model["findings"][0].update(
+            proposedScreen="proposal", beforeLabel="Before", afterLabel="After", lookFor="Compare Save."
+        )
+        for screen in model["screens"]:
+            screen.pop("width")
+            screen.pop("height")
+            screen.pop("pixelRatio")
+        result = VALIDATOR.diagnose(self.write_review(model))
+        self.assertEqual("blocked", result["status"])
+        self.assertEqual(6, len([d for d in result["diagnostics"] if d["code"] == "readiness/comparison-scale"]))
+        self.assertEqual("structurally-valid", VALIDATOR.diagnose(self.write_review(model), "structure")["status"])
+        for screen in model["screens"]:
+            screen.update(width=1440, height=1000, pixelRatio=1)
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])

@@ -32,6 +32,13 @@ maps, captures, test logs and per-file hash receipts have been removed.
 
 ## Guidance outcomes and attribution
 
+- **Report UI, 27 October:** the Saul/EZ round established component/region/leaf,
+  peer-level and context-view terms, plus contextual inspection and guided visual
+  comparisons. The [review-surface contract](../../skills/ui-discussion/references/review-surface.md)
+  owns their definitions and rules; the template and validator own behavior and
+  gates. The report presentation was accepted; application UX decisions remain
+  open. Native captures and HTML proposals were kept distinct.
+
 - **Interfaces, 26 October:** adapted concrete hover/focus, contrast-role,
   field-error and reflow checks from [Jakub Krehel's Interfaces skills](https://github.com/jakubkrehel/skills/tree/592aedc44d7d5b3e29740984252902f3e5402a1c)
   (MIT, version 1.17.0) into the existing UI/UX guide. UI discussion owns evidence

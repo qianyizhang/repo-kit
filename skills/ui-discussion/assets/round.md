@@ -3,7 +3,8 @@
 Status: scaffold; current UI not yet mapped. No redesign accepted.
 This README is the bundle manifest.
 
-[Visual review](index.html) owns the scoped component map, journeys and findings.
+[Visual review](index.html) combines the component tree/table, focused UI details, journeys
+and contextual findings.
 Keep captures and any integration supplement in this bundle. Record those facts
 once in the review, not again in this README.
 
@@ -19,5 +20,6 @@ Serve only this directory on loopback if needed:
 python3 -m http.server 0 --bind 127.0.0.1 --directory '{{ROUND_PATH}}'
 ```
 
-Comments remain in page memory until exported. Reconcile useful feedback before
-closing the review. Temporary captures and logs stay outside Git.
+Use browser annotations for feedback. Reconcile material comments into accepted,
+revised, declined or open decisions before closing the review. Temporary captures
+and logs stay outside Git.

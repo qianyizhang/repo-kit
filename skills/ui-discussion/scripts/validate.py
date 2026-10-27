@@ -153,6 +153,28 @@ class Checks:
                     identity=record.get("id") if isinstance(record.get("id"), str) else "",
                 )
 
+    def rectangle(self, record: dict, at: str) -> tuple[float, float, float, float] | None:
+        values = [record.get(k) for k in ("x", "y", "w", "h")]
+        if any(type(v) not in (int, float) or not math.isfinite(v) for v in values):
+            self.issue(
+                "geometry/number",
+                at,
+                "ROI bounds must be finite numbers.",
+                "Supply numeric x, y, w and h as capture percentages.",
+            )
+            return None
+        x, y, width, height = values
+        if min(x, y) < 0 or min(width, height) <= 0 or x + width > 100.01 or y + height > 100.01:
+            self.issue(
+                "geometry/outside-capture",
+                at,
+                "ROI outside capture.",
+                "Use x/y >= 0, w/h > 0, x+w and y+h <= 100.",
+                evidence={"bounds": dict(zip(("x", "y", "w", "h"), values, strict=True))},
+            )
+            return None
+        return x, y, width, height
+
     def targets(self, record: dict, at: str, screens: dict, visible: dict[str, set[str]]) -> None:
         screen = record.get("screen")
         if not isinstance(screen, str) or screen not in screens:
@@ -197,6 +219,63 @@ class Checks:
                     break
                 seen.add(parent)
                 parent = elements[parent].get("parent")
+        overview = model.get("overviewScreen")
+        if overview is not None and (
+            not isinstance(overview, str) or overview not in screens or screens[overview].get("kind") != "current"
+        ):
+            self.issue(
+                "reference/overview", "/overviewScreen", "Unknown current overview.", "Name a current screen ID."
+            )
+        for at, element in element_records:
+            nature = element.get("nature")
+            if nature is not None and nature not in (
+                "container",
+                "navigation",
+                "control",
+                "content",
+                "metadata",
+                "status",
+                "region",
+            ):
+                self.issue(
+                    "structure/nature",
+                    pointer(at, "nature"),
+                    "Unknown component nature.",
+                    "Use a nature listed in the review-surface contract.",
+                )
+            preferred = element.get("screen")
+            if preferred is not None and (
+                not isinstance(preferred, str)
+                or preferred not in screens
+                or screens[preferred].get("kind") != "current"
+            ):
+                self.issue(
+                    "reference/component-screen",
+                    pointer(at, "screen"),
+                    "Unknown current detail screen.",
+                    "Name a current screen containing this component.",
+                )
+            if "states" in element:
+                states = self.names(element["states"], pointer(at, "states"))
+                for state in states:
+                    if state not in screens or screens[state].get("kind") != "current":
+                        self.issue(
+                            "reference/component-state",
+                            pointer(at, "states"),
+                            "Unknown current local state.",
+                            "List current screens for this component only.",
+                            evidence={"screen": state},
+                        )
+            if "focus" in element:
+                if isinstance(element["focus"], dict):
+                    self.rectangle(element["focus"], pointer(at, "focus"))
+                else:
+                    self.issue(
+                        "structure/focus",
+                        pointer(at, "focus"),
+                        "Expected an ROI object.",
+                        "Provide x, y, w and h percentages.",
+                    )
         mapped: set[str] = set()
         visible: dict[str, set[str]] = {}
         for at, screen in screen_records:
@@ -207,6 +286,44 @@ class Checks:
                     "Unknown screen kind.",
                     "Use current or proposed; keep the baseline separate from proposals.",
                 )
+            if "role" in screen and screen["role"] not in ("overview", "detail"):
+                self.issue(
+                    "structure/screen-role", pointer(at, "role"), "Unknown screen role.", "Use overview or detail."
+                )
+            if "focus" in screen:
+                if isinstance(screen["focus"], dict):
+                    self.rectangle(screen["focus"], pointer(at, "focus"))
+                else:
+                    self.issue(
+                        "structure/focus",
+                        pointer(at, "focus"),
+                        "Expected an ROI object.",
+                        "Provide x, y, w and h percentages.",
+                    )
+            if "basedOn" in screen:
+                base = screen["basedOn"]
+                if (
+                    screen.get("kind") != "proposed"
+                    or not isinstance(base, str)
+                    or base not in screens
+                    or screens[base].get("kind") != "current"
+                ):
+                    self.issue(
+                        "reference/comparison-base",
+                        pointer(at, "basedOn"),
+                        "Invalid comparison baseline.",
+                        "Link a proposed screen to an existing current screen.",
+                    )
+            for key in ("width", "height", "pixelRatio"):
+                if key in screen and (
+                    type(screen[key]) not in (int, float) or not math.isfinite(screen[key]) or screen[key] <= 0
+                ):
+                    self.issue(
+                        "geometry/capture-scale",
+                        pointer(at, key),
+                        "Invalid capture scale.",
+                        "Record positive pixel dimensions and device pixels per logical point.",
+                    )
             capture = screen.get("image")
             if (
                 not isinstance(capture, str)
@@ -220,6 +337,7 @@ class Checks:
                     "Reference an existing capture relative to this page, or embed an image data URL.",
                 )
             screen_elements: set[str] = set()
+            bounds: list[tuple[str, tuple]] = []
             for mark_at, mark in self.records(screen.get("marks"), pointer(at, "marks")):
                 target = mark.get("element")
                 if not isinstance(target, str) or target not in elements:
@@ -232,24 +350,22 @@ class Checks:
                 else:
                     screen_elements.add(target)
                     mapped.add(target)
-                values = [mark.get(k) for k in ("x", "y", "w", "h")]
-                if any(type(v) not in (int, float) or not math.isfinite(v) for v in values):
-                    self.issue(
-                        "geometry/number",
-                        mark_at,
-                        "Marker bounds must be finite numbers.",
-                        "Supply numeric x, y, w and h as percentages of the capture.",
-                    )
-                    continue
-                x, y, width, height = values
-                if min(x, y) < 0 or min(width, height) <= 0 or x + width > 100.01 or y + height > 100.01:
-                    self.issue(
-                        "geometry/outside-capture",
-                        mark_at,
-                        "Marker outside capture.",
-                        "Match the captured component: x/y >= 0, w/h > 0, x+w and y+h <= 100.",
-                        evidence={"bounds": dict(zip(("x", "y", "w", "h"), values, strict=True))},
-                    )
+                rectangle = self.rectangle(mark, mark_at)
+                if rectangle and isinstance(target, str) and target in elements:
+                    for other, other_bounds in bounds:
+                        if (
+                            target != other
+                            and rectangle == other_bounds
+                            and elements[target].get("parent") == elements[other].get("parent")
+                        ):
+                            self.issue(
+                                "geometry/duplicate-roi",
+                                mark_at,
+                                "Sibling components share one ROI.",
+                                "Give separate controls distinct inspected bounds; group only repeated patterns.",
+                                evidence={"elements": [other, target]},
+                            )
+                    bounds.append((target, rectangle))
                 for key in ("labelX", "labelY"):
                     if key in mark and (
                         type(mark[key]) not in (int, float) or not math.isfinite(mark[key]) or not 0 <= mark[key] <= 100
@@ -262,6 +378,40 @@ class Checks:
                         )
             if isinstance(screen.get("id"), str):
                 visible[screen["id"]] = screen_elements
+        for at, element in element_records:
+            identity = element.get("id")
+            if "view" in element:
+                owner = element["view"]
+                ancestors: set[str] = set()
+                parent = element.get("parent")
+                while isinstance(parent, str) and parent in elements and parent not in ancestors:
+                    ancestors.add(parent)
+                    parent = elements[parent].get("parent")
+                if not isinstance(owner, str) or owner not in ancestors:
+                    self.issue(
+                        "reference/view-owner",
+                        pointer(at, "view"),
+                        "Visual context is not an ancestor.",
+                        "Choose an ancestor region; leaves reuse their parent view by default.",
+                    )
+            targets = [element.get("screen")]
+            if isinstance(element.get("states"), list):
+                targets.extend(element["states"])
+            for target in targets:
+                if (
+                    isinstance(target, str)
+                    and target in visible
+                    and isinstance(identity, str)
+                    and identity not in visible[target]
+                ):
+                    self.issue(
+                        "reference/component-roi",
+                        at,
+                        "Component is absent from its detail state.",
+                        "Choose a state with this component's inspected ROI.",
+                        identity=identity,
+                        evidence={"screen": target},
+                    )
         for identity in sorted(set(elements) - mapped):
             self.issue(
                 "coverage/unmapped-element",
@@ -284,10 +434,75 @@ class Checks:
                 )
             for step_at, step in steps:
                 self.targets(step, step_at, screens, visible)
+                if "focus" in step:
+                    if isinstance(step["focus"], dict):
+                        self.rectangle(step["focus"], pointer(step_at, "focus"))
+                    else:
+                        self.issue(
+                            "structure/focus",
+                            pointer(step_at, "focus"),
+                            "Expected an ROI object.",
+                            "Provide x, y, w and h percentages.",
+                        )
                 if stage == "ready":
                     self.text(step, ("name", "before", "cue", "action", "after", "deferred", "recovery"), step_at)
+        scale_checked: set[str] = set()
+        screen_paths = {screen["id"]: at for at, screen in screen_records if isinstance(screen.get("id"), str)}
         for at, finding in finding_records:
             self.targets(finding, at, screens, visible)
+            if "changedElements" in finding:
+                changed = self.names(finding["changedElements"], pointer(at, "changedElements"), nonempty=True)
+                affected = finding.get("elements") if isinstance(finding.get("elements"), list) else []
+                if any(target not in affected for target in changed):
+                    self.issue(
+                        "reference/change-roi",
+                        pointer(at, "changedElements"),
+                        "Change highlight is outside affected components.",
+                        "Name only affected component IDs whose pixels change.",
+                    )
+            if "proposedScreen" in finding:
+                if stage == "ready":
+                    self.text(finding, ("beforeLabel", "afterLabel", "lookFor"), at)
+                proposed = finding["proposedScreen"]
+                if stage == "ready":
+                    for screen_id in (finding.get("screen"), proposed):
+                        if not isinstance(screen_id, str) or screen_id not in screens or screen_id in scale_checked:
+                            continue
+                        scale_checked.add(screen_id)
+                        for key in ("width", "height", "pixelRatio"):
+                            if key not in screens[screen_id]:
+                                self.issue(
+                                    "readiness/comparison-scale",
+                                    pointer(screen_paths[screen_id], key),
+                                    "Comparison scale is unrecorded.",
+                                    "Record pixel dimensions and device pixels per logical point for both captures.",
+                                    identity=screen_id,
+                                )
+                if (
+                    not isinstance(proposed, str)
+                    or proposed not in screens
+                    or screens[proposed].get("kind") != "proposed"
+                ):
+                    self.issue(
+                        "reference/proposed-screen",
+                        pointer(at, "proposedScreen"),
+                        "Unknown proposed comparison.",
+                        "Name an existing proposed screen.",
+                    )
+                elif isinstance(finding.get("elements"), list):
+                    missing = [
+                        target
+                        for target in finding["elements"]
+                        if isinstance(target, str) and target not in visible.get(proposed, set())
+                    ]
+                    if missing:
+                        self.issue(
+                            "reference/comparison-roi",
+                            pointer(at, "proposedScreen"),
+                            "Comparison omits affected components.",
+                            "Map the same component IDs in the proposed capture.",
+                            evidence={"absent": missing},
+                        )
             if "journey" in finding:
                 target = finding["journey"]
                 index = finding.get("step")
