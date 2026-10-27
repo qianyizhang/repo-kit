@@ -8,6 +8,9 @@ Repository contracts, runtimes and required checks govern their scope.
 - Preserve unrelated edits; commit only owned changes. Resolve symlinks before deletion.
 - Keep each rule in one owner: executable constraints in code/config/tests,
   shared judgment in guides, product-specific meaning in the repo.
+- If documentation and existing code disagree, follow the existing code. You MUST
+  report every mismatch you encounter in your final reply, with file references
+  and proposed changes to resolve it.
 - Prefer declarative intent, policy and state in data/configuration, with behavior
   derived by one owner. Use imperative code for effects or clearer control flow;
   add a DSL only when it removes a demonstrated burden.
