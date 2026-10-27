@@ -31,9 +31,13 @@ class NpmInstallGateTest(unittest.TestCase):
         (self.repo / ".githooks/pre-push").chmod(0o755)
         subprocess.run(["git", "init", "--bare", "-q", str(self.remote)], check=True)
         self.run_git("remote", "add", "origin", str(self.remote))
+        (self.repo / ".nvmrc").write_text("24.21.0\n")
         self.calls = self.temp / "calls.jsonl"
         executables = self.temp / "bin"
         executables.mkdir()
+        node = executables / "node"
+        node.write_text(f"#!{sys.executable}\nprint('v24.21.0')\n")
+        node.chmod(0o755)
         # This process double checks the gate's invocation/isolation; real npm
         # resolution is covered by the live gate, not by this offline unit suite.
         npm = executables / "npm"
@@ -42,6 +46,8 @@ class NpmInstallGateTest(unittest.TestCase):
             "import json, os, sys\n"
             "from pathlib import Path\n"
             "args=sys.argv[1:]\n"
+            "if args == ['--version']:\n"
+            " print('11.19.0'); sys.exit(0)\n"
             "assert args[0] == 'ci' and '--engine-strict' in args\n"
             "assert not Path('node_modules').exists()\n"
             "assert 'GIT_INDEX_FILE' not in os.environ and 'GIT_DIR' not in os.environ\n"
@@ -56,6 +62,7 @@ class NpmInstallGateTest(unittest.TestCase):
         npm.chmod(0o755)
         self.env = {**os.environ, "PATH": str(executables) + os.pathsep + os.environ["PATH"]}
         self.env["NPM_GATE_CALLS"] = str(self.calls)
+        self.env["NVM_DIR"] = str(self.temp / "nvm")
 
     def run_git(self, *args: str) -> str:
         return subprocess.check_output(["git", *args], cwd=self.repo, text=True).strip()
@@ -63,7 +70,9 @@ class NpmInstallGateTest(unittest.TestCase):
     def package(self, directory="app", name="valid") -> Path:
         path = self.repo / directory
         path.mkdir(exist_ok=True)
-        (path / "package.json").write_text(json.dumps({"name": name, "version": "1.0.0"}))
+        (path / "package.json").write_text(
+            json.dumps({"name": name, "version": "1.0.0", "packageManager": "npm@11.19.0"})
+        )
         (path / "package-lock.json").write_text('{"lockfileVersion":3}')
         return path
 
@@ -106,7 +115,7 @@ class NpmInstallGateTest(unittest.TestCase):
     def test_failed_install_rejects_actual_push_then_valid_commit_pushes(self) -> None:
         package = self.package(name="broken")
         broken = self.commit()
-        (package / "package.json").write_text('{"name":"valid"}')
+        (package / "package.json").write_text('{"name":"valid","packageManager":"npm@11.19.0"}')
         valid = self.commit()
         # Push a non-HEAD tip: checking the current checkout would incorrectly pass.
         result = subprocess.run(
@@ -130,6 +139,69 @@ class NpmInstallGateTest(unittest.TestCase):
         self.assertIn(valid, self.run_git("ls-remote", "--heads", "origin"))
         self.assertEqual(["broken", "valid"], [r["name"] for r in self.records()])
         self.assertTrue(all(not Path(r["cwd"]).exists() for r in self.records()))
+
+    def test_actual_push_selects_installed_pair_when_path_has_incompatible_tools(self) -> None:
+        self.package()
+        commit = self.commit()
+        installed = Path(self.env["NVM_DIR"]) / "versions/node/v24.21.0/bin"
+        installed.mkdir(parents=True)
+        executables = self.temp / "bin"
+        for name, version in (("node", "v25.9.0"), ("npm", "11.14.0")):
+            shutil.copyfile(executables / name, installed / name)
+            (installed / name).chmod(0o755)
+            (executables / name).write_text(
+                f"#!{sys.executable}\nimport sys\nprint('{version}')\n"
+                "sys.exit(0 if sys.argv[1:] == ['--version'] else 7)\n"
+            )
+        # A dirty pin must not override the outgoing commit's toolchain.
+        (self.repo / ".nvmrc").write_text("25.9.0\n")
+        result = subprocess.run(
+            ["git", "push", "origin", f"{commit}:refs/heads/main"],
+            cwd=self.repo,
+            env=self.env,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("Node 24.21.0 · npm 11.19.0", result.stdout + result.stderr)
+        self.assertEqual(1, len(self.records()))
+        self.assertEqual("25.9.0\n", (self.repo / ".nvmrc").read_text())
+
+    def test_missing_pair_blocks_before_install_with_recovery_command(self) -> None:
+        self.package()
+        commit = self.commit()
+        (self.temp / "bin/npm").write_text(f"#!{sys.executable}\nprint('11.14.0')\n")
+        result = self.invoke("--revision", commit)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("Need Node 24.21.0 / npm 11.19.0", result.stderr)
+        self.assertIn("nvm install 24.21.0", result.stderr)
+        self.assertEqual([], self.records())
+
+    def test_revision_before_node_pin_uses_gate_checkout_pin(self) -> None:
+        self.package()
+        (self.repo / ".nvmrc").unlink()
+        commit = self.commit()
+        (self.repo / ".nvmrc").write_text("24.21.0\n")
+        result = self.invoke("--revision", commit)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("Node 24.21.0 · npm 11.19.0", result.stdout)
+        self.assertEqual(1, len(self.records()))
+
+    def test_invalid_or_conflicting_pins_block_before_install(self) -> None:
+        self.package("one")
+        second = self.package("two")
+        (self.repo / ".nvmrc").write_text("lts/*\n")
+        invalid_node = self.commit()
+        result = self.invoke("--revision", invalid_node)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("exact Node version", result.stderr)
+        (self.repo / ".nvmrc").write_text("24.21.0\n")
+        (second / "package.json").write_text('{"name":"two","packageManager":"npm@12.0.0"}')
+        conflict = self.commit()
+        result = self.invoke("--revision", conflict)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("one shared exact npm@x.y.z", result.stderr)
+        self.assertEqual([], self.records())
 
     def test_ref_deletions_skip_and_shared_tag_commit_runs_once(self) -> None:
         self.package()

@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -31,6 +33,48 @@ def pushed_revisions(lines: str) -> list[str]:
     return revisions
 
 
+def toolchain_env(root: Path, checkout: Path, projects: list[Path], env: dict[str, str]) -> dict[str, str]:
+    """Select an installed pair; never install tools or change shell defaults."""
+    pin = checkout / ".nvmrc"
+    # Revisions created before this gate gained a pin use the gate's own pin.
+    if not pin.is_file():
+        pin = root / ".nvmrc"
+    if not pin.is_file():
+        raise ValueError("Missing .nvmrc Node pin")
+    node = pin.read_text().strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", node):
+        raise ValueError(".nvmrc must pin an exact Node version (x.y.z)")
+    managers = {
+        manager
+        for project in projects
+        if (manager := json.loads((checkout / project / "package.json").read_text()).get("packageManager"))
+    }
+    if len(managers) != 1 or not re.fullmatch(r"npm@\d+\.\d+\.\d+", manager := next(iter(managers), "")):
+        raise ValueError("npm packages must declare one shared exact npm@x.y.z packageManager pin")
+    npm = manager.removeprefix("npm@")
+    nvm = Path(env.get("NVM_DIR") or Path.home() / ".nvm")
+    installed = nvm / "versions" / "node" / f"v{node}" / "bin"
+    candidates = [env, {**env, "PATH": str(installed) + os.pathsep + env.get("PATH", "")}]
+    observed = []
+    for candidate in candidates:
+        try:
+            versions = [
+                subprocess.check_output([command, "--version"], env=candidate, text=True, timeout=10).strip()
+                for command in ("node", "npm")
+            ]
+        except (OSError, subprocess.SubprocessError) as exc:
+            observed.append(str(exc))
+            continue
+        if versions == [f"v{node}", npm]:
+            print(f"npm install gate: Node {node} · npm {npm}", flush=True)
+            return candidate
+        observed.append(f"Node {versions[0]} / npm {versions[1]}")
+    raise ValueError(
+        f"Need Node {node} / npm {npm}; checked PATH and {installed}: {'; '.join(observed)}. "
+        f"Install once with `nvm install {node}` and `nvm exec {node} npm install --global npm@{npm}`, then retry."
+    )
+
+
 def check_revision(root: Path, commit: str) -> None:
     files = {
         Path(name.decode()) for name in git(root, "ls-tree", "-r", "--name-only", "-z", commit).split(b"\0") if name
@@ -53,6 +97,7 @@ def check_revision(root: Path, commit: str) -> None:
         # not inherit a pointer back to the user's checkout or alternate index.
         for key in git(root, "rev-parse", "--local-env-vars").decode().splitlines():
             env.pop(key, None)
+        env = toolchain_env(root, checkout, projects, env)
         for index, project in enumerate(projects):
             # A shared content-addressed cache could hide a bad URL in a later package.
             cache = scratch / f"cache-{index}"

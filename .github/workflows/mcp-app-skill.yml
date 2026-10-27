@@ -1,9 +1,9 @@
 name: MCP App starter
 on:
   push:
-    paths: ['skills/mcp-app/**', '.github/workflows/mcp-app-skill.yml']
+    paths: ['skills/mcp-app/**', '.nvmrc', '.github/workflows/mcp-app-skill.yml']
   pull_request:
-    paths: ['skills/mcp-app/**', '.github/workflows/mcp-app-skill.yml']
+    paths: ['skills/mcp-app/**', '.nvmrc', '.github/workflows/mcp-app-skill.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
           python-version: '3.12'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: '24.21.0'
+          node-version-file: '.nvmrc'
       - run: python3.12 skills/mcp-app/scripts/scaffold.py --target "$RUNNER_TEMP/mcp-app-trial" --name ci-app
       - run: npm ci --ignore-scripts --no-audit --no-fund
         working-directory: ${{ runner.temp }}/mcp-app-trial
