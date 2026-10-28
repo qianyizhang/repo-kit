@@ -227,6 +227,10 @@ class Checks:
                 "reference/overview", "/overviewScreen", "Unknown current overview.", "Name a current screen ID."
             )
         for at, element in element_records:
+            if "accessPath" in element:
+                self.names(element["accessPath"], pointer(at, "accessPath"))
+            if "accessNote" in element:
+                self.text(element, ("accessNote",), at)
             nature = element.get("nature")
             if nature is not None and nature not in (
                 "container",
@@ -461,8 +465,6 @@ class Checks:
                         "Name only affected component IDs whose pixels change.",
                     )
             if "proposedScreen" in finding:
-                if stage == "ready":
-                    self.text(finding, ("beforeLabel", "afterLabel", "lookFor"), at)
                 proposed = finding["proposedScreen"]
                 if stage == "ready":
                     for screen_id in (finding.get("screen"), proposed):

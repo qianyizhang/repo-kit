@@ -323,6 +323,7 @@
       .workspace {
         padding: 20px 24px 30px;
         min-width: 0;
+        overflow-anchor: none;
       }
       .workspace-head {
         margin-bottom: 16px;
@@ -373,63 +374,95 @@
         background: var(--selected);
         color: var(--accent);
       }
+      .comparison-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 14px 0 10px;
+        overflow-anchor: none;
+      }
+      .comparison-toolbar button {
+        font-size: 12px;
+        white-space: nowrap;
+      }
       .change-strip {
         display: flex;
-        gap: 8px;
-        overflow: auto;
-        padding: 1px 0 12px;
+        flex-wrap: wrap;
+        gap: 6px;
+        flex: 1;
       }
-      .change-strip button {
-        white-space: nowrap;
-        font-size: 12px;
-        border-left: 3px solid #c18b3e;
+      .change-strip button[data-finding] {
+        border-bottom: 3px solid #dec4a0;
       }
-      .change-strip button[aria-pressed="true"] {
+      .change-strip button[data-finding][aria-pressed="true"] {
         background: var(--change-bg);
         color: var(--change);
-        border-color: #ecd2ac;
+        border-color: #c18b3e;
       }
-      .change-drawer {
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-left: 3px solid #c18b3e;
-        border-radius: 7px;
-        padding: 13px 15px;
-        margin-bottom: 14px;
+      .change-strip .original[aria-pressed="true"] {
+        background: #e8ecf1;
+        border-color: #aeb7c4;
+        color: var(--ink);
       }
-      .change-drawer .row {
-        margin-bottom: 7px;
+      .comparison-modes {
+        display: flex;
+        gap: 0;
+        margin-left: auto;
       }
-      .change-drawer h3 {
-        font-size: 14px;
+      .comparison-modes button {
+        border-radius: 0;
       }
-      .change-drawer .status {
-        font-size: 11px;
-        color: var(--change);
+      .comparison-modes button:first-child {
+        border-radius: 6px 0 0 6px;
       }
-      .change-grid {
+      .comparison-modes button:last-child {
+        border-radius: 0 6px 6px 0;
+        margin-left: -1px;
+      }
+      .change-summary {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 14px;
+        grid-template-columns: max-content minmax(0, 1fr);
+        align-items: start;
+        gap: 8px 14px;
+        font-size: 14px;
+        line-height: 1.6;
+        color: var(--ink);
+        margin: 14px 0;
       }
-      .change-grid strong {
-        display: block;
-        font-size: 11px;
-        color: var(--muted);
-        font-weight: 600;
-        margin-bottom: 3px;
+      .change-targets {
+        display: flex;
+        gap: 4px;
+        padding-top: 1px;
       }
-      .change-grid p {
-        font-size: 12px;
-        line-height: 1.55;
+      .change-reasons {
+        list-style: none;
+        padding: 0;
+        margin: 0;
       }
-      .change-evidence {
-        font-size: 12px;
-        margin-top: 10px;
+      .change-reasons li + li {
+        margin-top: 5px;
       }
-      .change-evidence p {
-        margin-top: 6px;
-        color: var(--muted);
+      .change-reasons strong {
+        margin-right: 6px;
+      }
+      .change-reasons .pro strong {
+        color: #237044;
+      }
+      .change-reasons .con strong {
+        color: #b23434;
+      }
+      .change-summary code,
+      .image-caption code,
+      .breadcrumbs code,
+      .roi code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.95em;
+      }
+      .change-summary code {
+        background: #e9edf3;
+        border-radius: 3px;
+        padding: 1px 4px;
       }
       .visuals {
         display: grid;
@@ -437,25 +470,28 @@
         gap: 14px;
         align-items: start;
       }
-      .visuals.comparing {
+      .visuals[data-layout="horizontal"] {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+      .visuals[data-layout="inplace"] > .visual-panel {
+        grid-area: 1 / 1;
+      }
+      .visuals[data-layout="inplace"] > .visual-panel[data-visible="false"] {
+        visibility: hidden;
+      }
+
       .visual-panel {
         min-width: 0;
       }
       .visual-label {
-        font-size: 11px;
-        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.5;
+        color: var(--ink);
         margin-bottom: 7px;
         display: flex;
         align-items: center;
         gap: 8px;
-      }
-      .visual-label .pill {
-        border: 1px solid var(--line);
-        padding: 1px 6px;
-        border-radius: 4px;
-        font-size: 10px;
       }
       .stage {
         position: relative;
@@ -723,11 +759,6 @@
           padding: 24px 32px;
         }
       }
-      @media (max-width: 1280px) {
-        .visuals.comparing {
-          grid-template-columns: 1fr;
-        }
-      }
       @media (max-width: 800px) {
         .shell {
           grid-template-columns: 190px minmax(0, 1fr);
@@ -740,9 +771,6 @@
         }
         .coverage-grid {
           gap: 14px;
-        }
-        .visuals.comparing {
-          grid-template-columns: 1fr;
         }
         .change-grid {
           grid-template-columns: 1fr;
@@ -803,11 +831,17 @@
           font-size: 17px;
         }
       }
-      .roi:hover .badge,
-      .roi:focus-visible .badge,
       .roi.selected .badge {
         background: var(--highlight);
         color: var(--highlight-ink);
+      }
+      .roi:hover .badge,
+      .roi:focus .badge {
+        opacity: 0;
+      }
+      .roi:hover,
+      .roi:focus {
+        background: transparent;
       }
       .table-wrap table {
         table-layout: fixed;
@@ -831,6 +865,19 @@
       .table-wrap td strong {
         font-size: 12px;
         font-weight: 600;
+      }
+      .access-path {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .access-path li:not(:first-child)::before {
+        content: "›";
+        color: var(--muted);
+        margin-right: 4px;
       }
       .table-secondary {
         margin-top: 5px;
@@ -909,23 +956,6 @@
         max-height: 430px;
         overflow: auto;
       }
-      .look-for {
-        font-size: 13px;
-        margin: 7px 0 12px;
-        color: var(--ink);
-      }
-      .visual-label {
-        font-weight: 600;
-        color: var(--ink);
-        font-size: 12px;
-        line-height: 1.5;
-      }
-      .visuals.comparing .visual-panel {
-        padding: 10px;
-        background: var(--surface);
-        border: 1px solid var(--line);
-        border-radius: 7px;
-      }
       @media (max-width: 700px) {
         .table-wrap table {
           min-width: 560px;
@@ -951,6 +981,7 @@
       }
       #comparison-scale {
         margin: 0 0 8px;
+        color: #8c4815;
       }
       .image-area {
         position: relative;
@@ -1050,8 +1081,6 @@
           <div class="breadcrumbs" id="breadcrumbs"></div>
           <div class="row">
             <h2 id="selection-title">Overview</h2>
-            <span class="spacer"></span
-            ><button id="changes" aria-pressed="false" hidden>Changes</button>
           </div>
           <p class="purpose" id="selection-purpose"></p>
           <div class="toolbar" id="visual-toolbar">
@@ -1060,10 +1089,6 @@
               id="states"
               aria-label="Focused states"
             ></div>
-            <span class="spacer"></span
-            ><button id="compare" aria-pressed="false" hidden>
-              Compare proposal
-            </button>
           </div>
         </div>
         <div id="table-panel" class="table-wrap" hidden>
@@ -1072,7 +1097,7 @@
               <tr>
                 <th>Component</th>
                 <th>Purpose &amp; behavior</th>
-                <th>State / location</th>
+                <th>Access path</th>
                 <th>Preview</th>
               </tr>
             </thead>
@@ -1081,14 +1106,31 @@
         </div>
         <div id="detail-panel">
           <div id="step-facts" class="step-facts" hidden></div>
-          <div id="change-strip" class="change-strip" hidden></div>
-          <section id="change-drawer" class="change-drawer" hidden></section>
+          <div id="comparison-toolbar" class="comparison-toolbar" hidden>
+            <button id="changes" aria-pressed="false">Changes</button>
+            <div
+              id="change-strip"
+              class="change-strip"
+              role="group"
+              aria-label="Original and proposals"
+              hidden
+            ></div>
+            <div
+              id="comparison-modes"
+              class="comparison-modes"
+              role="group"
+              aria-label="Comparison layout"
+              hidden
+            >
+              <button id="inplace" aria-pressed="true">In place</button>
+              <button id="paired" aria-pressed="false">Pair</button>
+            </div>
+          </div>
           <p id="comparison-scale" class="small muted" hidden></p>
           <div class="visuals" id="visuals">
-            <section class="visual-panel">
+            <section class="visual-panel" id="original-panel">
               <div class="visual-label">
-                <span id="current-label">Current · Overview</span
-                ><span class="pill" id="current-kind">Capture</span>
+                <span id="current-label">Image: Overview</span>
               </div>
               <div class="stage" id="current-stage">
                 <p>No inspected layout yet.</p>
@@ -1097,13 +1139,18 @@
             </section>
             <section class="visual-panel" id="proposed-panel" hidden>
               <div class="visual-label">
-                <span id="after-label">Proposed</span
-                ><span class="pill">Model</span>
+                <span id="after-label">Proposed · model</span>
               </div>
               <div class="stage" id="proposed-stage"></div>
               <p class="visual-note" id="proposed-note"></p>
             </section>
           </div>
+          <section
+            id="change-summary"
+            class="change-summary"
+            aria-label="Proposal reasoning"
+            hidden
+          ></section>
           <section
             class="component-facts"
             id="component-facts"
@@ -1151,7 +1198,8 @@
         section = "ui",
         mode = "tree",
         showChanges = false,
-        compare = false,
+        showProposed = false,
+        comparisonMode = "inplace",
         activeFinding = "",
         journeyId = model.journeys[0]?.id || "",
         stepIndex = 0,
@@ -1265,9 +1313,7 @@
         });
       }
       function comparisonFindings() {
-        return selectedFindings().filter(
-          (f) => f.proposedScreen && f.beforeLabel && f.afterLabel && f.lookFor,
-        );
+        return selectedFindings().filter((f) => f.proposedScreen);
       }
       function comparisonFinding() {
         const fs = comparisonFindings();
@@ -1333,17 +1379,28 @@
           : s?.focus || { x: 0, y: 0, w: 100, h: 100 };
       }
 
-      function proposedFor() {
-        return screens.get(comparisonFinding()?.proposedScreen);
+      function identityText(node, text) {
+        const parts = text.split(" · "),
+          ids = parts[0].split(" / ");
+        node.replaceChildren();
+        if (ids.every((id) => elements.has(id))) {
+          ids.forEach((id, i) => {
+            if (i) node.append(document.createTextNode(" / "));
+            node.append(el("code", id));
+          });
+          if (parts.length > 1)
+            node.append(
+              document.createTextNode(" · " + parts.slice(1).join(" · ")),
+            );
+        } else node.textContent = text;
       }
-
       function hideHover() {
         clearTimeout(hoverTimer);
         hoverAnchor = null;
         $("hover-card").hidden = true;
         document
           .querySelectorAll(".image-caption[data-rest]")
-          .forEach((n) => (n.textContent = n.dataset.rest));
+          .forEach((n) => identityText(n, n.dataset.rest));
       }
       function captionFor(stage) {
         let caption = stage.nextElementSibling;
@@ -1394,7 +1451,7 @@
         fitBadge(target);
         if (!imagePreview) {
           const stage = target.closest(".stage") || $("current-stage");
-          captionFor(stage).textContent = e.id + " · " + e.name;
+          identityText(captionFor(stage), e.id + " · " + e.name);
         }
         clearTimeout(hoverTimer);
         const card = $("hover-card");
@@ -1460,7 +1517,7 @@
             : screenFor(id);
         selected = id;
         mode = "tree";
-        compare = false;
+        showProposed = false;
         activeFinding = "";
         openAncestors(id);
         if (children(id).length) expanded.add(id);
@@ -1471,7 +1528,7 @@
         selected = "";
         screenId = overviewId;
         mode = "tree";
-        compare = false;
+        showProposed = false;
         activeFinding = "";
         hideHover();
         render();
@@ -1549,6 +1606,8 @@
             e.purpose,
             ...(e.facts || []),
             ...(e.actions || []),
+            ...(e.accessPath || []),
+            e.accessNote || "",
           ]
             .join(" ")
             .toLowerCase();
@@ -1581,10 +1640,16 @@
             purpose.append(
               el("p", e.actions.slice(0, 2).join(" · "), "table-secondary"),
             );
-          state.append(
-            el("p", e.reveal),
-            el("p", e.location, "table-secondary"),
-          );
+          if (Array.isArray(e.accessPath)) {
+            if (e.accessPath.length) {
+              const path = el("ol", undefined, "access-path");
+              path.setAttribute("aria-label", "Access path");
+              for (const label of e.accessPath) path.append(el("li", label));
+              state.append(path);
+            } else state.append(el("span", "Direct", "muted"));
+          } else state.append(el("span", "Not mapped", "muted"));
+          if (e.accessNote)
+            state.append(el("p", e.accessNote, "table-secondary"));
           const b = button(
             "",
             () => {
@@ -1650,12 +1715,24 @@
       function drawStage(target, s, crop, isProposed = false, options = {}) {
         const focusId = options.focusId ?? selected;
         const finding =
-          compare && !options.preview ? comparisonFinding() : null;
+          showChanges && activeFinding && !options.preview
+            ? comparisonFinding()
+            : null;
         const stage = $(target);
         const version = String(++stageSequence);
         stage.dataset.render = version;
         stage.replaceChildren();
-        stage.style.maxWidth = "none";
+        const logicalWidth = s?.width
+          ? (crop.w * s.width) / 100 / (s.pixelRatio || 1)
+          : null;
+        stage.style.maxWidth =
+          logicalWidth && (focusId || finding || section === "ux")
+            ? `${logicalWidth * MAX_DETAIL_ZOOM}px`
+            : "none";
+        stage.style.aspectRatio =
+          s?.width && s?.height
+            ? `${crop.w * s.width} / ${crop.h * s.height}`
+            : "";
         const identity = focusId
           ? focusId + " · " + elements.get(focusId)?.name
           : finding
@@ -1669,7 +1746,7 @@
         function setCaption(suffix = "") {
           if (caption) {
             caption.dataset.rest = identity + suffix;
-            caption.textContent = identity + suffix;
+            identityText(caption, identity + suffix);
             caption.style.maxWidth = stage.style.maxWidth;
           }
         }
@@ -1772,14 +1849,29 @@
             b.style.cssText = `left:${left}%;top:${top}%;width:${width}%;height:${height}%;`;
             b.setAttribute("aria-label", e.id + " · " + e.name);
             const badge = el("span", undefined, "badge");
-            badge.append(el("span", e.id, "short"));
+            badge.append(el("code", e.id, "short"));
             b.append(badge);
             if (options.preview) {
               b.style.pointerEvents = "none";
               b.tabIndex = -1;
               b.setAttribute("aria-hidden", "true");
             }
-            if (!options.preview) hoverTarget(b, e);
+            if (!options.preview) {
+              if (finding) {
+                const updateCaption = () =>
+                  identityText(
+                    caption,
+                    b.matches(":hover,:focus")
+                      ? e.id + " · " + e.name
+                      : caption.dataset.rest,
+                  );
+                b.onpointerenter =
+                  b.onpointerleave =
+                  b.onfocus =
+                  b.onblur =
+                    updateCaption;
+              } else hoverTarget(b, e);
+            }
             if (finding) b.classList.add("change");
             layer.append(b);
           }
@@ -1854,7 +1946,7 @@
             s.shortName || s.name,
             () => {
               screenId = s.id;
-              compare = false;
+              showProposed = false;
               renderVisual();
             },
             "",
@@ -1863,57 +1955,146 @@
           box.append(b);
         }
       }
+      function holdComparisonViewport() {
+        const workspace = document.querySelector(".workspace");
+        const minimum = Math.max(
+          0,
+          window.innerHeight - workspace.getBoundingClientRect().top,
+        );
+        workspace.style.minHeight =
+          Math.max(parseFloat(workspace.style.minHeight) || 0, minimum) + "px";
+      }
+      function refreshComparison() {
+        holdComparisonViewport();
+        const x = window.scrollX,
+          y = window.scrollY;
+        hideHover();
+        renderVisual();
+        window.scrollTo({ left: x, top: y, behavior: "instant" });
+      }
       function renderChanges() {
-        const fs = selectedFindings();
-        $("changes").hidden = !fs.length;
+        const fs = comparisonFindings();
+        $("comparison-toolbar").hidden = !fs.length;
         $("changes").textContent = "Changes · " + fs.length;
         $("changes").setAttribute("aria-pressed", String(showChanges));
+        $("comparison-modes").hidden = !showChanges;
         const strip = $("change-strip");
         strip.hidden = !showChanges;
-        strip.replaceChildren();
-        for (const f of fs) {
-          const b = button(f.title || f.kind, () => {
-            activeFinding = f.id;
-            compare = !!f.proposedScreen;
-            showChanges = true;
-            renderVisual();
-          });
-          b.setAttribute("aria-pressed", String(activeFinding === f.id));
-          strip.append(b);
+        // Keep controls mounted: switching images must retain keyboard focus and scroll.
+        const key = fs.map((f) => f.id).join("|");
+        if (strip.dataset.key !== key) {
+          strip.dataset.key = key;
+          strip.replaceChildren();
+          const original = button(
+            "Original",
+            () => {
+              showProposed = false;
+              updateComparisonView();
+            },
+            "original",
+          );
+          original.id = "original";
+          strip.append(original);
+          for (const f of fs) {
+            const b = button(f.title || f.kind, () => {
+              if (activeFinding === f.id) {
+                showProposed = !showProposed;
+                updateComparisonView();
+              } else {
+                activeFinding = f.id;
+                showProposed = true;
+                refreshComparison();
+              }
+            });
+            b.dataset.finding = f.id;
+            strip.append(b);
+          }
         }
-        const f = compare
-          ? comparisonFinding()
-          : model.findings.find((f) => f.id === activeFinding);
-        const drawer = $("change-drawer");
-        drawer.hidden = !f || !showChanges;
-        drawer.replaceChildren();
-        if (drawer.hidden) return;
-        const title = el("div", undefined, "row");
-        title.append(
-          el("h3", f.title || f.kind),
-          el("span", f.status, "status"),
-        );
-        drawer.append(title);
-        if (f.lookFor) drawer.append(el("p", f.lookFor, "look-for"));
-        const grid = el("div", undefined, "change-grid");
-        for (const [label, text] of [
-          [f.benefit ? "Benefit" : "Effect", f.benefit || f.effect],
-          ["Trade-off", f.tradeoff || f.proposal],
-        ]) {
-          const col = el("div");
-          col.append(el("strong", label), el("p", text));
-          grid.append(col);
+        const summary = $("change-summary");
+        const f = showChanges && activeFinding ? comparisonFinding() : null;
+        summary.hidden = !f;
+        summary.replaceChildren();
+        if (f) {
+          const targets = el("div", undefined, "change-targets");
+          for (const id of f.changedElements || f.elements)
+            targets.append(el("code", id));
+          const reasons = el("ul", undefined, "change-reasons");
+          const rows = [
+            [
+              f.benefit ? "Pro" : "Impact",
+              f.benefit || f.effect,
+              f.benefit ? "pro" : "impact",
+            ],
+            ["Con", f.tradeoff, "con"],
+          ];
+          for (const [label, text, cls] of rows) {
+            if (!text) continue;
+            const row = el("li", undefined, cls);
+            row.append(
+              el("strong", label + ":"),
+              document.createTextNode(text),
+            );
+            reasons.append(row);
+          }
+          summary.append(targets, reasons);
         }
-        drawer.append(grid);
-        const evidence = el("details", undefined, "change-evidence");
-        evidence.append(
-          el("summary", "Evidence & proposal"),
-          el("p", f.evidence),
-          el("p", f.proposal),
-        );
-        drawer.append(evidence);
       }
-
+      function updateComparisonView() {
+        holdComparisonViewport();
+        const f = showChanges && activeFinding ? comparisonFinding() : null;
+        const hasPair = !!f?.proposedScreen;
+        const paired = hasPair && showProposed && comparisonMode === "pair";
+        $("inplace").setAttribute(
+          "aria-pressed",
+          String(comparisonMode === "inplace"),
+        );
+        $("paired").setAttribute(
+          "aria-pressed",
+          String(comparisonMode === "pair"),
+        );
+        $("original")?.setAttribute("aria-pressed", String(!showProposed));
+        $("change-strip")
+          .querySelectorAll("[data-finding]")
+          .forEach((b) =>
+            b.setAttribute(
+              "aria-pressed",
+              String(showProposed && b.dataset.finding === activeFinding),
+            ),
+          );
+        const visuals = $("visuals");
+        $("proposed-panel").hidden = !hasPair;
+        for (const [id, visible] of [
+          ["original-panel", !hasPair || paired || !showProposed],
+          ["proposed-panel", paired || showProposed],
+        ]) {
+          const panel = $(id);
+          panel.dataset.visible = String(visible);
+          panel.inert = !visible;
+          panel.setAttribute("aria-hidden", String(!visible));
+        }
+        if (hasPair) {
+          visuals.dataset.layout = paired ? pairOrientation(f) : "inplace";
+        } else delete visuals.dataset.layout;
+      }
+      function pairOrientation(f) {
+        const a = screens.get(f.screen),
+          b = screens.get(f.proposedScreen);
+        const crops = matchedCrops(a, b);
+        const width =
+          (crops.first.w * (a.width || 1000)) / 100 / (a.pixelRatio || 1);
+        const height =
+          (crops.first.h * (a.height || 700)) / 100 / (a.pixelRatio || 1);
+        const available = $("visuals").clientWidth;
+        const space = Math.max(300, window.innerHeight - 260);
+        const horizontal = Math.min(
+          (available - 14) / 2 / width,
+          space / height,
+        );
+        const vertical = Math.min(available / width, (space - 14) / 2 / height);
+        return available >= 580 && horizontal >= vertical
+          ? "horizontal"
+          : "vertical";
+      }
       function currentJourney() {
         return model.journeys.find((j) => j.id === journeyId);
       }
@@ -2024,6 +2205,8 @@
         return { first: framed(a, one), second: framed(b, two), matched: true };
       }
       function renderVisual() {
+        if (!showChanges || !activeFinding)
+          document.querySelector(".workspace").style.minHeight = "";
         const s = screens.get(screenId),
           e = elements.get(selected),
           st = section === "ux" ? currentStep() : null;
@@ -2043,51 +2226,43 @@
           }),
         );
         if (e)
-          crumbs.append(el("span", "/"), el("span", e.id + " · " + nature(e)));
+          crumbs.append(
+            el("span", "/"),
+            el("code", e.id),
+            el("span", "· " + nature(e)),
+          );
         if (st)
           crumbs.append(el("span", "/"), el("span", "Step " + (stepIndex + 1)));
         const owner = elements.get(viewFor(selected));
-        $("current-label").textContent = selected
-          ? (owner?.name || "Overview") + " · peer level"
-          : st
-            ? "Step detail"
-            : "Overview";
-        $("current-kind").textContent = s?.origin || "Capture";
-        $("current-kind").title = s?.note || "";
+        $("current-label").textContent =
+          "Image: " +
+          (st
+            ? s?.shortName || s?.name || st.name
+            : selected
+              ? owner?.name || e.name
+              : "Overview");
         renderStates();
+        $("visual-toolbar").hidden = !$("states").children.length;
         renderChanges();
-        const candidates = comparisonFindings(),
-          f = comparisonFinding(),
-          proposed = proposedFor();
-        $("compare").hidden = !candidates.length;
-        $("visual-toolbar").hidden =
-          !$("states").children.length && !candidates.length;
-        $("compare").textContent = compare
-          ? "Close comparison"
-          : "Compare changes";
-        $("compare").setAttribute("aria-pressed", String(compare));
-        $("proposed-panel").hidden = !compare || !proposed;
-        $("visuals").classList.toggle("comparing", compare && !!proposed);
-        const before = compare && f ? screens.get(f.screen) : s;
-        const comparison =
-          compare && proposed ? matchedCrops(before, proposed) : null;
-        $("comparison-scale").hidden = !comparison;
-        $("comparison-scale").textContent = comparison?.matched
-          ? "Matched scale"
-          : "Scale unverified · capture dimensions or density are missing";
-        $("proposed-panel").querySelector(".pill").title = proposed?.note || "";
+        const f = showChanges && activeFinding ? comparisonFinding() : null;
+        const proposed = f ? screens.get(f.proposedScreen) : null;
+        const before = f ? screens.get(f.screen) : s;
+        const comparison = proposed ? matchedCrops(before, proposed) : null;
+        $("comparison-scale").hidden = !comparison || comparison.matched;
+        $("comparison-scale").textContent =
+          "Scale unverified · capture dimensions or density are missing";
         if (comparison) {
-          $("current-label").textContent = "Before · " + f.beforeLabel;
-          $("after-label").textContent = "Proposed · " + f.afterLabel;
+          $("current-label").textContent = "Original";
+          $("after-label").textContent = "Proposed · model";
         }
         drawStage(
           "current-stage",
           before,
           comparison?.first || cropFor(before),
         );
-        if (comparison) {
+        if (comparison)
           drawStage("proposed-stage", proposed, comparison.second, true);
-        }
+        updateComparisonView();
         renderFacts();
       }
       function render() {
@@ -2118,7 +2293,6 @@
           $("selection-purpose").textContent =
             "Hover or focus a preview to see the component in context. Click to keep it open.";
           $("breadcrumbs").replaceChildren();
-          $("changes").hidden = true;
         } else renderVisual();
       }
       $("tree-view").onclick = () => {
@@ -2134,24 +2308,49 @@
         showChanges = !showChanges;
         if (!showChanges) {
           activeFinding = "";
-          compare = false;
+          showProposed = false;
         }
-        renderVisual();
+        refreshComparison();
       };
-      $("compare").onclick = () => {
-        compare = !compare;
-        if (compare) {
-          showChanges = true;
+      $("inplace").onclick = () => {
+        comparisonMode = "inplace";
+        updateComparisonView();
+      };
+      $("paired").onclick = () => {
+        comparisonMode = "pair";
+        if (!activeFinding) {
           activeFinding = comparisonFinding()?.id || "";
+          showProposed = true;
+          refreshComparison();
+        } else {
+          showProposed = true;
+          updateComparisonView();
         }
-        renderVisual();
       };
+      new ResizeObserver(() => {
+        if (
+          showChanges &&
+          activeFinding &&
+          showProposed &&
+          comparisonMode === "pair"
+        )
+          updateComparisonView();
+      }).observe($("visuals"));
+      window.addEventListener("resize", () => {
+        if (
+          showChanges &&
+          activeFinding &&
+          showProposed &&
+          comparisonMode === "pair"
+        )
+          updateComparisonView();
+      });
       document.querySelectorAll("[data-section]").forEach(
         (b) =>
           (b.onclick = () => {
             section = b.dataset.section;
             selected = "";
-            compare = false;
+            showProposed = false;
             activeFinding = "";
             render();
           }),

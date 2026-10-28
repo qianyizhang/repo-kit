@@ -352,19 +352,24 @@ class UIDiscussionTest(unittest.TestCase):
                 result = VALIDATOR.diagnose(self.write_review(model))
                 self.assertIn("reference/view-owner", [d["code"] for d in result["diagnostics"]])
 
-    def test_comparison_requires_visual_guidance(self) -> None:
+    def test_access_paths_allow_direct_routes_and_reject_invalid_segments(self) -> None:
+        model = self.ready_model()
+        for path in ([], ["History", "More"]):
+            with self.subTest(path=path):
+                model["elements"][0]["accessPath"] = path
+                self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+        for path in ("History > More", [""], [1]):
+            with self.subTest(path=path):
+                model["elements"][0]["accessPath"] = path
+                result = VALIDATOR.diagnose(self.write_review(model))
+                self.assertIn("/elements/0/accessPath", [d["subject"]["path"] for d in result["diagnostics"]])
+
+    def test_comparison_is_ready_without_redundant_viewer_instructions(self) -> None:
         model = self.ready_model()
         model["screens"].append({**model["screens"][0], "id": "proposal", "kind": "proposed", "basedOn": "ready"})
         model["findings"][0]["proposedScreen"] = "proposal"
-        result = VALIDATOR.diagnose(self.write_review(model))
-        self.assertEqual("blocked", result["status"])
-        self.assertEqual(
-            {"/findings/0/beforeLabel", "/findings/0/afterLabel", "/findings/0/lookFor"},
-            {d["subject"]["path"] for d in result["diagnostics"]},
-        )
-        model["findings"][0].update(
-            beforeLabel="Old placement", afterLabel="New placement", lookFor="Compare the numbered Save control."
-        )
+        self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
+        model["findings"][0].update(beforeLabel="Old placement", afterLabel="New placement", lookFor="Compare Save.")
         self.assertEqual("ready", VALIDATOR.diagnose(self.write_review(model))["status"])
 
     def test_ready_comparison_requires_scale_for_both_captures(self) -> None:

@@ -36,15 +36,20 @@ suggested state.
   components. Show one level at a time so parent hit targets do not cover
   children.
 - Keep names off the image pixels. Hover/focus updates an attached bottom-left
-  caption with ID/name and opens the text info card. Selection keeps the
-  identity available. Cards allow pointer travel, leave their trigger clickable
-  and dismiss with Escape. Failed or missing captures identify the current
-  target and never retain a previous target's caption.
+  caption with ID/name and opens the text info card. Hide the on-image ID badge
+  and clear the fill while hovered or focused so the underlying pixels remain
+  readable; keep the outline and caption. Selection keeps the identity
+  available. Cards allow pointer travel, leave their trigger clickable and
+  dismiss with Escape. Failed or missing captures identify the current target
+  and never retain a previous target's caption.
 - **Tree:** the image is primary; hover/focus reveals text. **Table:** text is
   primary; the left pane filters search, nature, region and proposed changes.
-  Rows show name/nature, purpose/actions, state/location and a preview cue.
-  Hover/focus shows the component highlighted in its context; click/tap pins the
-  image in the table. Long source and instance details stay behind a disclosure.
+  Rows show name/nature, purpose/actions, access path and a preview cue. Access
+  paths name actual user-facing entry points and reveals, not layout coordinates
+  or repeated visibility prose; note only meaningful conditions such as
+  scrolling or blocked input. Hover/focus shows the component highlighted in its
+  context; click/tap pins the image in the table. Long source and instance
+  details stay behind a disclosure.
 - Put **Covered** and **Missing** bullets in one collapsed **Coverage**
   disclosure, with source/build/capture provenance one level deeper. An overview
   may be small; the chosen context must remain useful at the user's panel width.
@@ -57,21 +62,33 @@ suggested state.
 
 ## Comparison rules
 
-The local **Changes** strip names authored findings. Offer comparison only for a
-change affecting the selection or its descendants, not every component present
-in a proposed capture. Closing Changes closes its comparison.
+The local **Changes** toolbar groups **Original** and authored proposals with
+**In place** and **Pair** modes. Offer only changes affecting the selection or
+its descendants. Closing Changes returns to the normal context view.
 
-Label **Before** and **Proposed**, explain what to look for, and mark changed
-ROIs with the same IDs in both images. Frame related parts together: a spacing
-change needs both neighbors. Match state, framing and logical scale, accounting
-for capture density. Record dimensions/density before a comparison is ready;
-incomplete reports visibly identify unverified scale. Keep proposed pixels
-labelled as a model.
+Default to **In place**: switch Original/proposal in one registered frame, with
+the same crop, scale and canvas size. Keep controls mounted and reserve image
+space before loading so switches retain the viewport and keyboard focus.
+**Pair** shows both states; choose columns or stacked rows from the crop's
+aspect ratio and available space, keeping text readable. A wide, shallow crop
+usually stacks; a tall crop usually uses columns. Window width alone is
+insufficient.
 
-Distinguish observation, current impact, proposed benefit and trade-off. A
-negative finding is not itself a benefit. Keep wider context reachable from
-Overview. A comparison may stack at narrow widths; it must remain readable and
-truthful.
+Mark changed ROIs with the same code-styled IDs in both images. Frame related
+parts together: a spacing change needs both neighbors. Match state, framing and
+logical scale, accounting for density. Dimensions/density are readiness data;
+show only an unverified-scale warning when missing, not a success badge. Label
+Original and Proposed; identify the proposed image as a model. Ordinary views
+use a plain image-context label, such as **Image: Answer reader**.
+
+Comparison overlays use the attached caption for identity, leaving the images
+and reasoning unobstructed by a second info card. Let aligned pixels and
+highlights show the change. Show concise reasoning below at normal body size:
+**Pro** in green for the benefit and **Con** in red for a material trade-off.
+Labels carry the meaning independently of color. Keep a current impact labelled
+**Impact** when no proposed benefit is recorded. Evidence, source notes and
+authoring instructions remain in the report data, outside the comparison UI.
+Wider context stays reachable from Overview.
 
 ## Inline data
 
@@ -86,9 +103,9 @@ owns each component ID across tree, table, journey and finding.
   `screens[]` record has `id`, `name`, `kind` (`current` or `proposed`),
   `image`, `coverage` and `marks[]`. Optional `role` is `overview` or `detail`;
   `shortName` names a local state. `focus` is a contextual `{x,y,w,h}` crop in
-  capture percentages. `note` supplies supplemental context in the source
-  badge's tooltip; `origin` labels Capture/Fixture/Model. A proposed screen's
-  `basedOn` names its current counterpart.
+  capture percentages. `note` and `origin` retain source context for authors;
+  `origin` distinguishes Capture/Fixture/Model in the evidence record. A
+  proposed screen's `basedOn` names its current counterpart.
 - Comparison captures require pixel `width`, `height` and `pixelRatio` (device
   pixels per logical point). Match logical scale rather than independently
   stretching each crop to fill its pane.
@@ -103,7 +120,12 @@ owns each component ID across tree, table, journey and finding.
   `region`. Optional `screen` chooses a current capture; `states[]` lists
   meaningful local states. `focus` supplies a region's context crop. Optional
   `view` names an ancestor owning visual context; leaves default to their
-  parent. Sibling selection preserves that context.
+  parent. Sibling selection preserves that context. Optional `accessPath[]`
+  names the ordered entry points/reveals needed to reach the component, omitting
+  the target already named by its row; an empty path means directly available.
+  `accessNote` holds a specific condition such as scrolling or required input.
+  Unmapped routes stay explicitly unknown rather than inferring click depth from
+  inventory parents.
 - `journeys[]`: `id`, `name`, `goal`, `start`, `success`, `steps[]`. A step has
   `name`, `screen`, `elements[]`, `before`, `cue`, `action`, `after`,
   `deferred`, `recovery` and optional `focus`. Distinguish observed and
@@ -112,8 +134,9 @@ owns each component ID across tree, table, journey and finding.
   `journey` and zero-based `step`, `evidence`, `effect`, `proposal`, `status`.
   `effect` is current impact; optional `benefit` and `tradeoff` describe the
   proposal. `proposedScreen` links the comparison; `changedElements[]` narrows
-  highlights to changed parts. Comparisons require `beforeLabel`, `afterLabel`
-  and `lookFor`. Preserve IDs' meaning; record splits/merges explicitly.
+  highlights to changed parts. Legacy `beforeLabel`, `afterLabel` and `lookFor`
+  remain optional author notes; the viewer uses images and highlights. Preserve
+  IDs' meaning; record splits/merges explicitly.
 
 A faithful HTML reconstruction may bind these records to its real components. It
 remains a discussion model, not live product acceptance.
@@ -131,15 +154,15 @@ explicitly deferred. Existing journeys need not be rewritten for a UI-only
 report refinement.
 
 Validation checks captures, IDs, parent/view ownership, ROI/crop bounds, local
-states, journey targets and comparison references/scale/guidance. Readiness also
-requires named source owners, coverage and complete primary journeys/findings.
-Results are `ready`, `ready-with-gaps`, `blocked`, or `structurally-valid` for
-the structural stage. Blocking diagnostics exit 1 and identify the field and
-repair. Gaps never waive required evidence. The SHA-256 binds HTML bytes, not
-external captures, the installed app, usability or acceptance.
+states, journey targets and comparison references/scale. Readiness also requires
+named source owners, coverage and complete primary journeys/findings. Results
+are `ready`, `ready-with-gaps`, `blocked`, or `structurally-valid` for the
+structural stage. Blocking diagnostics exit 1 and identify the field and repair.
+Gaps never waive required evidence. The SHA-256 binds HTML bytes, not external
+captures, the installed app, usability or acceptance.
 
 Inspect the render: overview, folding, stable sibling context, visible peer
 cues, caption placement, table filters/previews/pinning, keyboard/touch access,
-journey markers, comparison framing and close behavior. Exercise missing/failed
-captures; check responsive ROI alignment and prevent overlays from blocking
-child targets.
+journey markers, both comparison modes, adaptive pairing, stable switching and
+close behavior. Exercise missing/failed captures; check responsive ROI alignment
+and prevent overlays from blocking child targets.
