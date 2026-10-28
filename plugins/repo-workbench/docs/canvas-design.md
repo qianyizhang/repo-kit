@@ -98,17 +98,21 @@ success honestly; if the host blocks clipboard access, expose selectable text.
 A new panel resolves its repository from the calling chat's native metadata and
 saved workspace, without sending a message to the agent. When Codex provides a
 chat ID before making its workspace available (including an empty new chat),
-explain the missing context and show the picker. Recheck every five seconds while
-the picker is visible; pause checks in hidden documents. Retry shows progress and
-the time of the completed check. Manual selection wins over an in-flight lookup
-and remains selected if workspace metadata appears later. Never guess from the
-plugin directory, another panel, or the last-used repository.
+explain the missing context and show the picker. Recheck five seconds after each
+successful check while the picker is visible; failures back off to at most 40
+seconds. Pause checks in hidden documents. Retry checks immediately and shows
+progress and the time of the completed check. Manual selection wins over an
+in-flight lookup and remains selected if workspace metadata appears later. Never
+guess from the plugin directory, another panel, or the last-used repository.
 
 Keep registered repositories visible as named choices. Disclose manual path entry
-under “Add another repository.” Successful opens remember the canonical repository; empty lists explain how to add the first entry. Search filters names and paths. A standalone launcher uses the same registered list,
-without offering chat actions. Refresh the list while choosing, preserving targets
+under “Add another repository.” Successful opens remember the canonical repository;
+empty lists explain how to add the first entry. Search filters names and paths. A
+standalone launcher uses the same registered list, without offering chat actions.
+Refresh the list with the same polling policy while choosing, preserving targets
 already open. Show “Retry loading map” only after a selected repository fails to
-load; an empty selection is not an error. The separate automatic-connection retry checks only host context.
+load; an empty selection is not an error. The separate automatic-connection retry
+checks only host context.
 
 ## Review and verification
 

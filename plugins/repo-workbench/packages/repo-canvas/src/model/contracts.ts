@@ -218,32 +218,16 @@ export type Input<K extends Action> = z.output<(typeof contracts)[K]['input']>;
 export type Output<K extends Action> = z.output<(typeof contracts)[K]['output']>;
 export type Arguments<K extends Action> =
   Record<string, never> extends Input<K> ? [args?: Input<K>] : [args: Input<K>];
-function requestSchema<K extends Action>(action: K) {
-  return z.object({ action: z.literal(action), args: contracts[action].input });
-}
-export const appRequestSchema = z.discriminatedUnion('action', [
-  requestSchema('state'),
-  requestSchema('source'),
-  requestSchema('source_save'),
-  requestSchema('discussion_read'),
-  requestSchema('discussion_write'),
-  requestSchema('discussion_clear'),
-  requestSchema('save'),
-  requestSchema('send'),
-  requestSchema('chat'),
-  requestSchema('cancel'),
-  requestSchema('draft_read'),
-  requestSchema('draft_write'),
-  requestSchema('view_write'),
-  requestSchema('view_touch'),
-  requestSchema('agent_read'),
-  requestSchema('command_ack'),
-  requestSchema('proposal_dismiss'),
-  requestSchema('connect'),
-  requestSchema('catalog'),
-  requestSchema('remember'),
-  requestSchema('diagnostics'),
-]);
+type AppRequestSchema = {
+  [K in Action]: z.ZodObject<{ action: z.ZodLiteral<K>; args: (typeof contracts)[K]['input'] }>;
+}[Action];
+export const appRequestSchema = z.discriminatedUnion(
+  'action',
+  // Object.entries erases key/value correlation; each entry keeps its own input schema.
+  Object.entries(contracts).map(([action, contract]) =>
+    z.object({ action: z.literal(action), args: contract.input }),
+  ) as [AppRequestSchema, ...AppRequestSchema[]],
+);
 export function parseOutput<K extends Action>(action: K, value: unknown): Output<K> {
   // Indexed access loses correlation in TS; the schema selected by action owns the result type.
   return contracts[action].output.parse(value) as Output<K>;

@@ -98,8 +98,10 @@ adapters declare a trusted local principal explicitly; they never infer it from
 missing hosted metadata. Server diagnostics store app observations as claims.
 Explicit interaction/call IDs cross forwarded tool calls; wire IDs stay local.
 
-Polling is single-flight and pauses when hidden. Disposal stops timers and aborts
-reads. Stable Canvas views send a revision heartbeat instead of the complete map.
+Polling is single-flight and pauses when hidden. Stopping a poller stops its timer
+and aborts its signal. HTTP catalog reads use that signal; hosted discovery ignores
+late results. Disposing a host session aborts its bridge reads. Stable Canvas views
+send a revision heartbeat instead of the complete map.
 Discussion writes use a SQLite transaction sidecar to coordinate atomic JSON
 replacement. OS lock release recovers a killed writer; legacy orphan lock folders
 are left untouched. Revisions are compared inside the transaction.

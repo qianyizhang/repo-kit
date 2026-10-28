@@ -23,28 +23,36 @@ export function useCanvasDocument() {
   documentRef.current = document;
   const state = useRef({ dirty, revision: session?.revision });
   state.current = { dirty, revision: session?.revision };
-  const load = useCallback(async (recover = false) => {
+  const loadGeneration = useRef(0);
+  const load = useCallback(async (recover = false, signal?: AbortSignal) => {
+    if (signal?.aborted) return;
+    const generation = ++loadGeneration.current;
+    const stale = () => signal?.aborted || generation !== loadGeneration.current;
     try {
-      if (hosted && !(await prepareHost())) {
+      const ready = !hosted || (await prepareHost());
+      if (stale()) return;
+      if (!ready) {
         setLookupReason(connectionStatus().reason ?? undefined);
         setNeedsRepository(true);
         setError('');
         return;
       }
       const data = await request('state', undefined);
+      if (stale()) return;
       if ('needsRepository' in data) {
         setNeedsRepository(true);
         return;
       }
-      setNeedsRepository(false);
       data.document = parseDocument(data.document);
       if (hosted)
         void rememberRepository().catch(() => {
-          setNotice('Opened this repository, but could not remember it on this device.');
+          if (!stale())
+            setNotice('Opened this repository, but could not remember it on this device.');
         });
       if (recover && !data.problem) {
         try {
           const transferred = hosted ? await request('draft_read', data.token) : null;
+          if (stale()) return;
           const raw = transferred
             ? JSON.stringify(transferred)
             : sessionStorage.getItem(`repo-canvas:draft:${data.repo}`);
@@ -68,6 +76,7 @@ export function useCanvasDocument() {
               });
               setConflict(data.revision !== draft.revision);
               setNotice('Restored your unsaved draft in this tab.');
+              setNeedsRepository(false);
               return;
             }
           }
@@ -75,12 +84,16 @@ export function useCanvasDocument() {
           /* A corrupt cache must not prevent loading the authoritative map. */
         }
       }
+      if (stale()) return;
       setSession(data);
       dispatch({ type: 'load', document: data.document });
       setConflict(false);
       setError('');
+      setNeedsRepository(false);
     } catch (error) {
+      if (stale()) return;
       setError(String(error));
+      if (signal) throw error;
     }
   }, []);
   useEffect(() => {
@@ -89,21 +102,14 @@ export function useCanvasDocument() {
       void load(true);
     };
     window.addEventListener('repo-canvas-target', selected);
-    return () => window.removeEventListener('repo-canvas-target', selected);
+    return () => {
+      loadGeneration.current++;
+      window.removeEventListener('repo-canvas-target', selected);
+    };
   }, [load]);
   useEffect(() => {
     if (!hosted || !needsRepository) return;
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const check = async () => {
-      if (window.document.visibilityState !== 'hidden') await load(true);
-      if (!cancelled) timer = setTimeout(() => void check(), 5000);
-    };
-    timer = setTimeout(() => void check(), 5000);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    return poll((signal) => load(true, signal), { interval: 5000, immediate: false });
   }, [needsRepository, load]);
   async function retryConnection() {
     setRetryingConnection(true);

@@ -1,4 +1,4 @@
-import { zstdCompressSync } from 'node:zlib';
+import { gzipSync, zstdCompressSync } from 'node:zlib';
 import { z } from 'zod';
 import { eventSchema } from '../../../mcp-app-runtime/src/events.ts';
 import { scan } from '../../packages/usage/scan.ts';
@@ -71,14 +71,17 @@ async function openHost(
   limited = false,
   beforeCall?: (params: Parameters<Client['callTool']>[0]) => Promise<void>,
   beforeMessage: () => Promise<void> = () => Promise.resolve(),
+  afterCall = (result: Awaited<ReturnType<Client['callTool']>>) => result,
 ) {
   await page.exposeFunction('reportMessage', beforeMessage);
   await page.exposeFunction('reportCall', async (params: Parameters<Client['callTool']>[0]) => {
     await beforeCall?.(params);
-    return client.callTool({
-      ...params,
-      _meta: { ...params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
-    });
+    return afterCall(
+      await client.callTool({
+        ...params,
+        _meta: { ...params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
+      }),
+    );
   });
   await page.route('**/reports-host', (route) =>
     route.fulfill({
@@ -185,6 +188,21 @@ test('usage to trace, lazy source, frozen discussion, refresh, theme and teardow
   await expect(app.locator('#report-status')).toContainText('closed');
   await expect(app.getByRole('button', { name: 'Send', exact: true })).toBeDisabled();
   expect(errors).toEqual([]);
+});
+
+test('malformed decoded report data is rejected before mounting usage', async ({ page }) => {
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  await openHost(page, result, false, undefined, undefined, (response) => ({
+    ...response,
+    _meta: {
+      ...response._meta,
+      payload: gzipSync(JSON.stringify({ snapshot: {} })).toString('base64'),
+    },
+  }));
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#report-status')).toContainText('snapshot');
+  await expect(app.locator('#usage-view')).toBeHidden();
+  await expect(app.locator('#report-status')).not.toContainText('Connected');
 });
 
 test('cached summary renders before refresh finishes and retains filters and discussion draft', async ({

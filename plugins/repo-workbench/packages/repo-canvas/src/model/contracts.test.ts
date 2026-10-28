@@ -1,4 +1,5 @@
 import { expect, expectTypeOf, test } from 'vitest';
+import { z } from 'zod';
 import {
   appRequestSchema,
   contracts,
@@ -14,6 +15,32 @@ test('an operation determines its input and result types', () => {
   expectTypeOf<Input<'save'>>().toHaveProperty('revision').toBeString();
   expectTypeOf<Input<'source'>>().toEqualTypeOf<{ path: string }>();
   expectTypeOf<Output<'draft_read'>>().toBeNullable();
+  type Request = z.output<typeof appRequestSchema>;
+  expectTypeOf<Extract<Request, { action: 'source' }>>().toEqualTypeOf<{
+    action: 'source';
+    args: Input<'source'>;
+  }>();
+  expectTypeOf<Extract<Request, { action: 'connect' }>>().toEqualTypeOf<{
+    action: 'connect';
+    args: Input<'connect'>;
+  }>();
+});
+
+test('every declared action is available through the app request boundary', () => {
+  expect(appRequestSchema.options.map((schema) => schema.shape.action.value).sort()).toEqual(
+    Object.keys(contracts).sort(),
+  );
+  expect(appRequestSchema.parse({ action: 'source', args: { path: 'src/index.ts' } })).toEqual({
+    action: 'source',
+    args: { path: 'src/index.ts' },
+  });
+  expect(
+    appRequestSchema.parse({
+      action: 'connect',
+      args: { panelId: '11111111-1111-4111-8111-111111111111' },
+    }).action,
+  ).toBe('connect');
+  expect(httpOperation('POST', '/api/connect')).toBeUndefined();
 });
 
 test('request schemas reject missing fields and removed connection operations', () => {

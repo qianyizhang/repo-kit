@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { poll } from '../../../../../mcp-app-runtime/src/poller.ts';
 import { hosted, repositoryChoices, openRepository } from './host';
 import { repositorySchema, type RegisteredRepository } from '../model/contracts';
 import { z } from 'zod';
@@ -31,33 +32,31 @@ export function RepositoryPicker({
   const [repositoryFilter, setRepositoryFilter] = useState('');
   useEffect(() => {
     if (!needsRepository) return;
-    let active = true;
-    const refresh = async () => {
-      try {
-        const entries = hosted
-          ? await repositoryChoices()
-          : await fetch('/api/repositories').then((response) => {
-              if (!response.ok) throw new Error('Cannot load registered repositories');
-              return response
-                .json()
-                .then((value: unknown) => z.array(repositorySchema).parse(value));
-            });
-        if (active) {
-          setChoices(entries);
-          setCatalogError('');
+    return poll(
+      async (signal) => {
+        try {
+          const entries = hosted
+            ? await repositoryChoices()
+            : await fetch('/api/repositories', { signal }).then((response) => {
+                if (!response.ok) throw new Error('Cannot load registered repositories');
+                return response
+                  .json()
+                  .then((value: unknown) => z.array(repositorySchema).parse(value));
+              });
+          if (!signal.aborted) {
+            setChoices(entries);
+            setCatalogError('');
+          }
+        } catch (error) {
+          if (!signal.aborted)
+            setCatalogError(error instanceof Error ? error.message : String(error));
+          throw error;
+        } finally {
+          if (!signal.aborted) setCatalogLoading(false);
         }
-      } catch (error) {
-        if (active) setCatalogError(error instanceof Error ? error.message : String(error));
-      } finally {
-        if (active) setCatalogLoading(false);
-      }
-    };
-    void refresh();
-    const timer = setInterval(() => void refresh(), 5000);
-    return () => {
-      active = false;
-      clearInterval(timer);
-    };
+      },
+      { interval: 5000 },
+    );
   }, [needsRepository]);
   async function chooseRepository(path: string) {
     setError('');

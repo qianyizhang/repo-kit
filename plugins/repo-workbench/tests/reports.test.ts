@@ -19,7 +19,24 @@ import {
   overviewSchema,
   recordsSchema,
   statusSchema,
+  parseReportOutput,
+  resultSchemas,
 } from '../packages/reports/contracts.ts';
+void test('the shared report boundary rejects malformed results for every action', () => {
+  for (const action of Object.keys(resultSchemas) as Array<keyof typeof resultSchemas>)
+    assert.throws(() => parseReportOutput(action, {}), action);
+  assert.throws(() => parseReportOutput('trace', { document: { schemaVersion: 3, threads: [] } }));
+  assert.throws(() => parseReportOutput('image', { image: 'https://example.com/image.png' }));
+  assert.throws(() =>
+    parseReportOutput('text', { text: '', offset: 0, nextOffset: 0, total: '0' }),
+  );
+  assert.deepEqual(parseReportOutput('text', { text: 'ok', offset: 0, nextOffset: 2, total: 2 }), {
+    text: 'ok',
+    offset: 0,
+    nextOffset: 2,
+    total: 2,
+  });
+});
 const unpack = (result: { _meta?: Record<string, unknown> }): unknown =>
   JSON.parse(
     gunzipSync(Buffer.from(payloadSchema.parse(result._meta).payload, 'base64')).toString(),

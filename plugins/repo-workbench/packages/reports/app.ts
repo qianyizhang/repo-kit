@@ -8,12 +8,7 @@ import {
   type ReportOutput,
   bindingSchema,
   payloadSchema,
-  textSchema,
-  overviewSchema,
-  statusSchema,
-  recordsSchema,
   timezoneSchema,
-  documentSchema,
   type Binding,
   type Request,
 } from './contracts.ts';
@@ -103,7 +98,7 @@ let closed = false;
 let sending = false;
 let composerRevision = 0;
 let stopPolling: (() => void) | undefined;
-let refreshPromise: Promise<z.infer<typeof overviewSchema>> | undefined;
+let refreshPromise: Promise<ReportOutput<'refresh'>['snapshot']> | undefined;
 let cachedAt = '';
 const lifetime = { signal: app.signal };
 let statusOwner: 'connection' | 'discussion' = 'connection';
@@ -227,16 +222,14 @@ function showTrace(data: ReviewDocument, id: string) {
         const value = event[field] ?? '';
         return { text: value, offset: 0, nextOffset: value.length, total: value.length };
       }
-      const result = textSchema.parse(
-        await call({
-          action: 'text',
-          session: id,
-          event: event.key,
-          revision: event.body.sources.map((s) => s.sha256).join('.'),
-          field,
-          offset,
-        }),
-      );
+      const result = await call({
+        action: 'text',
+        session: id,
+        event: event.key,
+        revision: event.body.sources.map((s) => s.sha256).join('.'),
+        field,
+        offset,
+      });
       signal.throwIfAborted();
       return result;
     },
@@ -244,17 +237,13 @@ function showTrace(data: ReviewDocument, id: string) {
       return event.imageUrls?.[index];
     },
     async loadImage(event, index) {
-      const result = z
-        .object({ image: z.string().regex(/^data:image\/(png|jpeg|webp|gif);base64,/) })
-        .parse(
-          await call({
-            action: 'image',
-            session: id,
-            event: event.key,
-            revision: event.body?.sources.map((s) => s.sha256).join('.') ?? '',
-            index,
-          }),
-        );
+      const result = await call({
+        action: 'image',
+        session: id,
+        event: event.key,
+        revision: event.body?.sources.map((s) => s.sha256).join('.') ?? '',
+        index,
+      });
       return result.image;
     },
   };
@@ -266,9 +255,7 @@ async function openTrace(id: string) {
   const current = ++generation;
   message('Opening trace…');
   try {
-    const value = z
-      .object({ document: documentSchema })
-      .parse(await call({ action: 'trace', session: id }));
+    const value = await call({ action: 'trace', session: id });
     if (current === generation && !closed) showTrace(value.document, id);
   } catch (error) {
     if (current === generation) message(String(error));
@@ -291,9 +278,7 @@ function refreshOverview() {
   if (refreshPromise) return refreshPromise;
   const contextId = binding?.contextId;
   const pending = (async () => {
-    const updated = z
-      .object({ binding: bindingSchema, snapshot: overviewSchema })
-      .parse(await call({ action: 'refresh', timezone: currentTimezone() }));
+    const updated = await call({ action: 'refresh', timezone: currentTimezone() });
     if (closed || binding?.contextId !== contextId) throw new Error('Report context changed.');
     binding = updated.binding;
     if (!session) refreshMessage('Connected · Recorded usage, not billing');
@@ -312,7 +297,7 @@ function watchRefresh(contextId: string) {
         stopPolling?.();
         return;
       }
-      const state = statusSchema.parse(await call({ action: 'status' }));
+      const state = await call({ action: 'status' });
       if (signal.aborted || closed || binding?.contextId !== contextId) return;
       if (state.error) {
         refreshMessage(`Refresh failed: ${state.error} Use Refresh logs to retry.`, true);
@@ -351,15 +336,7 @@ function receiveToolResult(result: import('@modelcontextprotocol/sdk/types.js').
     const started = performance.now();
     if (binding?.build !== BUILD)
       app.incompatible('Server/UI build mismatch. Reconnect and reopen.');
-    const value = z
-      .object({
-        binding: bindingSchema,
-        snapshot: overviewSchema,
-        refreshing: z.boolean(),
-        timings: z.record(z.string(), z.number()).optional(),
-        document: documentSchema.optional(),
-      })
-      .parse(await call({ action: 'snapshot', timezone: currentTimezone() }));
+    const value = await call({ action: 'snapshot', timezone: currentTimezone() });
     if (current !== generation || closed) return;
     if (value.binding.kind === 'trace') {
       if (!value.document || !value.binding.session)
@@ -372,24 +349,23 @@ function receiveToolResult(result: import('@modelcontextprotocol/sdk/types.js').
         },
         refresh: refreshOverview,
         async timezone(timezone) {
-          const value = z
-            .object({ snapshot: overviewSchema })
-            .parse(await call({ action: 'snapshot', timezone: timezoneSchema.parse(timezone) }));
+          const value = await call({
+            action: 'snapshot',
+            timezone: timezoneSchema.parse(timezone),
+          });
           return value.snapshot;
         },
         async evidence(rows, timezone) {
-          return z.object({ records: recordsSchema }).parse(
+          return (
             await call({
               action: 'evidence',
               ids: rows.map((row) => row.id),
               timezone: timezoneSchema.parse(timezone),
-            }),
+            })
           ).records;
         },
         async export(filters) {
-          return z
-            .object({ records: recordsSchema })
-            .parse(await call({ action: 'export', filters })).records;
+          return (await call({ action: 'export', filters })).records;
         },
       });
       view('usage');

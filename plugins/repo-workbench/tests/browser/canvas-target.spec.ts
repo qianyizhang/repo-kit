@@ -8,6 +8,101 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 
+test('failed workspace discovery retries explicitly and yields to manual selection', async ({
+  page,
+}) => {
+  const temporary = await realpath(await mkdtemp(resolve(tmpdir(), 'canvas-discovery-')));
+  const home = resolve(temporary, 'home');
+  await mkdir(home);
+  const repos = await Promise.all(
+    ['automatic', 'manual'].map(async (name) => {
+      const repo = resolve(temporary, name);
+      await mkdir(repo);
+      execFileSync('git', ['init', '-q', repo]);
+      return repo;
+    }),
+  );
+  const threadId = '33333333-3333-4333-8333-333333333333';
+  const db = new DatabaseSync(resolve(home, 'state_5.sqlite'));
+  db.exec('CREATE TABLE threads (id TEXT PRIMARY KEY, cwd TEXT)');
+  const client = new Client({ name: 'discovery-host', version: '1' });
+  try {
+    await client.connect(
+      new StdioClientTransport({
+        command: process.execPath,
+        args: [resolve('dist/canvas-server.mjs')],
+        cwd: temporary,
+        env: {
+          ...process.env,
+          CODEX_HOME: home,
+          XDG_CONFIG_HOME: resolve(temporary, 'config'),
+          XDG_STATE_HOME: resolve(temporary, 'state'),
+        },
+      }),
+    );
+    let calls = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((done) => {
+      release = done;
+    });
+    await page.exposeFunction('canvasTool', async (params: Parameters<Client['callTool']>[0]) => {
+      const connect =
+        (params.arguments?.request as { action?: string } | undefined)?.action === 'connect';
+      const call = connect ? ++calls : 0;
+      if (call === 4) await gate;
+      const result = await client.callTool({ ...params, _meta: { ...params._meta, threadId } });
+      return call === 2
+        ? {
+            isError: true,
+            content: [{ type: 'text', text: 'Temporary discovery failure' }],
+          }
+        : result;
+    });
+    const resource = (
+      await client.readResource({
+        uri: (await client.listResources()).resources.find(
+          (resource) => resource.name === 'Repo Canvas workbench',
+        )!.uri,
+      })
+    ).contents[0];
+    if (!('text' in resource)) throw new Error('Missing HTML');
+    const html = await hostDocument(resource.text);
+    await page.route('**/discovery-host', (route) =>
+      route.fulfill({ contentType: 'text/html', body: html }),
+    );
+    await page.goto('/discovery-host');
+    const app = page.frameLocator('iframe');
+    await expect(app.getByText(/This chat’s repository isn’t available/)).toBeVisible();
+    await expect(app.getByText('No saved repositories yet.', { exact: false })).toBeVisible();
+    expect(calls).toBe(1);
+    await expect.poll(() => calls, { timeout: 8000 }).toBe(2);
+    await expect(app.locator('body')).toContainText('Temporary discovery failure');
+    await app.getByRole('button', { name: 'Retry automatic connection' }).click();
+    await expect(app.getByText(/still waiting for workspace context/)).toBeVisible();
+    expect(calls).toBe(3);
+    const frame = page.frames()[1];
+    await frame.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await frame.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await expect.poll(() => calls).toBe(4);
+    db.prepare('INSERT INTO threads VALUES (?,?)').run(threadId, repos[0]);
+    await app.getByText('Add another repository', { exact: true }).click();
+    await app.getByRole('textbox', { name: 'Repository path', exact: true }).fill(repos[1]);
+    await app.getByRole('button', { name: 'Open and remember', exact: true }).click();
+    release();
+    await expect(app.locator('.checkout-path')).toHaveText(repos[1]);
+  } finally {
+    await client.close();
+    db.close();
+    await rm(temporary, { recursive: true, force: true });
+  }
+});
+
 test('native metadata binds without messages; picker and restart preserve selected repository and draft', async ({
   context,
 }, info) => {
