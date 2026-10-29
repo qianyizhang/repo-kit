@@ -32,6 +32,18 @@ maps, captures, test logs and per-file hash receipts have been removed.
 
 ## Guidance outcomes and attribution
 
+- **Impeccable, 29 October:** adapted surface purpose and the polish/redesign
+  boundary from [Paul Bakaus's Impeccable](https://github.com/pbakaus/impeccable/tree/5adaee704634e9031ec8943721c4ffa1a3c22221)
+  (Apache-2.0, skill 4.8.0). The [UI/UX guide](../../user/practices/ui-ux.md)
+  owns the rules. A same-agent trial on Workbench usage and trace views exercised
+  task-focused refinement while retaining the existing identity; the other
+  surface purposes were reviewed as guidance. The rendered detector
+  found a placeholder contrast defect; source-only probes missed inline TSX
+  defects and unnamed controls. This trial does not establish a quality or
+  productivity advantage. Only the two guidance concepts were promoted; the
+  detector remains an optional external tool. No hooks, aesthetic bans, scoring
+  system, required context files or upstream skill files were adopted.
+
 - **Report UI, 27 October:** the Saul/EZ round established component/region/leaf,
   peer-level and context-view terms, plus contextual inspection and guided visual
   comparisons. The [review-surface contract](../../skills/ui-discussion/references/review-surface.md)

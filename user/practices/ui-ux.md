@@ -5,6 +5,15 @@
 - Inspect the existing rendered product, source and design owner when available.
   Name the user goal, visible parts and roles in plain language. Use the same names
   in the proposal, UI and tests; a panel is not inherently a chat or an agent.
+- Set the affected surface's purpose: **operate** to complete a task, **read** to
+  understand, **persuade** to decide and act, or **experience** to engage with the
+  work itself. Let that purpose guide density, type, motion and expression; a
+  product's dashboard and landing page can have different purposes.
+- Distinguish polish from redesign before editing. **Polish** preserves the
+  current visual identity and intended behavior while fixing local defects.
+  **Redesign** may replace visual direction within the authorized scope; retain
+  product facts, core functions and platform conventions. Widen a polish task
+  into redesign only when authorized.
 - Sketch two dimensions: spatial layout (regions, facts, actions and their owners)
   and temporal journey (cue, deliberate action, outcome and recovery). Check the
   affected surface and its neighbors before adding controls. Scale this to the

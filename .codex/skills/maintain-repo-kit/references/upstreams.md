@@ -4,6 +4,15 @@ Upstreams provide Candidates, never authority. For each review, fetch into a
 temporary directory, record the commit, compare behavior, and classify findings
 as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 
+## Impeccable — 2026-10-29
+
+- Source: `pbakaus/impeccable` at `5adaee704634e9031ec8943721c4ffa1a3c22221`
+  (Paul Bakaus, Apache-2.0, skill 4.8.0).
+- **adapt:** two concepts into the existing [UI/UX guide](../../../../user/practices/ui-ux.md).
+  [Review outcomes](../../../../docs/reviews/README.md#guidance-outcomes-and-attribution)
+  retain the scope, local evidence and limits. The detector remains optional;
+  no upstream skill or runtime installation was promoted.
+
 ## Personal practice review — 2026-10-22
 
 - `cursor/plugins/pstack` at `d1453c11d1dde9714d4c313c97d3a68432265c7f`
