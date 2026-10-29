@@ -32,6 +32,11 @@ gap and capture needed; never invent evidence or claim visual verification.
   scopes. Correct stale claims explicitly; a rewrite does not reopen work.
 - **Checks:** documentation-only edits need scoped content, link and format checks,
   not functional reruns. Required security checks, hooks and CI still apply.
+- **CI:** Monitor PR CI to a terminal result. If wall-clock time exceeds two minutes
+  or work is disproportionate (for example, two minutes for docs), separate queue,
+  setup and checks on the critical path; report the measured bottleneck and a
+  scoped fix proposal. Preserve required checks; timing does not establish
+  correctness or coverage.
 - **Authority:** this guide adds no permission to publish assets/Sites, change
   access, spend, merge or resume paused work.
 
