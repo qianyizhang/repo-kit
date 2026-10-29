@@ -23,6 +23,7 @@ Repository contracts, runtimes and required checks govern their scope.
 
 ## Communication
 
+- For issues, PRs and follow-up comments, read [the GitHub guide](practices/github.md).
 - Lead with the result. Prefer short sentences and labeled bullets over prose.
   Distinguish what is implemented, verified and still needed. Cut repetition and
   context that changes no outcome.
