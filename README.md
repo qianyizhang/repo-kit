@@ -21,8 +21,8 @@ python3.12 scripts/user_instructions.py check
 Unmanaged existing files require reviewed adoption first. See
 [adoption, drift protection and recovery](docs/user-instructions.md).
 
-For issues, PRs and follow-up comments, use the shared
-[GitHub communication guide](user/practices/github.md).
+For local or cloud delivery work, issues, PRs and follow-up comments, use the shared
+[GitHub delivery guide](user/practices/github.md).
 
 ## Shared skills
 
