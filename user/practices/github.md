@@ -19,8 +19,9 @@ permissions still govern; a reference to this guide does not install skills.
    run affected tests and reuse still-valid evidence under the checks rule below.
 4. **Deliver:** Prepare the PR evidence below, relevant checks and terminal CI
    results. Request the specific approval still required for delivery. After
-   authorized delivery, close the issue with result, evidence, limits and one next
-   step.
+   authorized delivery, record result, evidence, limits and one next step; close
+   only when all bounded acceptance criteria are met or explicitly retired, keeping
+   unfinished scope open.
 
 Record only **started → review-ready → delivered** transitions and blocker changes
 in the existing issue ledger. Reuse that thread; no parallel tracker or receipt
