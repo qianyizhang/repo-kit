@@ -1,8 +1,31 @@
-# Issues, PRs and follow-ups
+# Delivery, issues and PRs
 
 Make the decision visible at a glance: short labels, evidence before prose, one
 next step. Use [show-me](https://github.com/qianyizhang/repo-kit/blob/main/skills/show-me/SKILL.md)
 for view selection and grounding; keep its procedure there.
+
+## Delivery routine
+
+Use the same routine for local and cloud jobs. Repository QA and separate action
+permissions still govern; a reference to this guide does not install skills.
+
+1. **Frame:** Before building, use one bounded issue with scope, current
+   [evidence](#show-the-evidence), acceptance and the delivery path
+   (branch → PR → required approval → destination).
+2. **Focus:** Per independent scope, keep at most one active builder and one
+   focused reviewer. Finish or hand off the current slice before starting another
+   in that scope.
+3. **Refine:** v1 → inspect concrete defects → v2 as needed. Fix supported defects,
+   run affected tests and reuse still-valid evidence under the checks rule below.
+4. **Deliver:** Prepare the PR evidence below, relevant checks and terminal CI
+   results. Request the specific approval still required for delivery. After
+   authorized delivery, record result, evidence, limits and one next step; close
+   only when all bounded acceptance criteria are met or explicitly retired, keeping
+   unfinished scope open.
+
+Record only **started → review-ready → delivered** transitions and blocker changes
+in the existing issue ledger. Reuse that thread; no parallel tracker or receipt
+spam.
 
 ## Show the evidence
 
@@ -32,6 +55,11 @@ gap and capture needed; never invent evidence or claim visual verification.
   scopes. Correct stale claims explicitly; a rewrite does not reopen work.
 - **Checks:** documentation-only edits need scoped content, link and format checks,
   not functional reruns. Required security checks, hooks and CI still apply.
+- **CI:** Monitor PR CI to a terminal result. If wall-clock time exceeds two minutes
+  or work is disproportionate (for example, two minutes for docs), separate queue,
+  setup and checks on the critical path; report the measured bottleneck and a
+  scoped fix proposal. Preserve required checks; timing does not establish
+  correctness or coverage.
 - **Authority:** this guide adds no permission to publish assets/Sites, change
   access, spend, merge or resume paused work.
 
@@ -43,6 +71,7 @@ gap and capture needed; never invent evidence or claim visual verification.
 **Problem / scope:** <trigger, affected surface; in / out>
 **Evidence:** <baseline or grounded illustration; source and state>
 **Accept:** <observable completion criteria>
+**Delivery:** <branch/PR → required approval → destination>
 **Limits:** <unknowns, missing pixels, paused/retired scope>
 **Next:** <one action>
 ```
