@@ -98,12 +98,6 @@ p:last-child {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.eyebrow {
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 1.4px;
-  font-weight: 650;
-}
 .app-header {
   padding: 26px 36px 20px;
   display: grid;
@@ -123,9 +117,8 @@ p:last-child {
 }
 .copy-id {
   font-family: monospace;
-  font-size: 19px;
-  border: 0;
-  padding: 0;
+  font-size: 13px;
+  padding: 5px 8px;
   background: none;
 }
 #coverage-summary {
@@ -298,10 +291,8 @@ label select {
   min-width: 0;
 }
 .conversation-pair > section > h3 {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
 }
 .overview {
   margin-bottom: 0;
@@ -454,7 +445,7 @@ label select {
   display: flex;
   gap: 12px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
   margin-bottom: 6px;
   flex-wrap: wrap;
 }
@@ -554,7 +545,11 @@ details[open] > .action-summary::before {
 }
 .record-prose {
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.record-prose > :where(p, ul, ol, blockquote) {
+  max-width: 75ch;
 }
 .record-prose h2 {
   font-size: 18px;

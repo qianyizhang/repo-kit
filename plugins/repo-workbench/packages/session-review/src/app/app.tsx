@@ -125,26 +125,22 @@ export function App() {
           </button>
         )}
         <div className="header-title">
-          <span className="eyebrow">SESSION REVIEW</span>
-          <h1 id="title" aria-label={curation ? undefined : data.threads[0]?.id.slice(0, 8)}>
-            {curation ? (
-              data.title
-            ) : (
-              <button
-                className="copy-id"
-                aria-label="Copy full session ID"
-                title={data.threads[0]?.id}
-                onClick={() => {
-                  void navigator.clipboard
-                    .writeText(data.threads[0]?.id ?? '')
-                    .then(() => setCopied('Copied'))
-                    .catch(() => setCopied('Copy unavailable'));
-                }}
-              >
-                {data.threads[0]?.id.slice(0, 8)}
-              </button>
-            )}
-          </h1>
+          <h1 id="title">{curation ? data.title : 'Session review'}</h1>
+          {!curation && (
+            <button
+              className="copy-id"
+              aria-label="Copy full session ID"
+              title={data.threads[0]?.id}
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(data.threads[0]?.id ?? '')
+                  .then(() => setCopied('Copied'))
+                  .catch(() => setCopied('Copy unavailable'));
+              }}
+            >
+              {data.threads[0]?.id.slice(0, 8)}
+            </button>
+          )}
           <span role="status" className="small">
             {copied}
           </span>

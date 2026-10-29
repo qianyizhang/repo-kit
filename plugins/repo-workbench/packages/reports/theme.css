@@ -46,3 +46,7 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 }
+input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}

@@ -336,7 +336,10 @@ test('offline dashboard filters, prices, drills down, exports and refreshes loca
   await expect(trace.locator('#conversation')).toBeVisible();
   await trace.getByRole('button', { name: 'Recorded actions', exact: true }).click();
   await expect(trace.locator('#events')).toBeVisible();
-  await expect(trace.getByRole('heading', { name: 'parent', exact: true })).toBeVisible();
+  await expect(trace.getByRole('heading', { name: 'Session review', exact: true })).toBeVisible();
+  await expect(trace.getByRole('button', { name: 'Copy full session ID', exact: true })).toHaveText(
+    'parent',
+  );
   await expect(trace.getByRole('button', { name: 'Creation story', exact: true })).toBeHidden();
   await expect(trace.locator('#event-list')).toContainText(
     'TRACE_USER_REQUEST_BEFORE_USAGE_FILTER',

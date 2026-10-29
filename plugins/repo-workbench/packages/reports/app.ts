@@ -73,12 +73,12 @@ async function readReportDiagnostics(name: string, args: Record<string, unknown>
     );
   return result.structuredContent;
 }
-document.getElementById('report-toolbar')!.append(inspection.button());
+document.getElementById('report-tools')!.append(inspection.button());
 const inspectSend = document.createElement('button');
 inspectSend.textContent = 'Inspect send';
 inspectSend.hidden = true;
 inspectSend.onclick = () => inspection.show('Interactions', lastSend);
-document.getElementById('report-toolbar')!.append(inspectSend);
+document.getElementById('report-tools')!.append(inspectSend);
 let lastSend: string | undefined;
 const status = document.getElementById('report-status')!;
 status.title = `Repo Workbench ${VERSION} · build ${BUILD}`;

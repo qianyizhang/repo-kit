@@ -2,23 +2,30 @@
   position: sticky;
   top: 0;
   z-index: 4;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 8px;
-  align-items: center;
   padding: 10px 14px;
   background: var(--panel);
   color: var(--ink);
   border-bottom: 1px solid var(--border);
   font: 13px/1.5 system-ui;
 }
+.report-connection,
+#report-tools,
+.report-compose {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
 #report-status {
-  flex: 1 1 180px;
+  flex: 1;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 #report-question {
   flex: 1 1 200px;
-  min-width: 120px;
+  min-width: 0;
   padding: 8px;
   color: inherit;
   background: transparent;
@@ -44,8 +51,15 @@
   #report-toolbar {
     position: static;
   }
-  #report-status {
+  .report-connection,
+  .report-compose {
+    flex-wrap: wrap;
+  }
+  #report-question {
     flex-basis: 100%;
+  }
+  #report-status {
+    flex-basis: 160px;
   }
 }
 
@@ -57,4 +71,9 @@
 }
 #report-toolbar input[type='checkbox'] {
   width: auto;
+}
+
+/* The host toolbar owns sticky positioning; trace tabs must not cover it. */
+:root[data-report] .tabs {
+  position: static;
 }

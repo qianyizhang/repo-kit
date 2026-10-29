@@ -387,3 +387,53 @@ test('plain report message has a frozen inspector and an explicit one-interactio
   await page.setViewportSize({ width: 390, height: 950 });
   await page.screenshot({ path: 'test-results/browser/report-observability-narrow.png' });
 });
+
+test('report filters recover by keyboard and placeholders remain readable in both themes', async ({
+  page,
+}) => {
+  const result = await client.callTool({ name: 'usage_open', arguments: { roots: [logs] } });
+  await openHost(page, result);
+  const app = page.frameLocator('iframe');
+  await expect(app.locator('#total')).toHaveText('4.51K');
+  await app.getByLabel('Search', { exact: true }).fill('no-matching-session');
+  await expect(app.locator('#total')).toHaveText('0');
+  await app.getByRole('button', { name: 'Reset filters', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(app.getByLabel('Search', { exact: true })).toHaveValue('');
+  await expect(app.locator('#total')).toHaveText('4.51K');
+  for (const theme of ['light', 'dark']) {
+    const ratios = await app.locator('#search, #report-question').evaluateAll((inputs) => {
+      const luminance = (color: string) => {
+        const channels = color
+          .match(/[\d.]+/g)!
+          .slice(0, 3)
+          .map(Number)
+          .map((value) => {
+            const srgb = value / 255;
+            return srgb <= 0.04045 ? srgb / 12.92 : ((srgb + 0.055) / 1.055) ** 2.4;
+          });
+        return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+      };
+      return inputs.map((input) => {
+        const foreground = luminance(getComputedStyle(input, '::placeholder').color);
+        let surface: Element | null = input;
+        while (surface && getComputedStyle(surface).backgroundColor === 'rgba(0, 0, 0, 0)')
+          surface = surface.parentElement;
+        const background = luminance(getComputedStyle(surface!).backgroundColor);
+        return (
+          (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+        );
+      });
+    });
+    expect(Math.min(...ratios)).toBeGreaterThanOrEqual(4.5);
+    for (const width of [1440, 740, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      expect(await app.locator('html').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(
+        true,
+      );
+      await app.locator('html').evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: `test-results/reports-filters-${theme}-${width}.png` });
+    }
+    if (theme === 'light') await page.getByRole('button', { name: 'Theme', exact: true }).click();
+  }
+});

@@ -92,11 +92,25 @@ button.active {
   background: var(--green);
 }
 .filters {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.date-filters,
+.filter-options {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
   gap: 12px;
-  margin-bottom: 20px;
+}
+.filter-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(200px, 2fr);
+  gap: 12px;
+}
+.filter-options {
+  align-items: center;
+  justify-content: space-between;
 }
 .filters label {
   display: flex;
@@ -111,10 +125,8 @@ button.active {
   border-radius: 6px;
   padding: 8px;
   background: var(--panel);
-  max-width: 240px;
-}
-.filters #search {
-  max-width: 230px;
+  width: 100%;
+  min-width: 0;
 }
 .filters .toggle {
   flex-direction: row;
@@ -169,13 +181,22 @@ button.active {
 .kpis {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
+  gap: 0;
+  margin-bottom: 24px;
+  background: var(--panel);
+  border-block: 1px solid var(--line);
+}
+.kpi {
+  min-width: 0;
+  padding: 18px 20px;
+}
+.kpi + .kpi {
+  border-left: 1px solid var(--line);
 }
 .card {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 20px;
   min-width: 0;
 }
@@ -186,8 +207,8 @@ button.active {
 .kpi strong {
   display: block;
   margin: 10px 0 8px;
-  font-size: 30px;
-  letter-spacing: -1px;
+  font-size: 26px;
+  letter-spacing: -0.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -518,8 +539,23 @@ code {
   .breakdowns {
     grid-template-columns: 1fr;
   }
+  .filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .search-filter {
+    grid-column: 1 / -1;
+  }
   .kpis {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kpi:nth-child(odd) {
+    border-left: 0;
+  }
+  .kpi:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .kpi:last-child {
+    grid-column: 1 / -1;
   }
   .top {
     flex-wrap: wrap;
@@ -530,10 +566,6 @@ code {
   .footer {
     flex-direction: column;
   }
-  .filters input,
-  .filters select {
-    max-width: 190px;
-  }
   .chart {
     height: 220px;
   }
@@ -542,8 +574,8 @@ code {
   .app {
     padding: 16px;
   }
-  .kpis {
-    gap: 9px;
+  .kpi {
+    padding: 16px 12px;
   }
   .card {
     padding: 15px;
@@ -557,12 +589,12 @@ code {
   .top .actions {
     flex-wrap: wrap;
   }
-  .filters {
-    gap: 9px;
-  }
-  .filters label {
+  .date-filters > label {
     flex: 1;
     min-width: 125px;
+  }
+  .presets {
+    flex-basis: 100%;
   }
   .filters input,
   .filters select {
@@ -586,8 +618,12 @@ code {
   }
 }
 
-@media (max-width: 600px) {
-  .kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (pointer: coarse) {
+  .heatmap button {
+    width: 24px;
+    height: 24px;
+  }
+  .bar-row button {
+    min-height: 32px;
   }
 }
