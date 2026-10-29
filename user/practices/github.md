@@ -17,11 +17,13 @@ permissions still govern; a reference to this guide does not install skills.
    in that scope.
 3. **Refine:** v1 → inspect concrete defects → v2 as needed. Fix supported defects,
    run affected tests and reuse still-valid evidence under the checks rule below.
-4. **Deliver:** Prepare the PR evidence below, relevant checks and terminal CI
-   results. Request the specific approval still required for delivery. After
-   authorized delivery, record result, evidence, limits and one next step; close
-   only when all bounded acceptance criteria are met or explicitly retired, keeping
-   unfinished scope open.
+4. **Deliver:** Prepare relevant checks and terminal CI results. Review the public
+   brief before publishing and obtain any specific approval still required. After
+   authorized publication, open the actual issue, PR or comment and read back its
+   visible text and media; correct excess prose, broken evidence or hidden blockers.
+   Record result, evidence, limits and next step after authorized delivery; close
+   only when all bounded acceptance criteria are met or explicitly retired,
+   keeping unfinished scope open.
 
 Record only **started → review-ready → delivered** transitions and blocker changes
 in the existing issue ledger. Reuse that thread; no parallel tracker or receipt
@@ -42,15 +44,17 @@ gap and capture needed; never invent evidence or claim visual verification.
 
 ## Keep it scannable
 
-- **Lead:** outcome or problem, bounded scope and acceptance. Prefer short labeled
-  blocks, comparisons and captions to paragraphs.
+- **Brief:** for visual work, lead with the evidence view above, then roughly 3–5
+  short labeled bullets. Docs and other nonvisual changes need no illustration.
+  Keep the outcome, decision and material gaps visible; omit unused fields.
 - **Status:** 🟢 **Pass / positive**, 🔴 **Fail**, 🟠 **Pending**. Always include
   text and what it describes; color alone carries no status.
 - **Claims:** separate technical checks, visual review, observed runtime behavior
   and clinical validity. Evidence in one category does not establish another.
-- **Detail:** keep decision evidence visible; put logs, receipts and long rationale
-  behind links or `<details>`. Reuse evidence while its inputs, revision and
-  conditions still support the claim; state coverage and limitations.
+- **Handoff:** keep the full worker evidence bundle (revision, checks/results,
+  applicable captures, gaps, next action) in the existing task handoff for the
+  reviewer/publisher. Select the public brief from it; link or collapse receipts
+  and rationale. Reuse evidence while its source and conditions support the claim.
 - **History:** preserve identities, provenance, prior decisions and paused/retired
   scopes. Correct stale claims explicitly; a rewrite does not reopen work.
 - **Checks:** documentation-only edits need scoped content, link and format checks,
@@ -63,35 +67,35 @@ gap and capture needed; never invent evidence or claim visual verification.
 - **Authority:** this guide adds no permission to publish assets/Sites, change
   access, spend, merge or resume paused work.
 
-## Copy only what is needed
+## Public brief templates
+
+Put visual evidence before the bullets when applicable. Keep each bullet to one
+short point; link detail instead of expanding the placeholders into paragraphs.
 
 **Issue**
 
 ```markdown
-**Problem / scope:** <trigger, affected surface; in / out>
-**Evidence:** <baseline or grounded illustration; source and state>
-**Accept:** <observable completion criteria>
-**Delivery:** <branch/PR → required approval → destination>
-**Limits:** <unknowns, missing pixels, paused/retired scope>
-**Next:** <one action>
+- **Problem:** <bounded trigger and impact>
+- **Evidence:** <source/view link; material gap if any>
+- **Accept:** <observable completion; link detailed criteria>
+- **Delivery:** <path and required approval>
+- **Next:** <one action>
 ```
 
-**PR**
+**PR / public handoff**
 
 ```markdown
-**Change / scope:** <problem → resulting behavior; in / out; issue link>
-**Evidence:** <matched comparison or new-asset view when relevant; source/state>
-**Accept / checks:** <criterion → Pass, Fail or Pending; actual check and coverage>
-**Limits:** <unverified claims, remaining gaps>
-**Next:** <one review or follow-up action>
+- **Change:** <one outcome; issue link if useful>
+- **Checks:** <Pass / Fail / Pending; key evidence link>
+- **Limits:** <material gap or blocker; omit if none>
+- **Next:** <one review or delivery action>
 ```
 
 **Follow-up** — only changes since the previous update. Link still-valid evidence;
 skip receipt-only acknowledgments and repeated check inventories.
 
 ```markdown
-**Changed:** <delta since linked update; same bounded scope or explicit change>
-**Evidence / acceptance:** <new result and status; link reused evidence>
-**Limits:** <new or resolved gap; retain applicable prior limits by link>
-**Next:** <one action>
+- **Changed:** <delta since linked update>
+- **Status:** <new result or blocker; evidence link>
+- **Next:** <one action>
 ```
