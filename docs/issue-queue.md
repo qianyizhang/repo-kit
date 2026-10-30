@@ -127,12 +127,15 @@ time, prose, labels, assignees and absence of a PR never imply readiness.
   do not satisfy a dependency. V1 reads one repository; external dependencies
   remain unknown unless supplied in a future supported source format.
 - **Assignments:** task identifiers are unique among unfinished, unpaused scopes.
-  Repeated active owner IDs or worker task IDs are conflicts. Stale observations
-  never release an assignment implicitly.
+  Repeated active owner IDs or worker task IDs are conflicts. Active and released
+  observations of the same worker task also conflict; a later timestamp alone
+  cannot reconcile them. Stale observations never release an assignment implicitly.
 - **Holds:** each blocker requires `action`, `target`, `reason`, `status`
   (`pending`, `denied`, `uncertain`), `required` (the missing approval/input),
   `completed` (work already retained), `artifact_identity`, and `observed_at`.
-  A hold excludes only a matching `(action, target)` within its scope.
+  A hold excludes the same `(action, target)` anywhere in the snapshot, including
+  other scopes/issues. Changing a task or scope ID cannot bypass it. Different
+  actions or targets remain independent.
   `approval-blocked` needs that matching hold. A denial stays denied; this CLI
   cannot grant approval or propose an alternate route.
 - **Order:** eligible scopes sort by integer priority (lower first), then exact
@@ -160,8 +163,11 @@ and branch are considered. A `pull_request` run must also reference that PR;
 `push` runs on that head branch are supported. Other events, including
 `pull_request_target`, are not evidence for this check.
 
-The latest relevant workflow run number and rerun attempt must be completed and
-successful. An earlier pass cannot hide a later failure or running attempt.
+The latest relevant attempt must be completed and successful. Initial attempts
+order by `created_at` (then run number for same-second creation); reruns require
+the attempt-specific `run_started_at`, because an older run number can be rerun
+later. Missing/ambiguous attempt chronology or conflicting run identities remain
+unknown. An earlier pass cannot hide a later failure or running attempt.
 CI source observations must be fresh, though an old successful run for the same
 head can remain valid. The adapter rereads PR heads to detect a racing force-push
 and rejects incomplete run pagination (GitHub caps filtered run searches). Reads
@@ -171,7 +177,8 @@ and [workflow runs](https://docs.github.com/en/rest/actions/workflow-runs#list-w
 read contracts.
 
 Snapshots use `schema_version: 1`, `repository`, `observed_at`, raw GitHub `issues`,
-and optional raw `pull_requests`/`workflow_runs` arrays. Preserve original bodies,
+and optional raw `pull_requests`/`workflow_runs` arrays. A future snapshot observation
+is invalid even when no scope requires CI. Preserve original bodies,
 head/run IDs and timestamps when exporting. JSON output retains the parsed receipt,
 issue source identity and selected CI run identity. There is no Codex cloud-state
 adapter or dispatch API: a cloud-list probe returning 401 establishes neither.

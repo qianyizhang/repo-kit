@@ -213,6 +213,7 @@ class IssueQueueTest(unittest.TestCase):
             "conclusion": "success",
             "created_at": NOW.isoformat(),
             "updated_at": NOW.isoformat(),
+            "run_started_at": NOW.isoformat(),
             "event": "pull_request",
             "pull_requests": [{"number": 6}],
             "head_branch": "candidate",
@@ -276,6 +277,88 @@ class IssueQueueTest(unittest.TestCase):
         other_issue["body"] = "```repo-kit-queue\n" + json.dumps(other_block) + "\n```"
         self.snapshot["issues"].append(other_issue)
         self.assertFalse(any(r.eligible for r in queue.evaluate(self.snapshot, NOW)))
+
+    def test_exact_action_hold_applies_across_scopes_and_issues(self):
+        held = copy.deepcopy(self.scope)
+        held.update(scope="held", task="held-task", state="approval-blocked")
+        held["blockers"] = [{**self.blocker(), "action": self.scope["action"], "target": self.scope["target"]}]
+        self.block["scopes"].append(held)
+        row = next(r for r in self.evaluate() if r.scope == "build")
+        self.assertFalse(row.eligible)
+        self.scope["target"] = "independent-target"
+        self.assertTrue(next(r for r in self.evaluate() if r.scope == "build").eligible)
+        self.scope["target"] = held["target"]
+        self.scope["action"] = "independent-action"
+        self.assertTrue(next(r for r in self.evaluate() if r.scope == "build").eligible)
+        self.scope["action"] = held["action"]
+        self.block["scopes"] = [self.scope]
+        other = copy.deepcopy(self.snapshot["issues"][0])
+        other.update(number=8, html_url="https://github.com/qianyizhang/repo-kit/issues/8")
+        other["body"] = (
+            "```repo-kit-queue\n"
+            + json.dumps({"schema_version": 1, "issue": "qianyizhang/repo-kit#8", "scopes": [held]})
+            + "\n```"
+        )
+        self.snapshot["issues"].append(other)
+        self.assertFalse(next(r for r in self.evaluate() if r.scope == "build").eligible)
+
+    def test_conflicting_active_released_owner_observations_need_reconciliation(self):
+        active = copy.deepcopy(self.scope)
+        active.update(scope="running", task="running-task", state="running")
+        active["owner"].update(state="active", id="worker", task_id="worker-task", observed_at="2026-10-30T11:55:00Z")
+        self.scope["owner"].update(
+            state="released", id="worker", task_id="worker-task", observed_at="2026-10-30T11:56:00Z"
+        )
+        self.block["scopes"].append(active)
+        rows = self.evaluate()
+        self.assertTrue(all("conflicting-owner-observations" in ";".join(r.problems) for r in rows))
+        self.assertFalse(any(r.eligible for r in rows))
+        self.scope["owner"]["task_id"] = "previous-task"
+        self.assertTrue(next(r for r in self.evaluate() if r.scope == "build").eligible)
+
+    def test_future_snapshot_is_invalid_even_without_ci(self):
+        self.snapshot["observed_at"] = "2026-10-31T12:00:00Z"
+        with self.assertRaisesRegex(ValueError, "snapshot observation is in the future"):
+            self.evaluate()
+
+    def test_latest_attempt_chronology_includes_rerun_of_an_older_run(self):
+        older = self.ci()
+        older.update(
+            created_at="2026-10-30T11:00:00Z",
+            run_attempt=2,
+            run_started_at="2026-10-30T11:55:00Z",
+            updated_at="2026-10-30T11:59:00Z",
+            conclusion="failure",
+        )
+        newer = {
+            **older,
+            "id": 102,
+            "run_number": 2,
+            "run_attempt": 1,
+            "created_at": "2026-10-30T11:45:00Z",
+            "run_started_at": "2026-10-30T11:45:00Z",
+            "updated_at": "2026-10-30T11:50:00Z",
+            "conclusion": "success",
+        }
+        self.snapshot["workflow_runs"].append(newer)
+        row = self.evaluate()[0]
+        self.assertFalse(row.eligible)
+        self.assertEqual(101, row.ci[0]["run_id"])
+        older["conclusion"] = "success"
+        self.assertTrue(self.evaluate()[0].eligible)
+        older.pop("run_started_at")
+        self.assertFalse(self.evaluate()[0].eligible)
+
+    def test_contradictory_ci_run_identity_cannot_select_a_successful_copy(self):
+        run = self.ci()
+        self.snapshot["workflow_runs"].append({**run, "run_number": 2})
+        row = self.evaluate()[0]
+        self.assertFalse(row.eligible)
+        self.assertIn("conflicting CI run identity", ";".join(row.problems))
+        self.snapshot["workflow_runs"] = [run, {**run, "id": 102}]
+        row = self.evaluate()[0]
+        self.assertFalse(row.eligible)
+        self.assertIn("conflicting CI run number", ";".join(row.problems))
 
     def test_cli_fixture_commands_are_credential_free_and_do_not_write(self):
         before = FIXTURE.read_bytes()

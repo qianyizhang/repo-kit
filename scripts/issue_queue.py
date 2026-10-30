@@ -12,6 +12,7 @@ import sys
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
+from itertools import pairwise
 from pathlib import Path
 
 STATES = {"ready", "running", "local-unpushed", "review", "approval-blocked", "paused", "retired", "done"}
@@ -336,6 +337,14 @@ def check_ci(row: Scope, snapshot: dict, now: datetime, stale: timedelta) -> Non
         if row.artifact_identity != f"git:{head_repo}@{sha}":
             row.problem("ci-artifact-head-mismatch")
         runs = [mapping(run) for run in sequence(snapshot.get("workflow_runs", []))]
+        identities = {}
+        for run in runs:
+            if not integer(run.get("id")) or not run["id"]:
+                raise ValueError("missing CI run identity")
+            identity = {k: run.get(k) for k in ("workflow_id", "run_number", "head_sha", "created_at")}
+            if run["id"] in identities and identities[run["id"]] != identity:
+                raise ValueError(f"conflicting CI run identity: {run['id']}")
+            identities[run["id"]] = identity
 
         def matches(run: dict) -> bool:
             if run.get("head_sha") != sha or run.get("head_branch") != head["ref"]:
@@ -353,20 +362,36 @@ def check_ci(row: Scope, snapshot: dict, now: datetime, stale: timedelta) -> Non
             if not relevant:
                 row.problem(f"ci-missing-current-head: workflow {workflow}")
                 continue
-            # A rerun retains its run ID/number and increments run_attempt.
+            attempts = defaultdict(dict)
+            run_numbers = {}
             for run in relevant:
                 if not all(integer(run.get(k)) and run[k] > 0 for k in ("id", "run_number", "run_attempt")):
                     raise ValueError("missing run identity/order")
-                timestamp(run.get("created_at"))
-                timestamp(run.get("updated_at"))
-            latest = max(relevant, key=lambda r: (r["run_number"], r["run_attempt"]))
-            peers = [
-                r
-                for r in relevant
-                if r["run_number"] == latest["run_number"] and r["run_attempt"] == latest["run_attempt"]
-            ]
-            if len(peers) != 1:
-                row.problem(f"ci-conflicting-latest-run: workflow {workflow}")
+                if run["run_number"] in run_numbers and run_numbers[run["run_number"]] != run["id"]:
+                    raise ValueError("conflicting CI run number")
+                run_numbers[run["run_number"]] = run["id"]
+                created = timestamp(run.get("created_at"))
+                updated = timestamp(run.get("updated_at"))
+                # Rerunning an older run keeps its original run number/created_at.
+                # Without that attempt's start time, its order is unknown.
+                started = created if run["run_attempt"] == 1 else timestamp(run.get("run_started_at"))
+                if not created <= started <= updated <= observed:
+                    raise ValueError("invalid CI attempt chronology")
+                if run["run_attempt"] in attempts[run["id"]]:
+                    raise ValueError("duplicate CI run attempt observation")
+                attempts[run["id"]][run["run_attempt"]] = (started, run)
+            current_attempts = []
+            for records in attempts.values():
+                ordered = [records[a] for a in sorted(records)]
+                if any(a[0] > b[0] for a, b in pairwise(ordered)):
+                    raise ValueError("conflicting CI attempt chronology")
+                current_attempts.append(ordered[-1])
+            latest_time = max(started for started, _ in current_attempts)
+            peers = [run for started, run in current_attempts if started == latest_time]
+            if len(peers) > 1 and any(run["run_attempt"] > 1 for run in peers):
+                raise ValueError("ambiguous latest CI attempt order")
+            # Initial runs created in the same second have an explicit run order.
+            latest = max(peers, key=lambda r: r["run_number"])
             row.ci.append(
                 {
                     "workflow_id": workflow,
@@ -378,8 +403,6 @@ def check_ci(row: Scope, snapshot: dict, now: datetime, stale: timedelta) -> Non
                     "url": latest.get("html_url"),
                 }
             )
-            if timestamp(latest["updated_at"]) > observed:
-                row.problem(f"ci-future-run: workflow {workflow}")
             if latest.get("status") != "completed" or latest.get("conclusion") != "success":
                 row.problem(f"ci-not-passed: workflow {workflow} latest run {latest['id']}")
     except (ValueError, TypeError) as exc:
@@ -391,12 +414,23 @@ def evaluate(snapshot: dict, now: datetime, stale_hours: float = 2) -> list[Scop
         raise ValueError("stale-hours must be a positive finite number")
     stale = timedelta(hours=stale_hours)
     rows = parse_issues(snapshot)
+    if timestamp(snapshot["observed_at"]) > now:
+        raise ValueError("snapshot observation is in the future")
     index = defaultdict(list)
     assignments = defaultdict(list)
+    owner_observations = defaultdict(list)
+    holds = defaultdict(list)
     for row in rows:
         validate(row, now, stale)
         check_ci(row, snapshot, now, stale)
         index[row.key].append(row)
+        owner = row.receipt.get("owner")
+        if isinstance(owner, dict) and text(owner.get("task_id")) and owner.get("state") in ("active", "released"):
+            owner_observations[owner["task_id"]].append(row)
+        blockers = row.receipt.get("blockers")
+        for blocker in blockers if isinstance(blockers, list) else []:
+            if isinstance(blocker, dict) and all(text(blocker.get(k)) for k in ("action", "target")):
+                holds[(blocker["action"], blocker["target"])].append((row, blocker))
         if row.state not in INACTIVE and row.receipt:
             task = row.receipt.get("task")
             if text(task):
@@ -414,6 +448,17 @@ def evaluate(snapshot: dict, now: datetime, stale_hours: float = 2) -> list[Scop
         if len(group) > 1:
             for row in group:
                 row.problem(f"duplicate-assignment: {kind} {identity}")
+    for task_id, group in owner_observations.items():
+        if {r.receipt["owner"]["state"] for r in group} == {"active", "released"}:
+            for row in group:
+                row.problem(f"conflicting-owner-observations: worker task {task_id} active/released")
+    for row in rows:
+        if all(text(row.receipt.get(k)) for k in ("action", "target")):
+            for holder, blocker in holds[(row.receipt["action"], row.receipt["target"])]:
+                if holder is not row:
+                    status = blocker.get("status")
+                    status = status if status in ("pending", "denied", "uncertain") else "unknown"
+                    row.problem(f"action-blocked: {blocker['action']} {status} ({blocker['target']}) from {holder.key}")
 
     # Resolve dependencies recursively; cycles and uncertain completion never satisfy a dependency.
     visited, visiting = set(), set()
