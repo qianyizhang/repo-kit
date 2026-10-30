@@ -24,6 +24,10 @@ Unmanaged existing files require reviewed adoption first. See
 For local or cloud delivery work, issues, PRs and follow-up comments, use the shared
 [GitHub delivery guide](user/practices/github.md).
 
+The [read-only issue queue CLI](docs/issue-queue.md) inspects explicit issue
+receipts with `queue`, `status`, `next` and `check`; its fixture mode needs no
+credentials. Recommendations do not dispatch or authorize work.
+
 ## Shared skills
 
 The locked bundle includes upstream-derived workflows, declared local adaptations
