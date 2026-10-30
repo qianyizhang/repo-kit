@@ -21,7 +21,7 @@ NOW = queue.timestamp("2026-10-30T12:00:00Z")
 class IssueQueueTest(unittest.TestCase):
     def setUp(self):
         self.snapshot = json.loads(FIXTURE.read_text())
-        self.block = json.loads(queue.BLOCK.findall(self.snapshot["issues"][0]["body"])[0])
+        self.block = json.loads(queue.metadata_blocks(self.snapshot["issues"][0]["body"])[0])
         self.scope = copy.deepcopy(self.block["scopes"][1])
         self.scope["dependencies"] = []
         self.block["scopes"] = [self.scope]
@@ -80,6 +80,14 @@ class IssueQueueTest(unittest.TestCase):
         self.assertIn("conflicting-metadata", queue.evaluate(self.snapshot, NOW)[0].problems[0])
         self.snapshot["issues"][0]["body"] = '```repo-kit-queue\n{"schema_version":1,"schema_version":1}\n```'
         self.assertIn("duplicate JSON key", queue.evaluate(self.snapshot, NOW)[0].problems[0])
+
+    def test_partial_second_block_and_embedded_example_cannot_be_selected(self):
+        self.evaluate()
+        body = self.snapshot["issues"][0]["body"]
+        for edited in (body + "\n```repo-kit-queue\n{", "````markdown\n" + body + "\n````"):
+            with self.subTest(body=edited):
+                self.snapshot["issues"][0]["body"] = edited
+                self.assertFalse(queue.evaluate(self.snapshot, NOW)[0].eligible)
 
     def test_metadata_version_and_issue_binding(self):
         self.block["schema_version"] = 2

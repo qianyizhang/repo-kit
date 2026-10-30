@@ -55,7 +55,9 @@ availability. An exact publication hold does not block a separate build action.
 
 ## Issue-body contract, version 1
 
-Use exactly one fenced `repo-kit-queue` JSON block in the canonical issue body.
+Use exactly one column-zero fenced `repo-kit-queue` JSON block in the canonical
+issue body. Examples nested in other fences are ignored; incomplete metadata
+fences are invalid.
 V1 does not discover receipts in comments or follow arbitrary links. A handoff
 may link to this block. Ordinary existing issues remain `unknown` until their
 owners explicitly supply metadata; do not mass-edit them to satisfy this tool.

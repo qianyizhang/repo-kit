@@ -18,7 +18,29 @@ STATES = {"ready", "running", "local-unpushed", "review", "approval-blocked", "p
 INACTIVE = {"paused", "retired", "done"}
 REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\Z")
 SCOPE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\Z")
-BLOCK = re.compile(r"^```repo-kit-queue\s*\n(.*?)^```\s*$", re.MULTILINE | re.DOTALL)
+FENCE = re.compile(r"^(`{3,}|~{3,})(.*)$")
+
+
+def metadata_blocks(body: str) -> list[str]:
+    """Read column-zero fences, excluding examples nested in other fenced blocks."""
+    blocks, lines = [], []
+    fence, metadata = "", False
+    for line in body.splitlines():
+        match = FENCE.fullmatch(line)
+        if not fence:
+            if match:
+                fence = match[1]
+                metadata = fence == "```" and match[2].strip() == "repo-kit-queue"
+                lines = []
+        elif match and match[1][0] == fence[0] and len(match[1]) >= len(fence) and not match[2].strip():
+            if metadata:
+                blocks.append("\n".join(lines))
+            fence, metadata = "", False
+        elif metadata:
+            lines.append(line)
+    if metadata:
+        raise ValueError("unterminated metadata block")
+    return blocks
 
 
 def timestamp(value: object) -> datetime:
@@ -134,11 +156,13 @@ def parse_issues(snapshot: dict) -> list[Scope]:
         body = issue.get("body") or ""
         if not isinstance(body, str):
             raise ValueError(f"{identity}: issue body must be text or null")
-        blocks = BLOCK.findall(body)
+        try:
+            blocks = metadata_blocks(body)
+        except ValueError as exc:
+            rows.append(Scope(identity, "?", state, {}, source, [f"invalid-metadata: {exc}"]))
+            continue
         if len(blocks) != 1:
             reason = "missing-metadata" if not blocks else "conflicting-metadata: multiple blocks"
-            if not blocks and "```repo-kit-queue" in body:
-                reason = "invalid-metadata: unterminated block"
             rows.append(Scope(identity, "?", state, {}, source, [reason]))
             continue
         try:
