@@ -341,7 +341,10 @@ def check_ci(row: Scope, snapshot: dict, now: datetime, stale: timedelta) -> Non
         for run in runs:
             if not integer(run.get("id")) or not run["id"]:
                 raise ValueError("missing CI run identity")
-            identity = {k: run.get(k) for k in ("workflow_id", "run_number", "head_sha", "created_at")}
+            identity = {
+                k: run.get(k) for k in ("workflow_id", "run_number", "head_sha", "created_at", "head_branch", "event")
+            }
+            identity["head_repository"] = mapping(run.get("head_repository")).get("full_name")
             if run["id"] in identities and identities[run["id"]] != identity:
                 raise ValueError(f"conflicting CI run identity: {run['id']}")
             identities[run["id"]] = identity

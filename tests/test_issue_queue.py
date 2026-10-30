@@ -360,6 +360,19 @@ class IssueQueueTest(unittest.TestCase):
         self.assertFalse(row.eligible)
         self.assertIn("conflicting CI run number", ";".join(row.problems))
 
+    def test_conflicting_ci_context_is_not_discarded_by_relevance_filter(self):
+        for changes in (
+            {"head_branch": "other"},
+            {"event": "pull_request_target"},
+            {"head_repository": {"full_name": "other/repository"}},
+        ):
+            with self.subTest(changes=changes):
+                run = self.ci()
+                self.snapshot["workflow_runs"].append({**run, **changes, "conclusion": "failure"})
+                row = self.evaluate()[0]
+                self.assertFalse(row.eligible)
+                self.assertIn("conflicting CI run identity", ";".join(row.problems))
+
     def test_cli_fixture_commands_are_credential_free_and_do_not_write(self):
         before = FIXTURE.read_bytes()
         for command, status in (("queue", 0), ("status", 0), ("next", 0), ("check", 1)):
