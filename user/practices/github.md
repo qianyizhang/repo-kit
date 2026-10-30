@@ -25,9 +25,30 @@ permissions still govern; a reference to this guide does not install skills.
    only when all bounded acceptance criteria are met or explicitly retired,
    keeping unfinished scope open.
 
-Record only **started → review-ready → delivered** transitions and blocker changes
-in the existing issue ledger. Reuse that thread; no parallel tracker or receipt
-spam.
+Keep build, review/validation, publication and approval-blocked states separate in
+the existing issue ledger. Record transitions and blocker changes, not receipt
+spam. A local commit is not a published PR; passed CI is not a merge or closed issue.
+
+## Keep work moving
+
+- **Own the handoff:** the coordinator owns completion → review → next dispatch.
+  Confirm the next worker is running; a message to a finished task is not dispatch.
+- **Prepare next:** while builds run, keep up to 2 independent, authorized next
+  scopes with source evidence and acceptance ready. If proof is missing, assign
+  the exact preflight needed; do not call the queue empty after one rejected idea.
+- **Park the action:** preserve the commit/artifact and exact approval or missing
+  input. Block only that action; advance another ready scope. Never bypass a
+  denial, duplicate running work or resume paused/retired work.
+- **Make monitoring act:** reconcile running owners, local/unpushed results and
+  remote PR/CI state, then dispatch, review or resolve a concrete blocker.
+  Repeated read-only status checks are not progress. After about 2 hours without
+  meaningful output, investigate the stalled task and replenish the ready queue.
+- **Keep the receipt small:** in the existing issue/handoff, record owner, exact
+  revision/artifact location, last meaningful output and next action. Distinguish
+  implemented, reviewed, published, CI-passed and merged. Reuse valid evidence.
+
+If no evidence-supported authorized scope remains, record the specific missing
+input or decision and stop that work; do not invent filler or promise activity.
 
 ## Show the evidence
 
