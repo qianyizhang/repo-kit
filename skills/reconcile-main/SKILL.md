@@ -28,25 +28,32 @@ For an intentionally local-only repo, finish locally without creating a remote.
    updates; overlapping bot branches can represent the same outcome. Distinguish
    incompatible upgrades from harness/environment failures before retiring an
    update; keep supported pins and record the reason in integration history.
-4. **Verify and deliver.** Use `finish-work` for the combined candidate's review,
-   repairs and required gates. Batch compatible work before expensive checks; repeat only
-   after relevant changes or failures. Package commands and hooks may install
-   dependencies or change generated files; inspect their edits and use the pinned
-   runtime throughout. Commit owned changes, push main normally,
-   and follow exact-head CI to completion. Local-only repos skip remote steps.
-   Preserve failed candidates and report concrete blockers.
-5. **Remove proved extras.** After main durably retains each accepted outcome,
-   remove clean extra worktrees with Git, then absorbed local and remote branches.
-   Resolve symlinks and check active users before removing paths. For remote
-   deletion, use the reviewed head as an explicit lease so concurrent work survives.
-   Keep unrelated ignored app data, installed artifacts and recovery obligations.
-   Never use a blanket clean or force-remove to manufacture a clean result.
-6. **Prove done.** Refresh remote state; check porcelain status is empty, main is
+4. **Batch delivery.** Use `finish-work` for review, repairs and required gates.
+   Combine compatible integrations and all requested skill refinements before
+   final publication; choose an integration shape that avoids repeated hook runs.
+   Keep normal hooks, required install gates, CI and assertions. Reuse checks whose
+   relevant source, dependencies and environment are unchanged. After a fix, run
+   its focused regression and affected boundaries; submit one final candidate to
+   full CI when feasible. Inspect hook/generated edits and use pinned tools.
+   Commit owned changes and push main normally; local-only repos finish locally.
+5. **Remove proved extras.** Git deletion safety is separate from application
+   acceptance. Once remote main durably retains the reviewed commits/outcomes,
+   clean worktrees plus ancestry or patch-equivalence proof permit removing
+   absorbed refs while CI continues. Local-only repos use local main as the owner.
+   Resolve symlinks and check active users; remove extra worktrees with Git, then
+   branches. Lease remote deletions against reviewed heads so concurrent work
+   survives. Preserve unresolved work, ignored app data and recovery obligations;
+   a blanket clean or forced removal cannot establish preservation proof.
+6. **Report both outcomes.** Refresh remote state; check porcelain status is empty, main is
    checked out, only main remains in local/remote heads, and one worktree remains.
    Confirm main equals its remote head when configured. Account for any retained
-   stash or blocked ref; it prevents claiming the full drill complete. Report final
-   revisions, absorbed/retired outcomes, checks and remaining limits concisely.
+   stash or blocked ref. Report topology completion separately from acceptance:
+   follow required exact-head CI to a terminal result before claiming verified
+   delivery. State pending/failed gates and measured bottlenecks; keep broader CI
+   optimization as a separate proposal. Include final revisions and dispositions.
 
-Stop a dependent action on ambiguous work, a failed gate, changed remote head or
-missing destination decision; continue independent repositories. Completion is a
-verified snapshot, not a background janitor or permission to disable branch bots.
+Stop the affected action on ambiguous work, changed remote heads or missing
+destination decisions. A failed gate blocks verified delivery; safe ref cleanup
+can continue when preservation proof holds. Continue independent repositories.
+Completion is a verified snapshot, not a background janitor or permission to
+disable branch bots.
