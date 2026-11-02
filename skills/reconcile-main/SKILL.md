@@ -28,8 +28,8 @@ For an intentionally local-only repo, finish locally without creating a remote.
    updates; overlapping bot branches can represent the same outcome. Distinguish
    incompatible upgrades from harness/environment failures before retiring an
    update; keep supported pins and record the reason in integration history.
-4. **Verify and deliver.** Review the resulting diff and run required gates on the
-   combined candidate. Batch compatible work before expensive checks; repeat only
+4. **Verify and deliver.** Use `finish-work` for the combined candidate's review,
+   repairs and required gates. Batch compatible work before expensive checks; repeat only
    after relevant changes or failures. Package commands and hooks may install
    dependencies or change generated files; inspect their edits and use the pinned
    runtime throughout. Commit owned changes, push main normally,
