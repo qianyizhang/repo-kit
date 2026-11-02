@@ -25,9 +25,9 @@ For an intentionally local-only repo, finish locally without creating a remote.
    where possible; otherwise merge compatible intents. Reconcile overlapping
    dependency updates together using the pinned package manager to generate the
    lockfile. Check old branches against today's layout and runtime before accepting
-   updates; overlapping bot branches can represent the same outcome. Retain
-   supported runtime/compiler pins when a bot upgrade fails required gates, and
-   record that retirement in integration history.
+   updates; overlapping bot branches can represent the same outcome. Distinguish
+   incompatible upgrades from harness/environment failures before retiring an
+   update; keep supported pins and record the reason in integration history.
 4. **Verify and deliver.** Review the resulting diff and run required gates on the
    combined candidate. Batch compatible work before expensive checks; repeat only
    after relevant changes or failures. Package commands and hooks may install
