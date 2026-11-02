@@ -1,0 +1,5 @@
+interface:
+  display_name: "Reconcile main"
+  short_description: "Absorb work and leave one clean main branch"
+policy:
+  allow_implicit_invocation: false

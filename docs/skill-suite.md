@@ -77,8 +77,8 @@ Git owns local change history.
 
 ## Invocation and repository bindings
 
-`retro` and `improve-codebase-architecture` require explicit invocation. Other
-skills may be selected for relevant tasks. Retain upstream metadata; record any
+`retro`, `improve-codebase-architecture` and `reconcile-main` require explicit
+invocation. Other skills may be selected for relevant tasks. Retain upstream metadata; record any
 required host exception in the lock.
 
 Repository guidance maps names such as `GLOSSARY.md`, `docs/adr/` and

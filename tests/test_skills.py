@@ -439,9 +439,10 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
             for path in expected:
                 if path not in lock.get("adaptations", {}):
                     self.assertEqual(expected[path], actual[path])
-        for name in ("retro", "improve-codebase-architecture"):
+        manual = ("retro", "improve-codebase-architecture", "reconcile-main")
+        for name in manual:
             self.assertIn(b"allow_implicit_invocation: false", content[f"{name}/agents/openai.yaml"])
-        for name in MODULE.LOCAL_SKILLS:
+        for name in set(MODULE.LOCAL_SKILLS) - set(manual):
             self.assertNotIn(b"allow_implicit_invocation: false", content[f"{name}/agents/openai.yaml"])
 
 
