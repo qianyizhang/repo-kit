@@ -1,11 +1,12 @@
 ---
 name: reconcile-main
-description: Absorb branch and worktree outcomes into a clean main, sync its remote when configured, and remove the absorbed refs.
+description: Reconcile branches and worktrees into a clean main for repository consolidation or closeout, syncing configured remotes and preserving local-only repos.
 ---
 
 # Reconcile main
 
-Run only when explicitly requested. Bind the drill to named repositories and
+Agents may select this workflow when branch/worktree consolidation serves the
+current task. Bind the drill to named repositories and
 their primary checkout. The target is one clean `main` and one worktree per repo;
 with a remote, local and remote main must match and extra remote heads must be gone.
 For an intentionally local-only repo, finish locally without creating a remote.
@@ -19,7 +20,8 @@ For an intentionally local-only repo, finish locally without creating a remote.
    Distinguish unique work, ancestry-merged work, patch-equivalent/squashed work,
    and superseded work. Recover useful dirty or stashed changes before removal;
    ask about ambiguous intent or unavailable work instead of discarding it.
-3. **Integrate.** Reuse explicit authorization for merge, commit, push and deletion;
+3. **Integrate.** Skill selection adds no authority for merges, pushes or deletion.
+   Reuse explicit authorization for merge, commit, push and deletion;
    an explicit request for this complete drill supplies those actions within its
    named scope. Resolve destination/visibility holds before publishing. Fast-forward
    where possible; otherwise merge compatible intents. Reconcile overlapping
