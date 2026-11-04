@@ -35,6 +35,14 @@
   For a journey containing several interactions,
   show the applicable actions at each step. Compare alternate outcomes in place;
   for long journeys, highlight the current phase without losing context.
+- In staged tools, expose controls only where they affect the current output.
+  Hide controls from other stages; disable dependent controls with a short reason.
+  Preserve their values when switching stages and put the current experiment
+  before upstream settings.
+- In interactive workbenches, keep the primary viewport, tunable controls and
+  resulting effects together in a stable frame. Bound long data/code scrolling
+  to an inspector. Give shared selections one persistent home across views;
+  a floating overlay must reserve space, preserve context and support dismissal.
 - Show enough to reveal what the user can do next. Keep short facts and inputs
   visible; an accordion for one sentence adds work. Reveal substantial details
   after deliberate interest. Use hover/focus previews for brief supplemental
@@ -71,6 +79,10 @@
 - Check narrow reflow and text enlargement separately. Necessary two-dimensional
   content, such as a data table, may scroll within its region; verify readable
   cells, access to full values and a visible cue to hidden content.
+- For each stage, change every enabled control and verify an observable effect
+  in its viewport or live data. Check dependency changes, retained selections,
+  and viewport stability during navigation, inspector scrolling and text scaling.
+  Clickability and horizontal reflow alone do not establish a usable experiment.
 - Exercise the actual flow and inspect the whole screen and sibling surfaces.
   Capture meaningful visual changes; automated checks alone do not establish
   accessibility or visual quality.

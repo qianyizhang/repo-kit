@@ -32,6 +32,16 @@ maps, captures, test logs and per-file hash receipts have been removed.
 
 ## Guidance outcomes and attribution
 
+- **Shader Pipeline Lab, 4 November:** the initial mesh stage exposed nine enabled
+  scene controls although its mesh diagram was fixed; the page was 2,130 px tall
+  in a 900 px window. A same-agent correction added stage-scoped controls, a
+  persistent pipeline selector, and a stable viewport beside bounded inspectors.
+  Real-browser checks change each exposed control and test retained state and
+  viewport bounds. These findings informed the
+  [UI/UX guide](../../user/practices/ui-ux.md); they are not independent usability
+  evidence or an accessibility-conformance claim. Temporary review captures were
+  retired after the conclusions and regression coverage were recorded.
+
 - **Impeccable, 29 October:** adapted surface purpose and the polish/redesign
   boundary from [Paul Bakaus's Impeccable](https://github.com/pbakaus/impeccable/tree/5adaee704634e9031ec8943721c4ffa1a3c22221)
   (Apache-2.0, skill 4.8.0). The [UI/UX guide](../../user/practices/ui-ux.md)
