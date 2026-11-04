@@ -9,6 +9,9 @@
   navigation, activation and recovery. For visible changes, read [UI/UX](ui-ux.md).
 - Exercise native focus, keyboard and state journeys. Offline tests cannot prove
   installed upgrades, signing, keychain migration or live sign-in/inference.
+  If native capture fails, inspect the first error and stop unchanged retries.
+  Retry after a relevant environment change; report the blocked visual checks
+  separately and continue independent checks.
 - For iOS, verify the actual device/OS target: scene/background transitions,
   permissions, safe areas, keyboard, rotation and text scaling. Mac tests do not
   establish mobile acceptance.
