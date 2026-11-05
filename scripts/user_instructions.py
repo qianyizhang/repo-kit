@@ -12,6 +12,11 @@ import re
 import tempfile
 from pathlib import Path
 
+if __package__:
+    from . import installation
+else:
+    import installation
+
 ROOT = Path(__file__).resolve().parents[1]
 RECEIPT = ".repo-kit-user-instructions.json"
 BACKUPS = ".repo-kit-user-instruction-backups"
@@ -78,8 +83,8 @@ def atomic_write(path: Path, data: bytes) -> None:
             staged.unlink(missing_ok=True)
 
 
-def write_receipt(path: Path, installed: dict, pending: dict | None = None) -> None:
-    value = {"schemaVersion": 2, "installed": installed}
+def write_receipt(path: Path, installed: dict, pending: dict | None = None, *, revision: str | None = None) -> None:
+    value = {"schemaVersion": 2, "installed": installed, "sourceRevision": revision}
     if pending is not None:
         value["pending"] = pending
     atomic_write(path, (json.dumps(value, indent=2, sort_keys=True) + "\n").encode())
@@ -106,7 +111,9 @@ def read_receipt(path: Path) -> dict | None:
         raise ValueError("Invalid user-instruction receipt; preserve and reconcile it manually")
     if (
         value.get("schemaVersion") != 2
-        or set(value) not in ({"schemaVersion", "installed"}, {"schemaVersion", "installed", "pending"})
+        or set(value) - {"sourceRevision"}
+        not in ({"schemaVersion", "installed"}, {"schemaVersion", "installed", "pending"})
+        or not installation.valid_revision(value.get("sourceRevision"))
         or not valid_hashes(value["installed"], allow_absent="pending" in value)
         or (
             "pending" in value
@@ -143,11 +150,15 @@ def sync(
     apply: bool = False,
     show_diff: bool = False,
     adopt: dict[str, str] | None = None,
+    revision: str | None = None,
 ) -> bool:
     home = home.expanduser().resolve()
     if (root / "user").resolve() == home:
         raise ValueError("The installation must be separate from the repository source")
     desired = source_bundle(root)
+    revision = revision or installation.matching_revision(
+        root, installation.INSTRUCTION_PATHS, {f"user/{name}": data for name, data in desired.items()}
+    )
     adopt = adopt or {}
     if adopt.keys() - desired.keys():
         raise ValueError("Adoption names must be present in the source bundle")
@@ -199,7 +210,8 @@ def sync(
         print("\n".join(problems))
         return False
     current = receipt is not None and not pending and installed == desired_hashes == actual_hashes
-    if not apply or current:
+    metadata_current = receipt is not None and receipt.get("sourceRevision") == revision
+    if not apply or (current and metadata_current):
         status = f"User instructions are current ({len(desired)} files)" if current else "Sync required"
         print(status + (" (interrupted update)" if pending else ""))
         return current
@@ -208,7 +220,7 @@ def sync(
         preserve(home, content)
     if any(read_file(managed_path(home, name)) != content for name, content in actual.items()):
         raise ValueError("Installed instructions changed during review; retry from diff")
-    write_receipt(receipt_path, actual_hashes, desired_hashes)
+    write_receipt(receipt_path, actual_hashes, desired_hashes, revision=revision)
     # Install references before the routing instruction; a crash may leave a known mixture.
     for name in sorted(desired, key=lambda name: (name == "AGENTS.md", name)):
         path = managed_path(home, name)
@@ -217,7 +229,7 @@ def sync(
         if actual[name] != desired[name]:
             path.parent.mkdir(exist_ok=True)
             atomic_write(path, desired[name])
-    write_receipt(receipt_path, desired_hashes)
+    write_receipt(receipt_path, desired_hashes, revision=revision)
     print(f"Synced user instructions: {home} ({len(desired)} files)")
     return True
 
@@ -226,6 +238,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("check", "diff", "sync"))
     parser.add_argument("--codex-home", type=Path, default=Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex"))
+    parser.add_argument("--revision", help="Read this committed source instead of the working tree")
     parser.add_argument(
         "--adopt", action="append", default=[], metavar="FILE=SHA256", help="Accept one reviewed local file"
     )
@@ -239,9 +252,15 @@ def main() -> int:
             if not separator or not managed_name(name) or not re.fullmatch(r"[a-f0-9]{64}", value) or name in adopt:
                 raise ValueError("Each --adopt must name a distinct managed FILE=SHA256")
             adopt[name] = value
-        current = sync(
-            ROOT, args.codex_home, apply=args.command == "sync", show_diff=args.command == "diff", adopt=adopt
-        )
+        with installation.source(ROOT, args.revision, installation.INSTRUCTION_PATHS) as (root, revision):
+            current = sync(
+                root,
+                args.codex_home,
+                apply=args.command == "sync",
+                show_diff=args.command == "diff",
+                adopt=adopt,
+                revision=revision,
+            )
         return int(args.command == "check" and not current)
     except (OSError, ValueError, TypeError) as exc:
         parser.exit(1, f"user-instructions: {exc}\n")

@@ -14,6 +14,11 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+if __package__:
+    from . import installation
+else:
+    import installation
+
 ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM_SKILLS = (
     "retro",
@@ -197,15 +202,34 @@ def recover_installation(target: Path, *, apply: bool) -> None:
     print("Recovered previous skill installation; retrying requested sync")
 
 
-def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = False) -> bool:
+def sync(
+    root: Path, target: Path, *, apply: bool = False, show_diff: bool = False, revision: str | None = None
+) -> bool:
     lock, desired = bundle(root)
+    revision = revision or installation.matching_revision(
+        root,
+        installation.SKILL_PATHS,
+        {
+            **{f"skills/{name}": data for name, data in desired.items()},
+            "skills-lock.json": (root / "skills-lock.json").read_bytes(),
+        },
+    )
     recover_installation(target, apply=apply)
     receipt_path = target / RECEIPT
     if receipt_path.is_symlink():
         raise ValueError("Installation receipt must not be a symlink")
     receipt = json.loads(receipt_path.read_text()) if receipt_path.exists() else None
-    if receipt and (receipt.get("schemaVersion") != 1 or not set(receipt["skills"]) <= set(lock["skills"])):
+    if receipt is not None and (
+        not isinstance(receipt, dict)
+        or receipt.get("schemaVersion") != 1
+        or not isinstance(receipt.get("skills"), list)
+        or not all(isinstance(name, str) for name in receipt["skills"])
+        or not set(receipt["skills"]) <= set(lock["skills"])
+        or not isinstance(receipt.get("files"), dict)
+    ):
         raise ValueError("Installation selection changed; explicitly reconcile retired skills first")
+    if receipt is not None and not installation.valid_revision(receipt.get("sourceRevision")):
+        raise ValueError("Invalid installation source revision")
     actual = installed_files(target, lock["skills"])
     if apply:
         added_names = set(lock["skills"]) - set(receipt["skills"] if receipt else ())
@@ -232,8 +256,11 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
                 end="",
             )
     lock_digest = digest((root / "skills-lock.json").read_bytes())
-    receipt_current = receipt is not None and receipt.get("bundleDigest") == lock_digest
-    if apply and (changed or not receipt_current):
+    receipt_current = (
+        receipt is not None and receipt.get("bundleDigest") == lock_digest and receipt.get("files") == hashes(actual)
+    )
+    metadata_current = receipt is not None and receipt.get("sourceRevision") == revision
+    if apply and (changed or not receipt_current or not metadata_current):
         # Stage complete directories before replacing any installed path.
         target.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix=".repo-kit-stage-", dir=target) as stage_name:
@@ -257,6 +284,7 @@ def sync(root: Path, target: Path, *, apply: bool = False, show_diff: bool = Fal
                     "files": lock["files"],
                     "bundleDigest": lock_digest,
                     "upstreamRevision": lock["upstream"]["revision"],
+                    "sourceRevision": revision,
                 },
             )
             names = [*lock["skills"], "mattpocock-LICENSE", RECEIPT]
@@ -379,16 +407,24 @@ def main() -> int:
             refresh(ROOT, args.upstream_checkout, args.revision)
         elif args.command == "lock":
             relock(ROOT)
-        elif args.source_only:
-            if args.command != "check":
-                parser.error("--source-only applies only to check")
-            lock, _ = bundle(ROOT)
-            print(f"Source bundle verified: {len(lock['skills'])} skills")
         else:
-            current = sync(ROOT, args.installed_root, apply=args.command == "sync", show_diff=args.command == "diff")
-            if args.command == "check" and not current:
-                return 1
-    except (OSError, ValueError, KeyError) as exc:
+            with installation.source(ROOT, args.revision, installation.SKILL_PATHS) as (root, revision):
+                if args.source_only:
+                    if args.command != "check":
+                        parser.error("--source-only applies only to check")
+                    lock, _ = bundle(root)
+                    print(f"Source bundle verified: {len(lock['skills'])} skills")
+                else:
+                    current = sync(
+                        root,
+                        args.installed_root,
+                        apply=args.command == "sync",
+                        show_diff=args.command == "diff",
+                        revision=revision,
+                    )
+                    if args.command == "check" and not current:
+                        return 1
+    except (OSError, ValueError, KeyError, TypeError) as exc:
         parser.exit(1, f"skills: {exc}\n")
     return 0
 

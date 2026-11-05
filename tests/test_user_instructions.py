@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).parents[1]
-SPEC = importlib.util.spec_from_file_location("user_instructions", ROOT / "scripts/user_instructions.py")
+SPEC = importlib.util.spec_from_file_location("scripts.user_instructions", ROOT / "scripts/user_instructions.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 

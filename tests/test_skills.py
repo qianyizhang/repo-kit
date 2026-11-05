@@ -13,7 +13,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 ROOT = Path(__file__).parents[1]
-SPEC = importlib.util.spec_from_file_location("skill_sync", ROOT / "scripts/skills.py")
+SPEC = importlib.util.spec_from_file_location("scripts.skill_sync", ROOT / "scripts/skills.py")
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
@@ -108,7 +108,7 @@ class SkillSyncTest(unittest.TestCase):
         code = """
 import importlib.util, os, sys
 from pathlib import Path
-spec = importlib.util.spec_from_file_location('skills', sys.argv[1])
+spec = importlib.util.spec_from_file_location('scripts.skills', sys.argv[1])
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 replace = module.os.replace

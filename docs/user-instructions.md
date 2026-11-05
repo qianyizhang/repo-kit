@@ -28,6 +28,8 @@ python3.12 scripts/user_instructions.py check
 
 `CODEX_HOME` defaults to `~/.codex`; `--codex-home PATH` selects another profile.
 `diff` and `check` are read-only. Sync copies files and records their hashes.
+Use [installation status](installation.md) to verify both user bundles against a
+committed revision or install that revision without unfinished worktree changes.
 Unmanaged collisions, local edits, missing files, symlinks and an active
 `AGENTS.override.md` block replacement. Unmanaged notes stay untouched.
 

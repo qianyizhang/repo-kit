@@ -26,6 +26,8 @@ The default destination is `~/.agents/skills`; `--installed-root PATH` selects
 another discovery location or a disposable verification directory. Parent
 discovery symlinks are respected. Sync changes only managed skills and their
 license; its generated receipt records the applied lock.
+Use [installation status](installation.md) for source-commit provenance and one
+check of both user bundles against a committed revision.
 
 The source lock must match. Sync refuses unmanaged collisions (including empty
 directories), edited or missing installed files, and symlinks inside managed
