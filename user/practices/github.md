@@ -16,9 +16,9 @@ permissions still govern; a reference to this guide does not install skills.
    focused reviewer. Finish or hand off the current slice before starting another
    in that scope.
 3. **Refine:** v1 → inspect concrete defects → v2 as needed. Fix supported defects,
-   run affected tests and reuse still-valid evidence under the checks rule below.
-4. **Deliver:** Prepare relevant checks and terminal CI results. Review the public
-   brief before publishing and obtain any specific approval still required. After
+   run affected tests and reuse evidence under [final verification](#final-verification).
+4. **Deliver:** Use that plan, then review the public brief before publishing and
+   obtain any specific approval still required. After
    authorized publication, open the actual issue, PR or comment and read back its
    visible text and media; correct excess prose, broken evidence or hidden blockers.
    Record result, evidence, limits and next step after authorized delivery; close
@@ -28,6 +28,28 @@ permissions still govern; a reference to this guide does not install skills.
 Keep build, review/validation, publication and approval-blocked states separate in
 the existing issue ledger. Record transitions and blocker changes, not receipt
 spam. A local commit is not a published PR; passed CI is not a merge or closed issue.
+Report time spent on edits, checks, dependency installation and CI waiting separately.
+Once a push succeeds, report it as pushed with hosted acceptance pending.
+
+## Final verification
+
+Keep one short plan in the existing brief: changed inputs, required gates,
+still-valid evidence and what would invalidate its reuse. Count checks performed
+by normal hooks in that plan before adding manual runs. Required hooks and CI
+remain mandatory; consolidate duplication only through an authorized change to
+their owning configuration.
+
+- After integrating newer source, inspect affected tests for contract or label
+  drift before a full run. Use focused checks for a concrete concern.
+- After the final edit, run cheap format/content checks before expensive hooks.
+- Benchmark one fixed candidate with a bounded comparison. Keep repair,
+  performance measurement, final acceptance and hosted confirmation distinct.
+  Repeat affected checks for changed inputs, failures or unresolved risk, rather
+  than restarting verification at each delivery phase.
+- Documentation-only edits need content, link and format checks. Reuse behavior
+  results whose source, dependencies, runtime and relevant environment still apply.
+  Installation integrity follows the [TypeScript guide](typescript.md) and any
+  stricter repository gate.
 
 ## Keep work moving
 
@@ -78,8 +100,6 @@ gap and capture needed; never invent evidence or claim visual verification.
   and rationale. Reuse evidence while its source and conditions support the claim.
 - **History:** preserve identities, provenance, prior decisions and paused/retired
   scopes. Correct stale claims explicitly; a rewrite does not reopen work.
-- **Checks:** documentation-only edits need scoped content, link and format checks,
-  not functional reruns. Required security checks, hooks and CI still apply.
 - **CI:** Monitor PR CI to a terminal result. If wall-clock time exceeds two minutes
   or work is disproportionate (for example, two minutes for docs), separate queue,
   setup and checks on the critical path; report the measured bottleneck and a

@@ -36,7 +36,11 @@ Apply the **deletion test** to anything you suspect is shallow: would deleting i
 
 ### 2. Present candidates as an HTML report
 
-Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Open it for the user (`xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows) and tell them the absolute path.
+Write a self-contained HTML file to the OS temp directory so nothing lands in the repo. Resolve the temp dir from `$TMPDIR`, falling back to `/tmp` (or `%TEMP%` on Windows), and write to `<tmpdir>/architecture-review-<timestamp>.html` so each run gets a fresh file. Tell the user the absolute path.
+
+**Codex annotation handoff:** When Codex exposes a browser panel, automatically show the rendered report beside the current chat before asking for a candidate selection. Load `gui-review` when available for its browser-annotation workflow; use the report's DOM as the review surface. Serve only the report on loopback at an OS-assigned port, keeping the server session alive while the user annotates and stating its stop condition. Open the returned HTTP URL with `open_in_codex` target type `browser`, or a visible `iab` tab. Verify the rendered report in that browser and retain the tab as a deliverable when supported. Tell the user to select **Annotate**, add comments, and send them with their message. A queued open or an HTML source editor does not complete this handoff; report any blocked opening or verification without bypassing host restrictions.
+
+Without a Codex browser panel, open the report in the normal browser (`xdg-open <path>` on Linux, `open <path>` on macOS, `start <path>` on Windows).
 
 The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals: use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
 

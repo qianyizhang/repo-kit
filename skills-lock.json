@@ -2,7 +2,7 @@
   "adaptations": {
     "domain-modeling/SKILL.md": "Record terms only within authorized write scope and preserve repository formats.",
     "grilling/SKILL.md": "Reuse accepted decisions and scale factual exploration to the task.",
-    "improve-codebase-architecture/SKILL.md": "Make delegation conditional, preserve discussion scope and load skills portably.",
+    "improve-codebase-architecture/SKILL.md": "Make delegation conditional, preserve discussion scope, load skills portably and automatically hand off Codex reports for browser annotation.",
     "retro/SKILL.md": "Keep review separate from implementation; load skills portably and review affected boundaries.",
     "writing-for-agents/SKILL.md": "Use Codex invocation policy for manual skills while retaining the upstream mechanics reference."
   },
@@ -21,7 +21,7 @@
     "grilling/SKILL.md": "d9c03aa5e8c13018ecc2962a9bf5422809fbab71e90ef0f7d9b190f6d5374607",
     "grilling/agents/openai.yaml": "1411d7df7d99b7e621a1ff8283c8133cc2464be63d064e52d8ce169c6800ee9b",
     "improve-codebase-architecture/HTML-REPORT.md": "581e8bb5a521e46bbda8ca7e19b15948bed882187108092ebb90c62513b77528",
-    "improve-codebase-architecture/SKILL.md": "6721710d29bb455a9a3506e7b00a1292a84f56f053e75c68eac11f4f2bd734d2",
+    "improve-codebase-architecture/SKILL.md": "b37c254af4ce57d151ac8d19675abb3a715f9d284d368db7730fd2533d493c1a",
     "improve-codebase-architecture/agents/openai.yaml": "c8cb20f68ebf0edb4e497bc11ae5fcaa196004e661cd189015b04f4109ced7f1",
     "mattpocock-LICENSE": "0e7ac423bf2c6e223b7c5b156f8cf72da49d748e56a1641402c31f22ad07dbb5",
     "mcp-app/SKILL.md": "f7cc395e0dd1ca6c4f03cbcaf4c5333a1b17bd5ad1a09efa925a54c41e45c6b5",

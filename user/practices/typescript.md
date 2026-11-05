@@ -15,11 +15,17 @@
   dependency versions, URLs or integrity hashes when bumping an application's
   version. Repair a malformed lockfile against published package metadata;
   lower a real dependency version only for a demonstrated compatibility reason.
-- Before pushing npm projects, run `npm ci` against the exact committed candidate
-  in a disposable checkout with an empty cache per package. Existing
-  `node_modules` or cached tarballs can hide invalid URLs. An install failure
-  blocks publication; correct the dependency source instead of adding a fallback.
-  Run the same gate in CI, then the project's build and behavioral checks.
+- Use the repository's pinned package manager and frozen lockfile for installation
+  (`npm ci` for npm). For dependency, lockfile, registry, install-script or toolchain
+  changes, releases, or explicit dependency-integrity work, verify the committed
+  candidate in a disposable checkout with an empty package cache/store: existing
+  modules and cached tarballs can hide invalid URLs. Keep required repository and
+  CI install gates. For other changes, reuse successful install evidence when those
+  inputs and the relevant environment are unchanged; test/docs-only edits do not
+  by themselves require another empty-cache install. An applicable install failure
+  blocks publication; repair its cause instead of adding a fallback. Run the
+  affected build/behavior checks under the
+  [delivery verification plan](github.md#final-verification).
 - Test malformed inputs, state transitions and recovery. Use independent protocol
   contracts where permissive mocks could hide integration defects. For visible
   changes, read [UI/UX](ui-ux.md).
