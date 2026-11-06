@@ -46,6 +46,14 @@ their owning configuration.
   performance measurement, final acceptance and hosted confirmation distinct.
   Repeat affected checks for changed inputs, failures or unresolved risk, rather
   than restarting verification at each delivery phase.
+- Before a performance claim or choice, name the decision and the smallest
+  difference that would matter. Confirm that the timed work completed, check
+  output correctness and count failures. Compare equivalent workloads and settings
+  over repeated, interleaved runs; report run count and spread with the result.
+  If run-to-run variation could explain the difference, report it as inconclusive
+  rather than a gain. Stop or repair the measurement before choosing a winner.
+  A requested ballpark may use one labeled run after the same validity checks;
+  it does not establish a speedup or select an option.
 - Documentation-only edits need content, link and format checks. Reuse behavior
   results whose source, dependencies, runtime and relevant environment still apply.
   Installation integrity follows the [TypeScript guide](typescript.md) and any

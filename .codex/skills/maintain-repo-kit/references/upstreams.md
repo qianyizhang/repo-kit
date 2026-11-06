@@ -4,6 +4,28 @@ Upstreams provide Candidates, never authority. For each review, fetch into a
 temporary directory, record the commit, compare behavior, and classify findings
 as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 
+## Benchmark evidence review — 2026-11-06
+
+- Reviewed `cursor/plugins/pstack` at
+  `c742dd61706fbacc1b95f1a20b7b988cf096ce6c` against `d1453c11`.
+  **adapt:** the new decision/noise-floor rule from `principle-explain-the-number`,
+  with existing completed-work, output/error and repeated-run checks from
+  `benchmark-checklist`, into the [delivery guide](../../../../user/practices/github.md#final-verification).
+  The guide previously required a bounded benchmark but did not qualify noisy or
+  invalid results. No new skill, fixed run quota or profiler requirement was added.
+- **already-covered:** scoped evidence-based closeout in `finish-work`.
+  **reject:** `interrogate`'s runnable-proof-only finding filter; unsafe or
+  unavailable reproduction must not erase a source-supported concern.
+  **watch:** statechart/model checking for a concrete state-machine problem;
+  existing transition/recovery tests do not yet justify its toolchain.
+- Reviewed `mattpocock/skills` at `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d`:
+  **watch:** fresh-context wording in the three changed selected files. Separate
+  design briefs already exist; no observed context-contamination failure justified
+  replacing conditional delegation or refreshing the adapted bundle. The pin and
+  local decision, write-scope and host adaptations remain unchanged.
+- [Review outcomes](../../../../docs/reviews/README.md#guidance-outcomes-and-attribution)
+  retain attribution, representative scenarios and validation limits.
+
 ## Impeccable — 2026-10-29
 
 - Source: `pbakaus/impeccable` at `5adaee704634e9031ec8943721c4ffa1a3c22221`
