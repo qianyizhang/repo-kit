@@ -80,9 +80,10 @@ Git owns local change history.
 ## Invocation and repository bindings
 
 `retro` and `improve-codebase-architecture` require explicit invocation. Other
-skills, including `reconcile-main`, may be selected for relevant tasks; action
-authorization still applies. Retain upstream metadata; record any required host
-exception in the lock.
+skills may be selected for relevant tasks. [Reconcile main](../skills/reconcile-main/SKILL.md)
+can handle local cleanup; it asks before expanding a local request to remote
+reconciliation. Action authorization still applies. Retain upstream metadata;
+record any required host exception in the lock.
 
 Repository guidance maps names such as `GLOSSARY.md`, `docs/adr/` and
 `CODING_STANDARDS.md` to existing owners. Local contracts, tests, language and

@@ -1,5 +1,5 @@
 interface:
   display_name: "Reconcile main"
-  short_description: "Absorb work and leave one clean main branch"
+  short_description: "Clean up local main; optionally reconcile remote"
 policy:
   allow_implicit_invocation: true
