@@ -844,6 +844,10 @@ label textarea {
   color: inherit;
   background: transparent;
 }
+.overlay > .add-modal,
+.overlay > .types-modal {
+  max-width: 100%;
+}
 .overlay::backdrop {
   background: #080d12bb;
   backdrop-filter: blur(4px);
