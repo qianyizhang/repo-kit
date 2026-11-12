@@ -1,3 +1,4 @@
+import { Modal } from './Modal';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ancestors,
@@ -714,7 +715,7 @@ export function App() {
         </div>
       )}
       {annotation && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Comment to agent">
+        <Modal label="Comment to agent" close={() => setAnnotation(null)}>
           <form
             className="add-modal"
             onSubmit={(e) => {
@@ -762,7 +763,7 @@ export function App() {
               </button>
             </footer>
           </form>
-        </div>
+        </Modal>
       )}
       <input
         ref={file}
@@ -785,7 +786,7 @@ export function App() {
         }}
       />
       {adding && (
-        <div className="overlay" role="dialog" aria-modal="true" aria-label="Add module">
+        <Modal label="Add module" close={() => setAdding(false)}>
           <form
             className="add-modal"
             onSubmit={(e) => {
@@ -840,7 +841,7 @@ export function App() {
               </button>
             </footer>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

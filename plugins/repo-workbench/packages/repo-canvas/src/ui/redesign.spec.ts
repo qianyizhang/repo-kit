@@ -653,3 +653,66 @@ test('visual comparison preserves nested changes, draft state and stale proposal
     await request.put('/api/draft', { headers, data: { draft: null } });
   }
 });
+
+test('canvas editors isolate focus, cancel with Escape, and reopen safely', async ({
+  page,
+  request,
+}) => {
+  const original = (await (await request.get('/api/state')).json()) as Session;
+  const headers = { 'X-Repo-Canvas-Token': original.token };
+  await request.put('/api/state', {
+    headers,
+    data: { revision: original.revision, document: model },
+  });
+  try {
+    await page.goto('/');
+    for (const [triggerName, dialogName] of [
+      ['Manage groups', 'Groups'],
+      ['Types', 'Node types'],
+      ['Add child to Leaf', 'Add module'],
+    ]) {
+      const trigger = page.getByRole('button', { name: triggerName, exact: true });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await trigger.click();
+        const dialog = page.getByRole('dialog', { name: dialogName, exact: true });
+        await expect(dialog).toBeVisible();
+        await expect.poll(() => dialog.evaluate((element) => element.matches(':modal'))).toBe(true);
+        // Even programmatic focus cannot escape a modal into the underlying map.
+        await page
+          .locator('.header-actions button')
+          .first()
+          .evaluate((element) => (element as HTMLElement).focus());
+        for (const key of ['Tab', 'Shift+Tab']) {
+          for (let index = 0; index < 12; index++) {
+            await page.keyboard.press(key);
+            expect(
+              await dialog.evaluate(
+                (element) =>
+                  document.activeElement === document.body ||
+                  element.contains(document.activeElement),
+              ),
+            ).toBe(true);
+          }
+        }
+        await page.keyboard.press('Escape');
+        await expect(dialog).toHaveCount(0);
+        await expect(trigger).toBeFocused();
+      }
+    }
+    await page
+      .getByRole('button', { name: 'Inspect Owner', exact: true })
+      .click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Comment to agent' }).click();
+    const comment = page.getByRole('dialog', { name: 'Comment to agent', exact: true });
+    await expect.poll(() => comment.evaluate((element) => element.matches(':modal'))).toBe(true);
+    await page.keyboard.press('Escape');
+    await expect(comment).toHaveCount(0);
+    await expect(page.getByText('● Draft changes')).toHaveCount(0);
+  } finally {
+    const current = (await (await request.get('/api/state')).json()) as Session;
+    await request.put('/api/state', {
+      headers,
+      data: { revision: current.revision, document: original.document },
+    });
+  }
+});

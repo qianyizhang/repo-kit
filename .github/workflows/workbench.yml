@@ -34,6 +34,9 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npx playwright install --with-deps chrome
+      - name: Verify Canvas editor keyboard modality
+        if: matrix.package == 'repo-workbench'
+        run: npm run test:browser -- --project=canvas -g 'canvas editors isolate'
       - run: npm run test:browser -- --max-failures=1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: failure()
