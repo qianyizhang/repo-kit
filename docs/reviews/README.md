@@ -32,6 +32,18 @@ maps, captures, test logs and per-file hash receipts have been removed.
 
 ## Guidance outcomes and attribution
 
+- **Benchmark evidence, 6 November:** adapted decision/noise-floor handling from
+  [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/c742dd61706fbacc1b95f1a20b7b988cf096ce6c/pstack)
+  (MIT), plus its existing benchmark validity checks, into the
+  [delivery guide](../../user/practices/github.md#final-verification). At kit
+  `3292915`, the guide did not explicitly require rejecting noisy results or
+  failed/skipped work. Scenario review covers noisy results,
+  incomplete/incorrect work, repeatable meaningful effects, a labeled ballpark,
+  and documentation-only work. This is guidance review, not an agent-performance
+  experiment or a new executable benchmark. Required gates, bounded checks and
+  evidence reuse remain. No skill imports, forced profiling, fixed repetition
+  quota, new evidence ledger or consumer installation were included.
+
 - **Shader Pipeline Lab, 4 November:** the initial mesh stage exposed nine enabled
   scene controls although its mesh diagram was fixed; the page was 2,130 px tall
   in a 900 px window. A same-agent correction added stage-scoped controls, a
