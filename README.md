@@ -142,8 +142,8 @@ Use Python 3.12 and pinned tools; the root stays manifest-free:
 ```sh
 python3.12 scripts/skills.py check --source-only
 python3.12 -m unittest discover -s tests -v
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts skills/r2-object-backup/scripts skills/r2-object-backup/assets/starter
+UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts skills/r2-object-backup/scripts skills/r2-object-backup/assets/starter
 ```
 
 For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a

@@ -36,6 +36,7 @@ LOCAL_SKILLS = (
     "ui-discussion",
     "mcp-app",
     "reconcile-main",
+    "r2-object-backup",
 )
 RECEIPT = ".repo-kit-skills.json"
 INTERRUPTED = ".repo-kit-skills-interrupted.json"
