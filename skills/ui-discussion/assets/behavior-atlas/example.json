@@ -1,0 +1,234 @@
+{
+  "version": 1,
+  "title": "Document review",
+  "initial": "draft",
+  "source": {
+    "revision": "illustrative-v1",
+    "description": "Small illustrative workflow; no product or verification claim."
+  },
+  "coverage": {
+    "included": ["Edit, submit, review, request changes, and complete"],
+    "omitted": [
+      "Authentication, concurrent edits, persistence, and real publication"
+    ]
+  },
+  "regions": [
+    {
+      "id": "writing",
+      "label": "Writing"
+    },
+    {
+      "id": "review",
+      "label": "Review"
+    }
+  ],
+  "states": [
+    {
+      "id": "draft",
+      "region": "writing",
+      "label": "Draft",
+      "detail": "The document is editable.",
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Draft"
+          }
+        ]
+      }
+    },
+    {
+      "id": "ready",
+      "region": "writing",
+      "label": "Ready to review",
+      "detail": "The draft has been prepared.",
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Ready to review"
+          }
+        ]
+      }
+    },
+    {
+      "id": "reviewing",
+      "region": "review",
+      "label": "Under review",
+      "detail": "A reviewer is examining the draft.",
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Under review"
+          }
+        ]
+      }
+    },
+    {
+      "id": "changes",
+      "region": "writing",
+      "label": "Changes requested",
+      "detail": "Return to editing without losing the document.",
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Changes requested"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "warning",
+            "text": "Clarify the recovery steps before submitting again."
+          }
+        ]
+      }
+    },
+    {
+      "id": "approved",
+      "region": "review",
+      "label": "Approved",
+      "terminal": true,
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Approved"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "success",
+            "text": "This review has reached its outcome."
+          }
+        ]
+      }
+    },
+    {
+      "id": "published",
+      "region": "review",
+      "label": "Published",
+      "terminal": true,
+      "secondary": true,
+      "preview": {
+        "title": "Release notes",
+        "body": "This fixed document describes the changes in the next release.",
+        "fields": [
+          {
+            "label": "Status",
+            "value": "Published"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "success",
+            "text": "This review has reached its outcome."
+          }
+        ]
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "id": "prepare",
+      "from": "draft",
+      "to": "ready",
+      "label": "Prepare for review"
+    },
+    {
+      "id": "edit",
+      "from": "ready",
+      "to": "draft",
+      "label": "Continue editing"
+    },
+    {
+      "id": "submit",
+      "from": "ready",
+      "to": "reviewing",
+      "label": "Submit for review"
+    },
+    {
+      "id": "request-changes",
+      "from": "reviewing",
+      "to": "changes",
+      "label": "Request changes"
+    },
+    {
+      "id": "revise",
+      "from": "changes",
+      "to": "draft",
+      "label": "Revise draft"
+    },
+    {
+      "id": "approve",
+      "from": "reviewing",
+      "to": "approved",
+      "label": "Approve"
+    },
+    {
+      "id": "publish",
+      "from": "reviewing",
+      "to": "published",
+      "label": "Publish",
+      "guard": "Requires publication authority, which this example does not evaluate"
+    },
+    {
+      "id": "direct-submit",
+      "from": "draft",
+      "to": "reviewing",
+      "label": "Prepare and submit",
+      "proposed": true
+    }
+  ],
+  "journeys": [
+    {
+      "id": "review",
+      "label": "Review a document",
+      "start": "draft",
+      "steps": ["prepare", "submit", "approve"]
+    },
+    {
+      "id": "recovery",
+      "label": "Revise after feedback",
+      "start": "draft",
+      "steps": [
+        "prepare",
+        "submit",
+        "request-changes",
+        "revise",
+        "prepare",
+        "submit",
+        "approve"
+      ]
+    },
+    {
+      "id": "direct-review",
+      "label": "Proposed direct submission",
+      "start": "draft",
+      "steps": ["direct-submit", "approve"]
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "direct",
+      "label": "Combine preparation and submission",
+      "before": "review",
+      "after": "direct-review",
+      "detail": "Illustrative proposal; both routes end with the same approval."
+    }
+  ]
+}

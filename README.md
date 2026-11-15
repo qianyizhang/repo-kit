@@ -161,6 +161,12 @@ with `skills/mcp-app/scripts/scaffold.py`, then run `npm ci`, `npm run check` an
 exercises that same generated app. The root tests cover generator safety and the
 MCP integration review validator; neither check alone verifies an app integration.
 
+For the behavior atlas scaffold, generate with
+`skills/ui-discussion/scripts/scaffold_atlas.py`, then run `npm ci --ignore-scripts`,
+`npm run check`, and `npm run build` in the generated directory. Its browser
+runtime has no dependencies; the package pins development type checking. The
+[atlas CI job](.github/workflows/behavior-atlas.yml) checks that generated source.
+
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
 slice, committing when requested. [Review notes](docs/reviews/README.md)
 summarize its adoption; local bindings reuse each project's existing rules.

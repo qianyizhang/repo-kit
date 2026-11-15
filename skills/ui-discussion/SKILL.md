@@ -99,6 +99,11 @@ approval stop.
 
 ## 2. Define primary user journeys
 
+For reusable app/map views with Journey, Exploration and proposal Comparison,
+use the [behavior atlas authoring workflow](references/behavior-atlas.md).
+The agent authors a source-backed IR; the reusable renderer owns layout and cues.
+Keep app guards and effects in a separate adapter.
+
 Identify the user's primary goals from the request and product evidence. State
 actor, starting context and success condition, then map the main journeys onto
 the component IDs. Separate a user goal from a menu category or feature list.

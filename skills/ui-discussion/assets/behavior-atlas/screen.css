@@ -1,0 +1,164 @@
+/* Fixed screen and action styles; imported by standalone and embedded renderers. */
+.work-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 17px;
+  border-top: 1px solid var(--wb-rule);
+}
+.work-actions button {
+  text-align: left;
+  flex: 0 1 auto;
+  min-width: 120px;
+}
+.work-actions small {
+  display: block;
+  font-size: 10px;
+  color: var(--wb-muted);
+  margin-top: 4px;
+}
+.work-actions .system {
+  border-style: dashed;
+}
+.app-window {
+  border: 1px solid var(--wb-rule);
+  border-radius: 13px;
+  background: var(--wb-panel);
+  overflow: hidden;
+  box-shadow: 0 12px 30px #253c3208;
+}
+.app-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--wb-plane);
+  padding: 12px 18px;
+  font-size: 11px;
+  color: var(--wb-muted);
+  border-bottom: 1px solid var(--wb-rule);
+}
+.app-chrome > span:first-child {
+  font-size: 9px;
+  letter-spacing: 3px;
+  opacity: 0.5;
+}
+.app-chrome small {
+  font-size: 9px;
+}
+.app-content {
+  padding: 26px;
+  min-height: 330px;
+  display: flex;
+  flex-direction: column;
+}
+.app-content h2 {
+  font:
+    normal 28px/1.3 Georgia,
+    serif;
+  margin: 8px 0 20px;
+}
+.fixture-body {
+  white-space: pre-wrap;
+  font-size: 15px;
+  line-height: 1.8;
+  margin: 0 0 25px;
+}
+.app-content dl {
+  margin: 20px 0;
+}
+.app-content dl > div {
+  display: flex;
+  gap: 20px;
+  padding: 12px 0;
+  border-top: 1px solid var(--wb-rule);
+}
+.app-content dt {
+  color: var(--wb-muted);
+  min-width: 80px;
+  font-size: 12px;
+}
+.app-content dd {
+  margin: 0;
+}
+.app-content .work-actions {
+  margin-top: auto;
+}
+.app-summary .app-content {
+  padding: 20px;
+  min-height: 250px;
+}
+.app-summary h2 {
+  font-size: 22px;
+}
+.app-summary .fixture-body {
+  font-size: 13px;
+}
+.app-summary .app-chrome > span:first-child,
+.app-summary .app-chrome small {
+  display: none;
+}
+.app-summary dl > div {
+  display: block;
+}
+.app-summary dd {
+  font-size: 12px;
+}
+
+.app-content {
+  position: relative;
+}
+.app-content h3 {
+  font:
+    500 20px/1.4 Georgia,
+    serif;
+}
+.fixture-notice {
+  border-left: 3px solid var(--wb-rule);
+  padding: 10px 14px;
+  margin: 12px 0 20px;
+  font-size: 14px;
+}
+.fixture-notice.tone-warning {
+  border-color: var(--wb-amber);
+}
+.fixture-notice.tone-danger {
+  border-color: #bd5555;
+}
+.fixture-notice.tone-success {
+  border-color: var(--wb-green);
+}
+.fixture-underlay {
+  opacity: 0.45;
+}
+.fixture-shade {
+  position: absolute;
+  inset: 0;
+  background: #2021241a;
+}
+.fixture-overlay {
+  position: relative;
+  z-index: 1;
+  width: min(430px, 100%);
+  margin: 0 auto;
+  padding: 24px;
+  border: 1px solid var(--wb-rule);
+  border-radius: 10px;
+  background: var(--wb-panel);
+  box-shadow: 0 12px 35px #20212420;
+}
+.has-overlay {
+  display: grid;
+  min-height: 360px;
+  align-items: center;
+}
+.has-overlay > .fixture-underlay,
+.has-overlay > .fixture-overlay {
+  grid-area: 1/1;
+}
+.fixture-overlay h2 {
+  font-size: 24px;
+}
+.fixture-overlay p {
+  line-height: 1.6;
+}

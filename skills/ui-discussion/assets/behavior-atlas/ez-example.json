@@ -1,0 +1,780 @@
+{
+  "version": 1,
+  "title": "EZ behavior workbench",
+  "initial": "draft",
+  "source": {
+    "revision": "ez-study-2026-11-03",
+    "description": "Historical EZ fixture from the agreed interaction study. This is not the layout or behavior of the current installed native app."
+  },
+  "coverage": {
+    "included": [
+      "Question, answer, failure and recovery",
+      "Preset editing, discard and return",
+      "Saved and unsaved export contexts",
+      "Six major journeys and one authored shortcut proposal"
+    ],
+    "omitted": [
+      "Current native layout and provider integration",
+      "Authentication, Quick Lookup, speech and persistence effects",
+      "Unmodeled context combinations; no live inputs or generated code"
+    ]
+  },
+  "regions": [
+    {
+      "id": "main",
+      "label": "Main window"
+    },
+    {
+      "id": "settings",
+      "label": "Settings"
+    }
+  ],
+  "states": [
+    {
+      "id": "draft",
+      "label": "Draft",
+      "region": "main",
+      "detail": "The retained question is ready to send.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "actions",
+            "transitions": ["info", "direct-config"]
+          },
+          {
+            "kind": "actions",
+            "transitions": ["send"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "info",
+      "label": "Draft details",
+      "region": "main",
+      "detail": "Inspect the draft or open preset configuration.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          }
+        ],
+        "blocks": [],
+        "overlay": {
+          "title": "Next lookup settings",
+          "blocks": [
+            {
+              "kind": "fields",
+              "fields": [
+                {
+                  "label": "Preset",
+                  "value": "Standard"
+                },
+                {
+                  "label": "Effort",
+                  "value": "Medium"
+                }
+              ]
+            },
+            {
+              "kind": "actions",
+              "transitions": ["configure", "close-info"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "receiving",
+      "label": "Receiving",
+      "region": "main",
+      "detail": "The request is running. Choose a simulated result event.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "neutral",
+            "text": "Waiting for an answer\u2026"
+          }
+        ]
+      }
+    },
+    {
+      "id": "failed",
+      "label": "Request failed",
+      "region": "main",
+      "detail": "The request failed. The question is retained for retry.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "danger",
+            "text": "The request failed. Your question is retained."
+          }
+        ]
+      }
+    },
+    {
+      "id": "answer",
+      "label": "Saved answer",
+      "region": "main",
+      "detail": "The answer was saved. Reuse the question or open More.",
+      "outcome": "Answer saved",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": []
+      }
+    },
+    {
+      "id": "unsaved",
+      "label": "Unsaved answer",
+      "region": "main",
+      "detail": "The answer exists, but saving failed. Save again or export a copy.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "warning",
+            "text": "This answer could not be saved. Save again keeps the existing result."
+          }
+        ]
+      }
+    },
+    {
+      "id": "more",
+      "label": "More menu",
+      "region": "main",
+      "detail": "Additional actions for the saved answer.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": [],
+        "overlay": {
+          "title": "More",
+          "blocks": [
+            {
+              "kind": "actions",
+              "transitions": ["export", "close-more"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "export",
+      "label": "Export panel",
+      "region": "main",
+      "detail": "Save a Markdown copy or cancel back to the saved answer.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": [],
+        "overlay": {
+          "title": "Export answer",
+          "blocks": [
+            {
+              "kind": "text",
+              "text": "computer-use-tools.md"
+            },
+            {
+              "kind": "actions",
+              "transitions": ["export-save", "cancel-export"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "exported",
+      "label": "Exported",
+      "region": "main",
+      "detail": "A copy was exported. The answer remains available.",
+      "outcome": "Answer exported",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "success",
+            "text": "Export complete in this fixture."
+          }
+        ]
+      }
+    },
+    {
+      "id": "config",
+      "label": "Configuration",
+      "region": "settings",
+      "detail": "Preset configuration is open in Settings.",
+      "preview": {
+        "title": "Presets & recipes",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          },
+          {
+            "label": "Model",
+            "value": "Configured model"
+          },
+          {
+            "label": "Effort",
+            "value": "Medium"
+          }
+        ],
+        "blocks": []
+      }
+    },
+    {
+      "id": "edits",
+      "label": "Unsaved edits",
+      "region": "settings",
+      "detail": "The preset has unsaved changes. Save, retry or review discarding.",
+      "preview": {
+        "title": "Presets & recipes",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          },
+          {
+            "label": "Model",
+            "value": "Configured model"
+          },
+          {
+            "label": "Effort",
+            "value": "Medium"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "warning",
+            "text": "Unsaved preset edits"
+          }
+        ]
+      }
+    },
+    {
+      "id": "save-error",
+      "label": "Save failed",
+      "region": "settings",
+      "detail": "Saving failed. The preset edit is retained.",
+      "preview": {
+        "title": "Presets & recipes",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          },
+          {
+            "label": "Model",
+            "value": "Configured model"
+          },
+          {
+            "label": "Effort",
+            "value": "Medium"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "warning",
+            "text": "Unsaved preset edits"
+          },
+          {
+            "kind": "notice",
+            "tone": "danger",
+            "text": "Save failed. Your edits are still here."
+          }
+        ]
+      }
+    },
+    {
+      "id": "discard",
+      "label": "Discard decision",
+      "region": "settings",
+      "detail": "Keep editing or explicitly discard the preset changes.",
+      "preview": {
+        "title": "Presets & recipes",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          },
+          {
+            "label": "Model",
+            "value": "Configured model"
+          },
+          {
+            "label": "Effort",
+            "value": "Medium"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "warning",
+            "text": "Unsaved preset edits"
+          }
+        ],
+        "overlay": {
+          "title": "Discard preset edits?",
+          "body": "Your question in Main window will be kept.",
+          "blocks": [
+            {
+              "kind": "actions",
+              "transitions": ["keep", "discard"]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "saved",
+      "label": "Preset saved",
+      "region": "settings",
+      "detail": "The preset was saved. Return to the retained question.",
+      "preview": {
+        "title": "Presets & recipes",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          },
+          {
+            "label": "Model",
+            "value": "Configured model"
+          },
+          {
+            "label": "Effort",
+            "value": "Medium"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "notice",
+            "tone": "success",
+            "text": "Preset saved. Return to your retained question."
+          }
+        ]
+      }
+    },
+    {
+      "id": "returned",
+      "label": "Back to your question",
+      "region": "main",
+      "detail": "The preset is saved and the question is retained.",
+      "outcome": "Preset saved \u00b7 back to your question",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "fields": [
+          {
+            "label": "Preset",
+            "value": "Standard"
+          }
+        ],
+        "blocks": [
+          {
+            "kind": "actions",
+            "transitions": ["returned-info"]
+          },
+          {
+            "kind": "actions",
+            "transitions": ["new-send"]
+          }
+        ]
+      }
+    },
+    {
+      "id": "export-unsaved",
+      "label": "Export unsaved answer",
+      "region": "main",
+      "detail": "Export the retained answer; Cancel returns to the unsaved result.",
+      "preview": {
+        "title": "How do computer-use tools work?",
+        "body": "Computer-use tools combine a view of the current screen with actions such as clicking, typing and scrolling.\n\nEach action changes what is visible. The next observation provides context for the next action.",
+        "blocks": [],
+        "overlay": {
+          "title": "Export answer",
+          "blocks": [
+            {
+              "kind": "text",
+              "text": "computer-use-tools.md"
+            },
+            {
+              "kind": "actions",
+              "transitions": ["cancel-unsaved", "save-unsaved-export"]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "id": "info",
+      "from": "draft",
+      "to": "info",
+      "label": "Draft information",
+      "kind": "user"
+    },
+    {
+      "id": "send",
+      "from": "draft",
+      "to": "receiving",
+      "label": "Send",
+      "kind": "user"
+    },
+    {
+      "id": "configure",
+      "from": "info",
+      "to": "config",
+      "label": "Presets & recipes",
+      "kind": "user"
+    },
+    {
+      "id": "close-info",
+      "from": "info",
+      "to": "draft",
+      "label": "Done",
+      "kind": "user"
+    },
+    {
+      "id": "edit",
+      "from": "config",
+      "to": "edits",
+      "label": "Edit preset",
+      "kind": "user"
+    },
+    {
+      "id": "close-config",
+      "from": "config",
+      "to": "draft",
+      "label": "Done",
+      "kind": "user"
+    },
+    {
+      "id": "save",
+      "from": "edits",
+      "to": "saved",
+      "label": "Save preset",
+      "kind": "user"
+    },
+    {
+      "id": "leave",
+      "from": "edits",
+      "to": "discard",
+      "label": "Done",
+      "kind": "user"
+    },
+    {
+      "id": "save-failed",
+      "from": "edits",
+      "to": "save-error",
+      "label": "Configuration save fails",
+      "kind": "system"
+    },
+    {
+      "id": "retry-save",
+      "from": "save-error",
+      "to": "saved",
+      "label": "Retry saving",
+      "kind": "user"
+    },
+    {
+      "id": "leave-error",
+      "from": "save-error",
+      "to": "discard",
+      "label": "Done",
+      "kind": "user"
+    },
+    {
+      "id": "keep",
+      "from": "discard",
+      "to": "edits",
+      "label": "Keep editing",
+      "kind": "user"
+    },
+    {
+      "id": "discard",
+      "from": "discard",
+      "to": "draft",
+      "label": "Discard edits",
+      "kind": "user"
+    },
+    {
+      "id": "return",
+      "from": "saved",
+      "to": "returned",
+      "label": "Done",
+      "kind": "user"
+    },
+    {
+      "id": "edit-again",
+      "from": "saved",
+      "to": "edits",
+      "label": "Edit preset",
+      "kind": "user"
+    },
+    {
+      "id": "finish",
+      "from": "receiving",
+      "to": "answer",
+      "label": "Request completes",
+      "kind": "system"
+    },
+    {
+      "id": "fail",
+      "from": "receiving",
+      "to": "failed",
+      "label": "Request fails",
+      "kind": "system"
+    },
+    {
+      "id": "save-fails",
+      "from": "receiving",
+      "to": "unsaved",
+      "label": "Result save fails",
+      "kind": "system"
+    },
+    {
+      "id": "retry",
+      "from": "failed",
+      "to": "receiving",
+      "label": "Retry request",
+      "kind": "user"
+    },
+    {
+      "id": "save-again",
+      "from": "unsaved",
+      "to": "answer",
+      "label": "Save again",
+      "kind": "user"
+    },
+    {
+      "id": "export-unsaved",
+      "from": "unsaved",
+      "to": "export-unsaved",
+      "label": "Export a copy",
+      "kind": "user"
+    },
+    {
+      "id": "cancel-unsaved",
+      "from": "export-unsaved",
+      "to": "unsaved",
+      "label": "Cancel",
+      "kind": "user"
+    },
+    {
+      "id": "save-unsaved-export",
+      "from": "export-unsaved",
+      "to": "exported",
+      "label": "Save exported file",
+      "kind": "user"
+    },
+    {
+      "id": "more",
+      "from": "answer",
+      "to": "more",
+      "label": "More",
+      "kind": "user"
+    },
+    {
+      "id": "reuse",
+      "from": "answer",
+      "to": "draft",
+      "label": "Use again",
+      "kind": "user"
+    },
+    {
+      "id": "export",
+      "from": "more",
+      "to": "export",
+      "label": "Export",
+      "kind": "user"
+    },
+    {
+      "id": "close-more",
+      "from": "more",
+      "to": "answer",
+      "label": "Cancel",
+      "kind": "user"
+    },
+    {
+      "id": "export-save",
+      "from": "export",
+      "to": "exported",
+      "label": "Save exported file",
+      "kind": "user"
+    },
+    {
+      "id": "cancel-export",
+      "from": "export",
+      "to": "answer",
+      "label": "Cancel",
+      "kind": "user"
+    },
+    {
+      "id": "export-more",
+      "from": "exported",
+      "to": "more",
+      "label": "More",
+      "kind": "user"
+    },
+    {
+      "id": "export-reuse",
+      "from": "exported",
+      "to": "draft",
+      "label": "Use again",
+      "kind": "user"
+    },
+    {
+      "id": "new-send",
+      "from": "returned",
+      "to": "receiving",
+      "label": "Send",
+      "kind": "user"
+    },
+    {
+      "id": "returned-info",
+      "from": "returned",
+      "to": "info",
+      "label": "Draft information",
+      "kind": "user"
+    },
+    {
+      "id": "direct-config",
+      "from": "draft",
+      "to": "config",
+      "label": "Edit preset here",
+      "kind": "user",
+      "proposed": true
+    }
+  ],
+  "journeys": [
+    {
+      "id": "preset",
+      "label": "Change a preset",
+      "description": "Edit a preset and return to your question.",
+      "start": "draft",
+      "steps": ["info", "configure", "edit", "save", "return"]
+    },
+    {
+      "id": "retry",
+      "label": "Recover a failed request",
+      "description": "Keep the failure and retry in the recorded sequence.",
+      "start": "draft",
+      "steps": ["send", "fail", "retry", "finish"]
+    },
+    {
+      "id": "keep",
+      "label": "Leave, then keep editing",
+      "start": "draft",
+      "steps": ["info", "configure", "edit", "leave", "keep", "save", "return"]
+    },
+    {
+      "id": "save-recovery",
+      "label": "Recover a failed preset save",
+      "start": "draft",
+      "steps": [
+        "info",
+        "configure",
+        "edit",
+        "save-failed",
+        "retry-save",
+        "return"
+      ]
+    },
+    {
+      "id": "retain",
+      "label": "Keep an unsaved answer",
+      "start": "draft",
+      "steps": ["send", "save-fails", "save-again"]
+    },
+    {
+      "id": "export-answer",
+      "label": "Export an answer",
+      "start": "answer",
+      "steps": ["more", "export", "export-save"]
+    },
+    {
+      "id": "direct-preset",
+      "label": "Direct preset entry",
+      "start": "draft",
+      "steps": ["direct-config", "edit", "save", "return"]
+    }
+  ],
+  "comparisons": [
+    {
+      "id": "preset-shortcut",
+      "label": "A direct entry to preset editing",
+      "before": "preset",
+      "after": "direct-preset",
+      "detail": "Proposed: place Edit preset in the draft. Both routes retain the same editor, save behavior and return to the question."
+    }
+  ],
+  "layout": {
+    "states": {
+      "draft": [230, 325],
+      "info": [260, 230],
+      "receiving": [370, 335],
+      "failed": [345, 430],
+      "answer": [500, 300],
+      "unsaved": [480, 435],
+      "more": [610, 345],
+      "export": [645, 445],
+      "exported": [600, 560],
+      "config": [780, 180],
+      "edits": [930, 155],
+      "save-error": [970, 260],
+      "discard": [790, 300],
+      "saved": [930, 355],
+      "returned": [210, 505],
+      "export-unsaved": [450, 560]
+    },
+    "regions": {
+      "main": {
+        "label": [180, 180],
+        "outline": [
+          [130, 255],
+          [300, 185],
+          [560, 220],
+          [710, 350],
+          [700, 550],
+          [530, 625],
+          [240, 580],
+          [110, 430]
+        ]
+      },
+      "settings": {
+        "label": [770, 80],
+        "outline": [
+          [700, 170],
+          [810, 70],
+          [980, 95],
+          [1040, 230],
+          [1010, 350],
+          [880, 410],
+          [740, 345],
+          [690, 240]
+        ]
+      }
+    }
+  }
+}

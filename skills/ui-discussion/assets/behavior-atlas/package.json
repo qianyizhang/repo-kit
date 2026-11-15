@@ -1,0 +1,22 @@
+{
+  "name": "@repo-kit/behavior-atlas-scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.21.0 <25",
+    "npm": ">=11.19.0 <12"
+  },
+  "packageManager": "npm@11.19.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test atlas.test.ts workbench.test.ts screen.test.ts",
+    "check": "npm run typecheck && npm test",
+    "build": "node build.ts --input example.json --out atlas.html",
+    "preview": "node serve.ts --input example.json"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "@types/node": "24.13.6"
+  }
+}

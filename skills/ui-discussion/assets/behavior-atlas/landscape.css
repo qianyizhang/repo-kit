@@ -1,0 +1,349 @@
+.atlas-canvas {
+  overflow: auto;
+  min-width: 0;
+}
+.atlas-error {
+  padding: 16px;
+  color: var(--wb-ink);
+  border: 1px solid var(--wb-rule);
+}
+:root {
+  color-scheme: light dark;
+  --wb-paper: #f6f5f3;
+  --wb-panel: #ffffff;
+  --wb-ink: #282a2e;
+  --wb-muted: #62656c;
+  --wb-rule: #d5d5d3;
+  --wb-green: #245dc5;
+  --wb-purple: #70647e;
+  --wb-plane: #e5e5e3;
+  --wb-wall: #b8b9ba;
+  --wb-edge: #75787e;
+  --wb-amber: #9b680d;
+}
+
+.landscape-scroll {
+  max-height: 550px;
+  overflow: auto;
+  min-width: 0;
+}
+.landscape {
+  display: block;
+  width: 100%;
+  min-width: min(var(--landscape-width, 620px), 1400px);
+  max-height: none;
+  overflow: visible;
+}
+.comparison-views .landscape {
+  min-width: 500px;
+}
+.landscape.miniature {
+  min-width: 0;
+  max-height: 220px;
+}
+.miniature .hop-stroke {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 0.8px;
+}
+.miniature .available .hop-stroke,
+.miniature .traveled .hop-stroke {
+  stroke-width: 1.6px;
+}
+.miniature .terrain-label {
+  font-size: 36px;
+  transform: translateY(-25px);
+}
+.miniature .landscape-edge.context {
+  opacity: 0.35;
+}
+.miniature .current .landmark-dot {
+  r: 18px;
+}
+.landscape-here {
+  font:
+    700 8px system-ui,
+    sans-serif;
+  fill: var(--wb-green);
+  paint-order: stroke;
+  stroke: var(--wb-paper);
+  stroke-width: 4;
+  pointer-events: none;
+}
+.terrain-wall {
+  fill: #d2d2d0;
+}
+.terrain-top {
+  fill: #efefed;
+  stroke: #c5c6c6;
+  stroke-width: 1.2;
+}
+.terrain.active .terrain-wall {
+  fill: var(--wb-wall);
+}
+.terrain.active .terrain-top {
+  fill: var(--wb-plane);
+  stroke: var(--wb-edge);
+  stroke-width: 1.6;
+}
+.terrain-label {
+  font:
+    18px Georgia,
+    serif;
+  fill: var(--wb-muted);
+}
+.terrain.active .terrain-label {
+  fill: var(--wb-ink);
+  font-weight: bold;
+}
+.landscape-edge {
+  color: var(--wb-edge);
+  pointer-events: none;
+}
+.hop-gap {
+  stroke: var(--wb-paper);
+  stroke-width: 5;
+  fill: none;
+  opacity: 0.85;
+}
+.hop-stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+.landscape-edge.available {
+  color: var(--wb-green);
+}
+.landscape-edge.available .hop-stroke {
+  stroke-width: 2.5;
+}
+.landscape-edge.traveled {
+  color: var(--wb-purple);
+}
+.landscape-edge.traveled .hop-stroke {
+  stroke-width: 2.3;
+}
+.landscape-edge.inspected:not(.available) {
+  color: var(--wb-amber);
+}
+.landscape-edge.subdued:not(.available) {
+  opacity: 0.25;
+}
+.hop-flow {
+  stroke: var(--wb-panel);
+  stroke-width: 1.1;
+  stroke-dasharray: 3 14;
+  fill: none;
+  animation: hop-flow 3s linear infinite;
+}
+.reverse .hop-flow {
+  animation-direction: reverse;
+}
+.landmark-dot {
+  fill: var(--wb-panel);
+  stroke: var(--wb-edge);
+  stroke-width: 1.4;
+}
+.landmark-code {
+  font:
+    600 8px system-ui,
+    sans-serif;
+  fill: var(--wb-ink);
+  pointer-events: none;
+}
+.landmark-hit {
+  fill: transparent;
+}
+.marker-shadow {
+  fill: #202124;
+  opacity: 0.14;
+}
+.destination-ring {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 1.5;
+}
+.reachable .destination-ring {
+  stroke: var(--wb-green);
+  stroke-dasharray: 3 3;
+}
+.current .landmark-dot {
+  fill: var(--wb-green);
+  stroke: var(--wb-green);
+}
+.current .landmark-code {
+  fill: var(--wb-panel);
+}
+.landscape-node.inspected .destination-ring {
+  stroke: var(--wb-amber);
+}
+.landscape-node:focus-visible {
+  outline: 0;
+}
+.landscape-node:focus-visible .destination-ring {
+  stroke: var(--wb-green);
+  stroke-width: 3;
+}
+.landscape-node[role="button"] {
+  cursor: pointer;
+}
+.location-halo {
+  fill: var(--wb-green);
+  opacity: 0.18;
+  animation: location-breathe 3.5s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.outcome-ring {
+  fill: none;
+  stroke: var(--wb-purple);
+  stroke-width: 1;
+}
+.landmark-label {
+  font:
+    13px system-ui,
+    sans-serif;
+  fill: var(--wb-ink);
+  paint-order: stroke;
+  stroke: var(--wb-paper);
+  stroke-width: 6;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.landmark-label.inspected {
+  font-weight: bold;
+  fill: var(--wb-amber);
+}
+.map-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  color: var(--wb-muted);
+  margin-top: 8px;
+}
+.green {
+  color: var(--wb-green);
+}
+.purple {
+  color: var(--wb-purple);
+}
+.inspection-slot {
+  min-height: 52px;
+  max-height: 95px;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--wb-muted);
+  margin: 8px 0;
+}
+.inspection-slot button {
+  margin-left: auto;
+  min-height: 28px;
+  padding: 1px 8px;
+}
+.map-location {
+  margin-top: 12px;
+  display: grid;
+  gap: 3px;
+}
+.map-location small {
+  font-size: 9px;
+  color: var(--wb-muted);
+  letter-spacing: 0.08em;
+}
+.map-location b {
+  font:
+    23px Georgia,
+    serif;
+}
+.map-location span,
+.next-summary {
+  color: var(--wb-muted);
+  font-size: 12px;
+}
+
+[data-visibility="hidden"] .hop-flow,
+[data-visibility="hidden"] .location-halo {
+  animation-play-state: paused;
+}
+[data-motion="off"] .hop-flow,
+[data-motion="off"] .location-halo {
+  animation: none;
+}
+@keyframes location-breathe {
+  0%,
+  100% {
+    opacity: 0.14;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.28;
+    transform: scale(1.12);
+  }
+}
+@keyframes hop-flow {
+  to {
+    stroke-dashoffset: -68;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hop-flow,
+  .location-halo {
+    animation: none !important;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-appearance="light"]) {
+    --wb-paper: #222326;
+    --wb-panel: #2b2d31;
+    --wb-ink: #e8e9ec;
+    --wb-muted: #b7bac2;
+    --wb-rule: #4d5056;
+    --wb-green: #90b5ff;
+    --wb-purple: #c2b1d0;
+    --wb-plane: #3b3e45;
+    --wb-wall: #25272b;
+    --wb-edge: #969ba6;
+    --wb-amber: #e8bd62;
+  }
+  :root:not([data-appearance="light"]) .terrain-wall {
+    fill: #24262a;
+  }
+  :root:not([data-appearance="light"]) .terrain-top {
+    fill: #303237;
+    stroke: #555860;
+  }
+}
+
+.landscape[data-names="nearby"] .landmark-label:not(.needed):not(.inspected) {
+  opacity: 0;
+}
+.miniature .landmark-dot {
+  r: 27px;
+}
+.miniature .landmark-code {
+  font-size: 32px;
+}
+.miniature .destination-ring {
+  r: 32px;
+}
+.miniature .current .landmark-dot {
+  r: 27px;
+}
+@media (max-width: 760px) {
+  .map-shell:not(.passive-map) .landscape-scroll:after {
+    content: "Map extends sideways · scroll to see all states →";
+    display: block;
+    position: sticky;
+    left: 0;
+    font-size: 11px;
+    color: var(--wb-muted);
+    padding: 8px 0;
+  }
+}
+
+:root[data-appearance="light"] {
+  color-scheme: light;
+}

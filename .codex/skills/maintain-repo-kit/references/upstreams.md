@@ -143,3 +143,14 @@ replacement implementations or new skill surfaces.
   skills remain suitable for multiple models; no model-specific behavior switch.
 - Validation: structural and Copier checks plus scenario walkthroughs can assess
   preservation and routing. They do not establish model performance improvements.
+
+## backnotprop/pstack statechart
+
+- Source: https://github.com/backnotprop/pstack/tree/6c75f4e67546c2ddbf9634734c1e3ebbea34861a/skills/statechart
+- Reviewed: 2026-11-03; `SKILL.md`, `scripts/ir.ts`, `scripts/pipeline.ts`.
+- Local mapping: `ui-discussion` behavior atlas scaffold.
+- `adapt`: agent-authored reader labels and grouping, explicit IR, pure deterministic
+  projection, coverage and guard boundaries.
+- `reject` for this slice: TLA+/TLC, Java and Mermaid toolchain requirements. The
+  atlas visualizes a supplied model and does not claim formal verification.
+- No upstream source was copied or installed.

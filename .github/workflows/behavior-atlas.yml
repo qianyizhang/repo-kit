@@ -1,0 +1,39 @@
+name: Behavior atlas scaffold
+on:
+  push:
+    paths:
+      [
+        "skills/ui-discussion/assets/behavior-atlas/**",
+        "skills/ui-discussion/scripts/scaffold_atlas.py",
+        ".nvmrc",
+        ".github/workflows/behavior-atlas.yml",
+      ]
+  pull_request:
+    paths:
+      [
+        "skills/ui-discussion/assets/behavior-atlas/**",
+        "skills/ui-discussion/scripts/scaffold_atlas.py",
+        ".nvmrc",
+        ".github/workflows/behavior-atlas.yml",
+      ]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generated-atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: ".nvmrc"
+      - run: npm install --global npm@11.19.0 --ignore-scripts --no-audit --no-fund
+      - run: python3.12 skills/ui-discussion/scripts/scaffold_atlas.py --target "$RUNNER_TEMP/behavior-atlas"
+      - run: npm ci --ignore-scripts --no-audit --no-fund --cache "$RUNNER_TEMP/atlas-npm-cache"
+        working-directory: ${{ runner.temp }}/behavior-atlas
+      - run: npm run check && npm run build
+        working-directory: ${{ runner.temp }}/behavior-atlas
