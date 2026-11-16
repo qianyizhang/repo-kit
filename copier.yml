@@ -29,14 +29,16 @@ _message_after_copy: |
   Next steps (see README.md for the full adoption
   procedure; replace <repo-python> with this repository's supported Python
   invocation):
-    1. Merge `pyproject-doc-governance.toml` into your pyproject.toml
-       ([tool.doc_governance] + [tool.ruff] extend), then delete that file.
+    1. Merge `pyproject-doc-governance.toml` into your pyproject.toml,
+       then delete the seed file.
     2. Keep specialized local skill copies in `.codex/skills/`, then run
        `<repo-python> scripts/bootstrap_agents.py` to create the symlink layout.
     3. Add frontmatter to authority docs and fill the repository bindings.
     4. `<repo-python> scripts/check_docs.py` until green; wire it into `make lint`.
     5. Review `[tool.authoring_check]`, then wire
        `<repo-python> scripts/check_authoring.py` into a separate advisory target.
+    6. Run `<repo-python> scripts/check_file_sizes.py` for size warnings. In PR
+       checks pass `--base <target-ref>` with the common Git history available.
 
 _message_after_update: |
   Kit files updated. AGENTS.md owns repository policy; CLAUDE.md only points to it.
@@ -45,6 +47,8 @@ _message_after_update: |
   replace <repo-python> with this repository's supported Python invocation and
   run `<repo-python> scripts/check_docs.py`; if the symlink map changed, also run
   `<repo-python> scripts/bootstrap_agents.py`.
+  The advisory `<repo-python> scripts/check_file_sizes.py` command uses defaults
+  with existing bindings; no configuration migration is required for it.
 
 project_name:
   type: str

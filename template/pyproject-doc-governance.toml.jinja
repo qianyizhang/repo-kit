@@ -97,3 +97,8 @@ sections = ["Intent", "Acceptance Criteria"]
 # them here and keep only repo-specific `ignore` exceptions in [tool.ruff.lint].
 [tool.ruff]
 extend = "ruff_base.toml"
+
+# Optional settings for scripts/check_file_sizes.py. Set doc_lines, doc_words,
+# or code_lines to override the defaults. Exclusions match repository-relative paths.
+[tool.file_size_check]
+exclude_globs = []

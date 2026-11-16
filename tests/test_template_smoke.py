@@ -191,6 +191,29 @@ document_class: coordination
         )
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
 
+    def test_first_copy_delivers_advisory_size_check(self) -> None:
+        destination = self.temp_root / "file-size-check"
+        self.copy(destination)
+        (destination / "pyproject-doc-governance.toml").replace(destination / "pyproject.toml")
+        run("git", "init", cwd=destination)
+        run("git", "add", ".", cwd=destination)
+        run(
+            "git",
+            "-c",
+            "user.name=repo-kit smoke",
+            "-c",
+            "user.email=smoke@repo-kit.invalid",
+            "commit",
+            "-m",
+            "Scaffold baseline",
+            cwd=destination,
+        )
+        (destination / "example.py").write_text("x = 1\n" * 1001, encoding="utf-8")
+        run("git", "add", "example.py", cwd=destination)
+
+        result = run(sys.executable, "scripts/check_file_sizes.py", cwd=destination)
+        self.assertIn("[WARN] example.py: 0 -> 1001 lines (cap 1000)", result.stdout)
+
     def test_update_manages_governance_and_preserves_bindings(self) -> None:
         destination = self.temp_root / "update"
         self.copy(destination)

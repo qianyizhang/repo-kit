@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-10-22
+last_update: 2026-11-16
 document_class: coordination
 ---
 
@@ -106,6 +106,7 @@ Portable scripts read repository-owned bindings from `pyproject.toml`:
   work-item identity and lifecycle, and the symlink map.
 - `scripts/check_authoring.py` reports profile-scoped terminology and prose
   findings. It never edits text or becomes another vocabulary authority.
+- `scripts/check_file_sizes.py` reports advisory size findings for changed files.
 - Import contracts enforce architecture; Ruff enforces the shared style
   baseline plus repository exceptions.
 
@@ -113,6 +114,27 @@ Stable structural invariants belong in deterministic checks. Repository-specific
 language and enforcement policy stay in configuration. Semantic contradictions
 and stale meaning require evidence-based review rather than another heuristic
 gate.
+
+### File size warnings
+
+Run `python scripts/check_file_sizes.py` with the repository's Python (3.12 or
+later). It compares tracked working files, including staged additions, with
+`HEAD`. In PR checks, pass `--base <target-ref>` and fetch enough Git history
+to find the common ancestor. Keep this command separate from required checks;
+warnings do not change its exit status. A missing baseline reports a skip.
+
+Defaults are 200 lines or 1,500 whitespace-separated words for docs, and 1,000
+lines for source code. Lines include blanks and comments. A count warns only
+when it increases and the new count exceeds the cap. An oversized file that
+stays the same size or shrinks does not warn. Use the finding to decide whether
+to cut duplication or split at a clear boundary.
+
+The check skips common generated and vendor directories, files marked
+`linguist-generated` or `linguist-vendored` in `.gitattributes`, and Markdown
+with the `generated` or `source` document class. Use `[tool.file_size_check]`
+in `pyproject.toml` for local exclusions (`exclude_globs`) or cap overrides
+(`doc_lines`, `doc_words`, `code_lines`). Existing repositories can run the
+command with built-in defaults without changing their configuration.
 
 ## Context hygiene
 

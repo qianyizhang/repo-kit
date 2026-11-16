@@ -51,27 +51,10 @@ decision remains owned by the repository's existing design/decision record.
 
 ## Check the proposed change
 
-**Review changes** shows the captured baseline, authored changes and proposal.
-The change list covers all scopes, notes, groups and types, including facts with
-no independent shape. It distinguishes:
-
-- meaning: names, responsibilities, labels, custom values and definitions;
-- structure: parents, connection endpoints, group membership and note targets;
-- evidence: source references;
-- position: node coordinates.
-
-Reordered entity collections do not imply a change; ordered field definitions
-can affect display. Source-reference and group-membership order are ignored by
-the display comparison. Exact-basis conflict checks remain separate.
-
-An overview line can represent multiple original connections. Inspect their
-exact IDs; a projected line is not a new relationship. For a removed item the
-Changes view uses the baseline. Selecting an absent item in After reports its
-absence. Before never silently becomes the current draft when a proposal is stale.
-
-Review for preserved intent, accurate source claims, readable relationships and
-unexpected changes. Authored reachability and diagram differences do not establish
-runtime impact, correctness of a refactor or merge safety.
+Use [Review changes](canvas-proposal-comparison.md) to inspect the captured
+baseline and the proposal. Check for preserved intent, accurate source claims,
+readable relationships and unexpected changes. Authored reachability and diagram
+differences do not establish runtime impact, correctness of a refactor or merge safety.
 
 Adapted concepts: Archify `25cf37080fc8b1dbe758a4efc3935b55f3327083`,
 `references/repository-authoring.md`, `references/authoring-defaults.md` and

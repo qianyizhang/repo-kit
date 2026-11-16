@@ -116,19 +116,7 @@ checks only host context.
 
 ## Review and verification
 
-Capture the actual delivered UI before editing and compare matched states after:
-1440×1000 desktop, 740×950 compact host, and 390×844 mobile. Use the same saved
-architecture, root selection and 80% diagram zoom for comparisons. Keep original
-full screenshots and annotate only report crops. Label simulated MCP hosts.
-
-Check the main journey, source preview/editing, proposal review, real stale edits,
-keyboard menu access, export/import, Undo, Reload and panel close/reopen. Verify
-normal text contrast at 4.5:1 and meaningful focus/control contrast at 3:1. Retain
-reduced-motion support. Dark appearance is the existing supported scope; this
-adaptation does not add or claim verification of a light theme.
-
-Run the normal repository gate and the Repo Canvas browser suite. Report actual
-Codex host integration separately from protocol and simulated-host browser tests.
+Use the [Canvas verification guide](canvas-verification.md) for acceptance checks.
 
 ## Implementation owners
 
@@ -142,71 +130,7 @@ MCP proposals and discussion replies share that policy; Save remains explicit.
 
 ## Architecture and agent controls
 
-A folder scaffold is incomplete discovery, not a semantic claim. Discover breadth
-first and disclose truncation so a large early subtree cannot hide root owners.
-A curated map should show responsibilities, source references, meaningful verbs,
-and boundaries. Keep detail inside scopes; avoid making a card for every file.
-
-The only supported document format is **v3**. There is no automatic legacy import
-or migration layer. Invalid or older files retain their bytes; show offline agent
-repair guidance and Start new draft. Starting a draft never writes the saved map.
-An explicit Save still compares the raw disk revision before replacing it.
-
-Built-in node kinds identify systems, packages, modules, data, external owners,
-processes, interfaces and concepts. Repository-owned `nodeTypes` declare named
-fields (`text`, `number`, `boolean`, `enum`, `source`) and one primary surface
-(`card`, `peek`, `details`). Peek fields move to Details when pinned; card fields
-are not repeated there. No executable renderers. Preserve unknown types/fields as
-readable fallback data. Review affected nodes before deleting fields or changing
-value types; explicit migration acceptance is required before removing values.
-Agent proposals include the same migration review.
-
-Connections retain precise verbs, optional kind, explanation and source references.
-Saved annotations target `{kind:"node"|"connection",id}` and record severity and
-intent separately. Contextual comments may also target annotations. Capture the
-object, scope, source references and document hash when the comment is authored;
-keep that snapshot even if the live target changes. Comments queue for explicit
-Send to chat; they do not become saved map notes.
-
-Discussion drafts, frozen comments and up to 100 exchanges live outside Git in
-`$XDG_STATE_HOME/repo-workbench/discussions` (default `~/.local/state`). Partition
-by canonical repository and trusted host chat ID; standalone has its own namespace.
-Use private files, atomic writes and revision checks. Keep earlier exchanges folded;
-focus on the latest query. Preserve uncertain sends and never automatically resend.
-History is cleared only explicitly, after closing pending requests. Map recovery
-remains browser-tab/server-context state, separate from durable discussion state.
-
-Source writes are limited to explicitly referenced, existing Git-visible UTF-8
-files under 500 KB, blocks under 40,000 characters, without symlink components or
-hardlinks. No creation, deletion, rename, binary editing or whole-repository IDE.
-Compare the full-file content revision immediately before atomic replacement;
-retain surrounding lines, file mode and newline style. Reload and review again
-on conflict; never overwrite an external edit automatically.
-
-Fit centers complete card bounds inside the drawing pane with reserved control
-space. It is an overview, not a promise that all text stays readable. Offer 100%
-reading, Fit selection and undoable Arrange for the pane’s aspect ratio. Preserve
-manual pan/zoom on resize; refit changed node sets before paint. Auto-collapse
-navigation below 1100px and keep Browse/Close usable at every width. Dense maps
-show edge labels on selection or focus; vertical edges join the nearest faces.
-
-Select several and modifier-click support explicit sets without requiring a
-pointer gesture. Side chat includes all selected IDs and names. Native gestures,
-keyboard focus, compact navigation, stale proposals and save conflicts must work.
-
-MCP exposes semantic snapshots, exact-revision view commands and reviewed proposals.
-Snapshots name their timestamp and freshness, selected IDs, scope, viewport,
-panels, dirty/conflict state, visible nodes and command receipts. A command is
-queued until the panel acknowledges it; read the resulting snapshot to verify it.
-Retry interrupted acknowledgments without executing a view command again. Commands
-apply to their original scope and must not replay when navigating elsewhere.
-View commands never save. Proposals compare the captured document before Apply;
-Save remains a separate user action. Browser tools own DOM and screenshot evidence,
-including transient dialogs; arbitrary JavaScript execution is not part of this SDK.
-
-Named multi-view maps, lasso selection and freeform highlight regions are deferred.
-The current evidence supports typed graph semantics and attached review notes;
-more drawing primitives should follow concrete workflows, not mimic a whiteboard.
+See the [architecture contract](canvas-architecture.md) for map and editing rules.
 
 ## Purpose and initialization
 
@@ -218,53 +142,13 @@ where history is unavailable. Opening a repository alone does not send a modelin
 request. Initialization returns a proposal for review, Apply and Save; standalone
 preview explains the connected-chat requirement.
 
-Deferred proposal comparison may replace the graphics in
-`improve-codebase-architecture`: current versus proposed structure, affected
-files, problem, solution, locality/leverage/testability benefits, recommendation
-strength and any ADR conflict. Keep this independent of executing a refactor or
-reopening accepted decisions.
-
 ## Proposal comparison
 
-Repo Canvas is a discussion board. The architecture document is the common model
-for agent edits and human feedback; it is not only a presentation artifact.
-Keep model validity, authored changes and human intent separately inspectable.
-
-Both proposal origins use one **Review changes** entry in the existing proposal.
-Open a read-only dialog with one Before / Changes / After selector, a change list
-and one map. Before is always the captured proposal basis. A stale proposal remains
-inspectable, with Apply disabled in its existing owner. Close returns focus to the
-trigger; review browsing does not alter draft selection, navigation or history.
-Apply to draft and Save retain their current owners outside the comparison.
-
-Compute changes from original stable identities across the whole document,
-including nested nodes, precise relationships, annotations, groups, type definitions
-and title. Separate meaning, structure, evidence and position. Do not infer renames
-or runtime impact. Projected overview lines retain their underlying relationship
-IDs. Selecting a change reveals exact before/after values and its owning scope;
-an absent entity/scope is explicit. Preserve authored coordinates and use readable
-zoom/pan. Changes is a highlighted view of one valid snapshot at a time, never an
-invented merged document. Removed items use the baseline view.
-
-Keep the originating question and frozen human comments available in comparison
-when attached to the proposal. Show their captured revision and targets; they are
-intent for the agent, not new map annotations or a second comment editor. Raw
-JSON remains available for detail. Compact hosts stack the list and map without
-adding duplicate navigation or hiding review controls.
-
-Text must remain readable under discussion: place inline relationship labels only
-where their conservative bounds avoid cards and other labels. Full names remain
-in accessible link controls and relationship inspection when an inline label cannot
-fit. The renderer clips and ellipsizes text within those bounds, including wide
-Unicode glyphs. Hover details render at screen scale and stay within the drawing pane; they
-close when selecting. Dense maps disclose labels on selection/focus.
+See the [proposal comparison contract](canvas-proposal-comparison.md) for the review dialog.
 
 ## Interaction inspection
 
-Keep the existing connection popover and map/chat layout. Its App info control
-also opens tool contracts, conversation fixtures and interaction inspection.
-The same inspection is available in standalone mode. App SDK/HTTP observations
-and server wire observations retain separate identities; they do not invent host
-processing or model responses. Metadata is persisted by default. Saving payloads
-requires an explicit capture of one selected interaction. Closing a discussion
-request cancels the local request only; it cannot cancel an active Codex turn.
+Keep the App info control in the connection popover. It opens the shared
+[diagnostics inspector](mcp-apps.md#connection-diagnostics), including in standalone
+mode. Closing a discussion request cancels the local request only; an active
+Codex turn can continue.
