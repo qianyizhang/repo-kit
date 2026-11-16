@@ -86,6 +86,47 @@ class InstallationTest(unittest.TestCase):
         self.assertIn("CURRENT", result.stdout)
         self.assertEqual(before, (self.receipt().read_bytes(), self.receipt(True).read_bytes()))
 
+    def test_committed_sync_preserves_empty_and_binary_blob_bytes(self) -> None:
+        asset_dir = "ui-discussion/assets/git-blob-fixture"
+        source = self.root / "skills" / asset_dir
+        source.mkdir()
+        assets = {
+            "binary.bin": b"\x00\nblob 8\n\xff\r\n",
+            "empty.bin": b"",
+            "no-newline.txt": b"No final newline",
+        }
+        for name, content in assets.items():
+            (source / name).write_bytes(content)
+        lock = self.cli("skills.py", "lock")
+        self.assertEqual(0, lock.returncode, lock.stderr + lock.stdout)
+        revision = self.commit()
+
+        result = self.cli("skills.py", "sync", "--revision", revision, "--installed-root", str(self.skills))
+        self.assertEqual(0, result.returncode, result.stderr + result.stdout)
+        for name, content in assets.items():
+            self.assertEqual(content, (self.skills / asset_dir / name).read_bytes())
+
+    def test_missing_committed_blob_blocks_sync_without_writes(self) -> None:
+        installed = self.cli("user_instructions.py", "sync", "--revision", "HEAD")
+        self.assertEqual(0, installed.returncode, installed.stderr + installed.stdout)
+        before = self.receipt().read_bytes()
+        guides = Path("practices")
+        present = guides / "a-new-guide.md"
+        missing = guides / "missing-guide.md"
+        (self.root / "user" / present).write_text("# New guide\n")
+        (self.root / "user" / missing).write_text("# Guide with missing committed bytes\n")
+        revision = self.commit()
+        oid = self.git("rev-parse", f"{revision}:user/{missing}")
+        (self.root / ".git/objects" / oid[:2] / oid[2:]).unlink()
+
+        result = self.cli("user_instructions.py", "sync", "--revision", revision)
+        self.assertEqual(1, result.returncode, result.stdout)
+        self.assertIn(f"user/{missing}", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertEqual(before, self.receipt().read_bytes())
+        self.assertFalse((self.home / present).exists())
+        self.assertFalse((self.home / missing).exists())
+
     def test_content_drift_and_missing_files_fail_status_without_writes(self) -> None:
         self.install()
         instruction = self.home / "practices/python.md"

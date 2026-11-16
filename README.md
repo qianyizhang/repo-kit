@@ -21,8 +21,8 @@ python3.12 scripts/user_instructions.py check
 Unmanaged existing files require reviewed adoption first. See
 [adoption, drift protection and recovery](docs/user-instructions.md).
 
-For local or cloud delivery work, issues, PRs and follow-up comments, use the shared
-[GitHub delivery guide](user/practices/github.md).
+For local or cloud delivery work, including CI, releases, issues and PRs, use the
+shared [GitHub delivery guide](user/practices/github.md).
 
 The [read-only issue queue CLI](docs/issue-queue.md) inspects explicit issue
 receipts with `queue`, `status`, `next` and `check`; its fixture mode needs no
@@ -129,25 +129,31 @@ downloads toolchains. Package engines remain enforced by `npm ci`.
 Ref deletions skip installation. The same gate runs in CI because local hooks can
 be bypassed. This repository's npm packages each own a sibling lockfile.
 
-To check a committed candidate directly:
+To run the fresh-install gate on the current commit locally:
 
 ```sh
-python3.12 scripts/check_npm_install.py --revision HEAD
+make check-npm-install
 ```
 
-The [root CI job](.github/workflows/root-checks.yml) runs the same source, unit and
-Ruff checks on pushes and pull requests. It does not install personal instructions.
-Use Python 3.12 and pinned tools; the root stays manifest-free:
+The [root CI job](.github/workflows/root-checks.yml) runs `make ci-check` on pushes
+and PRs. This checks skill sources, runs root unit tests, and checks Python
+format and lint. Use Python 3.12; set up the check environment once per clone:
 
 ```sh
-python3.12 scripts/skills.py check --source-only
-python3.12 -m unittest discover -s tests -v
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff format --check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
-UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools uvx --from ruff==0.16.3 ruff check --config template/ruff_base.toml scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts skills/mcp-app/scripts skills/ui-discussion/scripts
+python3.12 -m venv .venv
+make setup-check
 ```
 
-For `template/` or Copier changes, run with `REPO_KIT_COPIER_SMOKE=1` against a
-reviewed candidate index; use a disposable checkout to exclude unrelated staging.
+```sh
+make ci-check
+```
+
+Use `make check-source`, `make test`, or `make lint` for a focused run. The
+fresh npm installs and executable scaffold and plugin gates are separate from
+`ci-check`.
+
+For `template/` or Copier changes, run `REPO_KIT_COPIER_SMOKE=1 make test` against
+a reviewed candidate index; use a disposable checkout to exclude unrelated staging.
 For user instructions, review `diff`, run `sync`, then `check`.
 For executable plugin changes, use Node 24.21+. Install and check
 `plugins/mcp-app-runtime` first, then run `npm run check` and

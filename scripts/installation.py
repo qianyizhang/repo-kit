@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import io
 import json
 import os
 import re
@@ -22,8 +23,8 @@ def valid_revision(value: object) -> bool:
     return value is None or (isinstance(value, str) and re.fullmatch(r"[a-f0-9]{40}", value) is not None)
 
 
-def git(root: Path, *args: str) -> bytes:
-    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=False)
+def git(root: Path, *args: str, data: bytes | None = None) -> bytes:
+    result = subprocess.run(["git", "-C", str(root), *args], input=data, capture_output=True, check=False)
     if result.returncode:
         raise ValueError(result.stderr.decode(errors="replace").strip())
     return result.stdout
@@ -35,7 +36,7 @@ def resolve_revision(root: Path, revision: str) -> str:
 
 def revision_files(root: Path, revision: str, paths: Sequence[str]) -> dict[str, bytes]:
     entries = git(root, "ls-tree", "-rz", "--full-tree", revision, "--", *paths)
-    content = {}
+    objects: dict[str, bytes] = {}
     for entry in entries.split(b"\0"):
         if not entry:
             continue
@@ -43,7 +44,27 @@ def revision_files(root: Path, revision: str, paths: Sequence[str]) -> dict[str,
         mode, kind, object_id = info.split()
         if kind != "blob" or mode not in {"100644", "100755"}:
             raise ValueError(f"Unsupported committed bundle entry: {name}")
-        content[name] = git(root, "cat-file", "blob", object_id)
+        objects[name] = object_id.encode("ascii")
+    if not objects:
+        return {}
+
+    requests = b"\n".join(objects.values()) + b"\n"
+    content: dict[str, bytes] = {}
+    with io.BytesIO(git(root, "cat-file", "--batch", data=requests)) as stream:
+        for name, object_id in objects.items():
+            header = stream.readline().split()
+            if header == [object_id, b"missing"]:
+                raise ValueError(f"Missing committed bundle blob: {name}")
+            if len(header) != 3 or header[:2] != [object_id, b"blob"] or not header[2].isdigit():
+                raise ValueError(f"Invalid committed bundle blob header: {name}")
+            # Blob contents can contain newlines and NULs; only the header is a line.
+            size = int(header[2])
+            blob = stream.read(size)
+            if len(blob) != size or stream.read(1) != b"\n":
+                raise ValueError(f"Incomplete committed bundle blob: {name}")
+            content[name] = blob
+        if stream.read(1):
+            raise ValueError("Unexpected data after committed bundle blobs")
     return content
 
 

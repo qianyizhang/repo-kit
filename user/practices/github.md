@@ -51,6 +51,33 @@ their owning configuration.
   Installation integrity follows the [TypeScript guide](typescript.md) and any
   stricter repository gate.
 
+## CI and release checks
+
+- **Start with Make.** Prefer a root `Makefile` with `make ci-check` for routine
+  checks and targets such as `make test` and `make lint` for focused work.
+  Delegate to the existing runners. Pin the toolchain and dependencies, and
+  provision them in a separate setup step. Run the same routine target locally
+  and in one required PR workflow with read-only permissions.
+- **Separate scope from network use.** Routine checks cover the main contracts
+  with small, repeatable fixtures and no live services after setup. Document
+  `make check-full` or the existing named suites for releases, major refactors and
+  changes with uncertain impact. State prerequisites and whether each suite can
+  run offline. Run the relevant heavier check earlier when its inputs change.
+  Preserve existing required gates when adding these entry points.
+- **Measure before adding jobs.** Aim for about 30 seconds locally with tools
+  ready and under two minutes from PR update to required CI verdict. Track
+  queue, checkout and setup, and checks on the longest job path. Monitor CI to
+  a terminal result. If routine feedback misses either target, compare the same
+  change with the same coverage and record the bottleneck and next fix. The
+  targets are for feedback time; keep failure behavior and coverage intact.
+- **Keep selection safe.** Add change selection only when measurements justify
+  it. Scope jobs inside the required workflow and keep one required result that
+  reports failures and expected skips. Missing or uncertain inputs select broader
+  coverage. Check cheap docs changes without installing unrelated dependencies.
+- **Separate publication.** Use a protected release job with only the permissions
+  it needs. Require the applicable release checks and publish the exact artifact
+  they verified. Record the revision, publication result, and rollback path.
+
 ## Keep work moving
 
 - **Own the handoff:** the coordinator owns completion → review → next dispatch.
@@ -100,11 +127,6 @@ gap and capture needed; never invent evidence or claim visual verification.
   and rationale. Reuse evidence while its source and conditions support the claim.
 - **History:** preserve identities, provenance, prior decisions and paused/retired
   scopes. Correct stale claims explicitly; a rewrite does not reopen work.
-- **CI:** Monitor PR CI to a terminal result. If wall-clock time exceeds two minutes
-  or work is disproportionate (for example, two minutes for docs), separate queue,
-  setup and checks on the critical path; report the measured bottleneck and a
-  scoped fix proposal. Preserve required checks; timing does not establish
-  correctness or coverage.
 - **Authority:** this guide adds no permission to publish assets/Sites, change
   access, spend, merge or resume paused work.
 
