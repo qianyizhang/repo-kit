@@ -1,0 +1,5 @@
+interface:
+  display_name: "Socratic Tutor"
+  short_description: "Practise a topic one question at a time"
+policy:
+  allow_implicit_invocation: true

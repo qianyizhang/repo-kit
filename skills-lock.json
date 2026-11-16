@@ -65,6 +65,9 @@
     "simplify-repository/agents/openai.yaml": "27eab88f6d984ed5873e355f75eb03fe6bda0081874d4a62d253d2701e4ce6c7",
     "simplify-repository/assets/icon.svg": "72343cc4b66256ae7de8474c7cad14e711ad84a94c473732a44f96a56124c42d",
     "simplify-repository/references/principles.md": "124c2ed2a22246c01781d9d1a0bf715a3487d9af7f34044e8dbce7f2b791866e",
+    "socratic-tutor/LICENSE": "92cd3e89e1331afd684eef3d4e98c3e53259f572cc57667b63da223f61ecbc84",
+    "socratic-tutor/SKILL.md": "0f255d2dca508b00ec1b42e7ad297b7338e03d449692640d488d86f2c5c96daf",
+    "socratic-tutor/agents/openai.yaml": "cdfbe3a09d96361e22ec89f9ab3033e6d1e3542c9705ed692de356421f164246",
     "ui-discussion/SKILL.md": "43ddaf3ab46bce96b0f1c8b0eaeb5c23185fdcebdde9173b205995c319993826",
     "ui-discussion/agents/openai.yaml": "98a05567898f30b7059df6433752c62d725754e425591a606118ef05b93e6cc6",
     "ui-discussion/assets/behavior-atlas/.gitignore": "e6d5b7b799faadab771b92ae8a8c98c10189223e50bb23eb38341ab3aa2b6cf1",
@@ -117,7 +120,8 @@
     "simplify-repository",
     "ui-discussion",
     "mcp-app",
-    "reconcile-main"
+    "reconcile-main",
+    "socratic-tutor"
   ],
   "upstream": {
     "files": {

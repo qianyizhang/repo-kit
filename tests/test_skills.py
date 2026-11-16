@@ -38,11 +38,10 @@ class SkillSyncTest(unittest.TestCase):
         shutil.rmtree(previous / "skills/ui-discussion")
         lock = json.loads((previous / "skills-lock.json").read_text())
         lock["skills"].remove("ui-discussion")
-        lock["files"] = {p: h for p, h in lock["files"].items() if not p.startswith("ui-discussion/")}
         MODULE.write_json(previous / "skills-lock.json", lock)
-        with patch.object(MODULE, "LOCAL_SKILLS", tuple(n for n in MODULE.LOCAL_SKILLS if n != "ui-discussion")):
-            with contextlib.redirect_stdout(io.StringIO()):
-                MODULE.sync(previous, self.target, apply=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            MODULE.relock(previous)
+            MODULE.sync(previous, self.target, apply=True)
 
     def test_additive_upgrade_preserves_existing_skills_and_recovery(self) -> None:
         self.install_previous_selection()
@@ -442,7 +441,7 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         manual = ("retro", "improve-codebase-architecture")
         for name in manual:
             self.assertIn(b"allow_implicit_invocation: false", content[f"{name}/agents/openai.yaml"])
-        for name in set(MODULE.LOCAL_SKILLS) - set(manual):
+        for name in set(lock["skills"]) - set(MODULE.UPSTREAM_SKILLS):
             self.assertNotIn(b"allow_implicit_invocation: false", content[f"{name}/agents/openai.yaml"])
 
 

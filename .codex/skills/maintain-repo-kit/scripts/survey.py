@@ -120,28 +120,41 @@ def action_for(branch: str, base: str, behind: int, ahead: int) -> str:
     return "intent review required"
 
 
-def survey_branches(repo: Path, base: str) -> None:
+def worktree_dirty(path: Path) -> str:
+    if not path.is_dir():
+        return "missing"
+    try:
+        return "yes" if git_text(path, "status", "--porcelain=v1") else "no"
+    except subprocess.CalledProcessError:
+        if not path.is_dir():
+            return "missing"
+        raise
+
+
+def survey_branches(repo: Path, base: str) -> bool:
     print("## Local branches and worktrees\n")
     print("| Branch | Behind | Ahead | Worktree | Dirty | Candidate action |")
     print("| --- | ---: | ---: | --- | --- | --- |")
     trees = worktrees(repo)
     tree_by_branch = {item.branch: item.path for item in trees if item.branch}
+    dirty_by_path = {item.path: worktree_dirty(item.path) for item in trees}
     branches = git_text(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads").splitlines()
     for branch in sorted(branches):
         behind, ahead = relation(repo, base, branch)
         tree = tree_by_branch.get(branch)
-        dirty = "—"
-        if tree:
-            dirty = "yes" if git_text(tree, "status", "--porcelain=v1") else "no"
+        dirty = dirty_by_path[tree] if tree else "—"
         location = f"`{tree}`" if tree else "—"
-        print(f"| `{branch}` | {behind} | {ahead} | {location} | {dirty} | {action_for(branch, base, behind, ahead)} |")
+        action = "review missing worktree" if dirty == "missing" else action_for(branch, base, behind, ahead)
+        print(f"| `{branch}` | {behind} | {ahead} | {location} | {dirty} | {action} |")
     for tree in trees:
         if tree.branch is not None:
             continue
         behind, ahead = relation(repo, base, tree.head)
-        dirty = "yes" if git_text(tree.path, "status", "--porcelain=v1") else "no"
-        print(f"| `detached@{tree.head[:12]}` | {behind} | {ahead} | `{tree.path}` | {dirty} | inspect retained work |")
+        dirty = dirty_by_path[tree.path]
+        action = "review missing worktree" if dirty == "missing" else "inspect retained work"
+        print(f"| `detached@{tree.head[:12]}` | {behind} | {ahead} | `{tree.path}` | {dirty} | {action} |")
     print()
+    return "missing" not in dirty_by_path.values()
 
 
 def tracked_template_files(repo: Path, ref: str) -> list[str]:
@@ -275,13 +288,12 @@ def main() -> int:
     print("- Mode: read-only")
     print(f"- Kit worktree dirty: `{'yes' if git_text(repo, 'status', '--porcelain=v1') else 'no'}`")
     print("- Comparison source: committed HEAD; staged and unstaged kit changes are excluded.\n")
-    survey_branches(repo, args.base)
+    complete = survey_branches(repo, args.base)
 
     print("## Copier consumers\n")
     discovered = consumers(repo, parent)
     if not discovered:
         print("No consumers found.\n")
-    complete = True
     for consumer in discovered:
         try:
             complete = survey_consumer(repo, consumer) and complete

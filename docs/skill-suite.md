@@ -1,8 +1,10 @@
 # Shared skill suite
 
 `skills/` is the canonical shared bundle. [skills-lock.json](../skills-lock.json)
-owns selection, delivered hashes, upstream revisions and original hashes, and
-local adaptations with their reasons. Preserve upstream attribution and licenses.
+owns the local selection and pins delivered hashes. [scripts/skills.py](../scripts/skills.py)
+defines the Matt Pocock import set; the lock records its upstream baseline and
+entrypoint adaptations. Each revision carries its own local selection. Preserve
+other imported skills' source revisions and licenses alongside their local copies.
 Skills install once per user; repository-specific skills and contracts stay local.
 Workbench ships its own [file-map skill](../plugins/repo-workbench/skills/repo-file-map/SKILL.md)
 and runtime; it is not installed by this shared-skill sync. Cleanup implementation
@@ -39,8 +41,9 @@ Preserve and reconcile local edits or retired skills before retrying.
 Previous managed files and their receipt remain under `.repo-kit-skill-backups/`
 beside the resolved destination, outside skill discovery. An interrupted update
 leaves a record: `check` and `diff` report it without writing. The next explicit
-`sync` verifies old/new hashes and backups, restores the previous installation,
-then retries. A completed update only needs its leftover record removed.
+`sync` against the same skill selection verifies old/new hashes and backups,
+restores the previous installation, then retries. A completed update only needs
+its leftover record removed.
 Unexpected edits or changed backups stop recovery before paths move; preserve
 and reconcile them manually. This handles process interruption, not power loss.
 
@@ -50,8 +53,8 @@ before applying another lock.
 
 ## Review an update
 
-Inspect selected upstream skills, dependencies and invocation policy in a clean,
-disposable checkout. Use its exact reviewed commit:
+For the Matt Pocock upstream, inspect selected skills, dependencies and invocation
+policy in a clean, disposable checkout. Use its exact reviewed commit:
 
 ```sh
 python3.12 scripts/skills.py refresh --upstream-checkout /path/to/clean/checkout --revision FULL_COMMIT
@@ -66,11 +69,12 @@ upstream baselines. A changed or removed adapted file stops refresh before
 writes; reconcile the adaptation and exact provenance explicitly.
 
 For reviewed local-skill or adaptation edits, run
-`python3.12 scripts/skills.py lock`. Only declared entrypoint adaptations may
-differ; upstream supporting files, metadata and license stay unchanged. Use the
-current script: schema 2 makes older check/sync/lock commands reject adapted
-bundles, while the current script still reads legacy unadapted locks. Installation
-receipts and recovery remain schema 1.
+`python3.12 scripts/skills.py lock`. For a new local skill, add its name to the
+lock's `skills` list first; `lock` generates the file hashes. Only declared
+entrypoint adaptations may differ; upstream supporting files, metadata and
+license stay unchanged. Use the current script: schema 2 makes older
+check/sync/lock commands reject adapted bundles, while the current script still
+reads legacy unadapted locks. Installation receipts and recovery remain schema 1.
 
 Review upstream monthly or when friction appears; no background updater is
 installed. Test changed instructions on a representative task as well as through
@@ -91,7 +95,7 @@ no copied local rules, mandatory ledger or repeated confirmation.
 
 ## Selection and provenance
 
-The lock owns the current selection. These records explain local additions:
+These records explain local additions:
 
 - [Shared delivery decision](models.md#decisions): the initial
   2026-10-14 migration retired generic wrappers, `glossary-drill` and the maintained
@@ -103,6 +107,10 @@ The lock owns the current selection. These records explain local additions:
   2026-10-19 from the [user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
   version 2. The local workflow now uses scope-driven discovery and delegates final
   closeout to `finish-work`; upstream references, host metadata and icon remain.
+- [Socratic tutor](../skills/socratic-tutor/SKILL.md): adapts Jane Street's tutor
+  for requested practice and mastery. It fills a different role from `grilling`,
+  which resolves decisions, and `show-me`, which explains a mechanism. The skill
+  carries its source revision and MIT license and is maintained locally.
 
 Temporary migration recovery is retained only for a named unresolved obligation;
 remove it after resolution under the [artifact rules](../user/practices/artifacts.md).

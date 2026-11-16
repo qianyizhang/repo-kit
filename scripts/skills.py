@@ -28,15 +28,6 @@ UPSTREAM_SKILLS = (
     "grilling",
     "writing-for-agents",
 )
-LOCAL_SKILLS = (
-    "next-slice",
-    "show-me",
-    "finish-work",
-    "simplify-repository",
-    "ui-discussion",
-    "mcp-app",
-    "reconcile-main",
-)
 RECEIPT = ".repo-kit-skills.json"
 INTERRUPTED = ".repo-kit-skills-interrupted.json"
 
@@ -64,8 +55,7 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
-def validate_content(content: dict) -> None:
-    names = UPSTREAM_SKILLS + LOCAL_SKILLS
+def validate_content(content: dict, names: list[str]) -> None:
     for path in content:
         if path != "mattpocock-LICENSE" and ("/" not in path or path.split("/")[0] not in names):
             raise ValueError(f"Unexpected bundle path: {path}")
@@ -78,13 +68,19 @@ def validate_content(content: dict) -> None:
 
 def read_lock(root: Path) -> dict:
     lock = json.loads((root / "skills-lock.json").read_text(encoding="utf-8"))
-    if lock.get("schemaVersion") not in (1, 2) or set(lock["skills"]) != set(UPSTREAM_SKILLS + LOCAL_SKILLS):
+    names = lock["skills"]
+    if (
+        lock.get("schemaVersion") not in (1, 2)
+        or not isinstance(names, list)
+        or not all(isinstance(name, str) and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names)
+        or len(set(names)) != len(names)
+        or not set(UPSTREAM_SKILLS) <= set(names)
+    ):
         raise ValueError("Invalid skill lock schema or selection")
     for inventory in (lock["files"], lock["upstream"]["files"]):
         for path, value in inventory.items():
             if Path(path).is_absolute() or ".." in Path(path).parts or not re.fullmatch(r"[a-f0-9]{64}", value):
                 raise ValueError(f"Invalid locked path or digest: {path}")
-    validate_content(lock["files"])
     adaptations = lock.get("adaptations", {})
     if not isinstance(adaptations, dict) or (lock["schemaVersion"] == 1 and adaptations):
         raise ValueError("Adaptations require skill lock schema 2")
@@ -111,6 +107,7 @@ def validate_upstream(lock: dict, inventory: dict[str, str]) -> None:
 
 def bundle(root: Path) -> tuple[dict, dict[str, bytes]]:
     lock = read_lock(root)
+    validate_content(lock["files"], lock["skills"])
     content = files(root / "skills")
     if hashes(content) != lock["files"]:
         raise ValueError("Bundle differs from skills-lock.json; review changes and run lock or refresh")
@@ -144,7 +141,7 @@ def entry_hashes(path: Path) -> dict[str, str]:
     return {"": digest(path.read_bytes())} if path.exists() else {}
 
 
-def recover_installation(target: Path, *, apply: bool) -> None:
+def recover_installation(target: Path, skill_names: list[str], *, apply: bool) -> None:
     """Roll back a known interrupted replacement; never infer ownership from missing files."""
     marker = target / INTERRUPTED
     if marker.is_symlink():
@@ -154,7 +151,7 @@ def recover_installation(target: Path, *, apply: bool) -> None:
     if not apply:
         raise ValueError("Interrupted installation; run sync to verify recovery and retry")
     record = json.loads(marker.read_text())
-    names = [*UPSTREAM_SKILLS, *LOCAL_SKILLS, "mattpocock-LICENSE", RECEIPT]
+    names = [*skill_names, "mattpocock-LICENSE", RECEIPT]
     if (
         record.get("schemaVersion") != 1
         or not re.fullmatch(r"[a-f0-9]{16}(?:-[\w-]+)?", record["recovery"])
@@ -214,7 +211,7 @@ def sync(
             "skills-lock.json": (root / "skills-lock.json").read_bytes(),
         },
     )
-    recover_installation(target, apply=apply)
+    recover_installation(target, lock["skills"], apply=apply)
     receipt_path = target / RECEIPT
     if receipt_path.is_symlink():
         raise ValueError("Installation receipt must not be a symlink")
@@ -354,8 +351,9 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
     if conflicts:
         raise ValueError("Upstream changed adapted files; reconcile before refresh: " + ", ".join(sorted(conflicts)))
     delivered = {**upstream_content, **{p: content[p] for p in adaptations}}
-    local_content = {p: data for p, data in content.items() if p.split("/")[0] in LOCAL_SKILLS}
-    validate_content({**local_content, **delivered})
+    local_names = set(previous["skills"]) - set(UPSTREAM_SKILLS)
+    local_content = {p: data for p, data in content.items() if p.split("/")[0] in local_names}
+    validate_content({**local_content, **delivered}, previous["skills"])
     for name in UPSTREAM_SKILLS:
         if (destination / name).exists():
             shutil.rmtree(destination / name)
@@ -367,7 +365,7 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
         root / "skills-lock.json",
         {
             "schemaVersion": 2,
-            "skills": list(UPSTREAM_SKILLS + LOCAL_SKILLS),
+            "skills": previous["skills"],
             "adaptations": adaptations,
             "upstream": {
                 "repository": "https://github.com/mattpocock/skills",
@@ -384,7 +382,7 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
 def relock(root: Path) -> None:
     lock = read_lock(root)
     content = files(root / "skills")
-    validate_content(content)
+    validate_content(content, lock["skills"])
     validate_upstream(lock, hashes(content))
     lock["schemaVersion"] = 2
     lock["files"] = hashes(content)

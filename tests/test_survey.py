@@ -110,6 +110,30 @@ class SurveyTest(unittest.TestCase):
         self.assertIn("detached@", output.getvalue())
         self.assertIn(f"`{detached}` | yes | inspect retained work", output.getvalue())
 
+    def test_missing_worktrees_are_reported_without_stopping_survey(self) -> None:
+        branch = self.parent / "missing-branch"
+        detached = self.parent / "missing-detached"
+        self.git(self.repo, "worktree", "add", "-b", "feature", str(branch), "HEAD")
+        self.git(self.repo, "worktree", "add", "--detach", str(detached), "HEAD")
+        for path in (branch, detached):
+            path.rename(path.with_suffix(".moved"))
+        registered = self.git(self.repo, "worktree", "list", "--porcelain")
+
+        result = subprocess.run(
+            [sys.executable, survey.__file__, "--repo", str(self.repo)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(1, result.returncode, result.stderr)
+        self.assertEqual("", result.stderr)
+        self.assertIn(f"| `feature` | 0 | 0 | `{branch}` | missing |", result.stdout)
+        self.assertIn(f"| `{detached}` | missing |", result.stdout)
+        self.assertIn(f"| `main` | 0 | 0 | `{self.repo}` | no | keep base |", result.stdout)
+        self.assertIn("### consumer", result.stdout)
+        self.assertEqual(registered, self.git(self.repo, "worktree", "list", "--porcelain"))
+
     def test_unavailable_baseline_is_incomplete(self) -> None:
         self.write(self.consumer, ".copier-answers.yml", "_commit: missing-ref\n")
         complete, output = self.capture_consumer()
