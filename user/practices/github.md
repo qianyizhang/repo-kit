@@ -27,6 +27,16 @@ A passing local gate does not establish hosted, installed, UI or live-service
 acceptance. Name each verified surface. After a push, report hosted acceptance
 as pending until the required checks finish.
 
+### Benchmark claims
+
+Name the decision and the smallest difference that would matter. Verify that
+the timed work completed, check its outputs and count failures. Compare
+equivalent workloads and settings with repeated, interleaved runs. Report the
+run count and spread. If variation could explain the difference, call the result
+inconclusive and repair the measurement before choosing a winner. For a
+requested ballpark, label a single valid run as an estimate and reserve speedup
+claims and decisions for the repeated comparison.
+
 ## CI and release checks
 
 Use this section when changing checks, CI or publication.
