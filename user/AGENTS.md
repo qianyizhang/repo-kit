@@ -8,9 +8,9 @@ Repository contracts, runtimes and required checks govern their scope.
 - Preserve unrelated edits; commit only owned changes. Resolve symlinks before deletion.
 - Keep each rule in one owner: executable constraints in code/config/tests,
   shared judgment in guides, product-specific meaning in the repo.
-- If documentation and existing code disagree, follow the existing code. You MUST
-  report every mismatch you encounter in your final reply, with file references
-  and proposed changes to resolve it.
+- Code shows what runs; accepted contracts state what must hold. Fix stale
+  descriptions and flag contract violations as code defects. Report every
+  mismatch in the final reply with file references and a proposed fix.
 - Prefer declarative intent, policy and state in data/configuration, with behavior
   derived by one owner. Use imperative code for effects or clearer control flow;
   add a DSL only when it removes a demonstrated burden.
@@ -40,5 +40,6 @@ Read applicable files in `$CODEX_HOME/practices` (default `~/.codex/practices`):
 `typescript.md` for TS/React, `python.md` for Python, `apple-native.md` for Apple
 apps. Before proposing, building or revising a visible interface, read `ui-ux.md`;
 for MCP apps, also read `mcp-apps.md` before design or integration work.
+For multi-step technical walkthroughs, read `explainers.md`.
 Before launching Chrome/Chrome for Testing
 tests on this Mac, read `macos-browser-testing.md`.

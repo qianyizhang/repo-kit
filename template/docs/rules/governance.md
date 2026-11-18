@@ -2,7 +2,7 @@
 description: Portable doctrine for scoped authority, core models, toolchain layout, and governance propagation.
 scope: repo governance rules
 status: stable
-last_update: 2026-11-16
+last_update: 2026-11-17
 document_class: coordination
 ---
 
@@ -27,7 +27,9 @@ One meaning lives once, at the lowest level that fully owns it:
 
 - executable behavior belongs in code, tests, schemas, or configuration;
 - a cross-shard contract belongs in its owning contract, schema, or API;
-- an ADR owns the durable reason for a significant trade-off;
+- an ADR owns the durable reason for a significant trade-off. Link a standalone
+  ADR from the current contract or guide it informs. Link a superseded ADR to
+  its replacement and preserve the original rationale;
 - the glossary owns canonical domain terms;
 - a core model owns the few relationships that govern several contracts or
   decisions.

@@ -2,7 +2,7 @@
 name: show-me
 description: Explain a mechanism, relationship, data flow or change with the smallest useful visual grounded in available evidence.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 # Show me
@@ -30,6 +30,11 @@ dependency or call is not an observed runtime trace. Mark proposals and unknowns
 beside the affected claim. Distinguish recorded dates and durations from illustrative
 timing; leave unavailable measurements unknown. Keep prose short and explain meaning
 rather than repeat the picture.
+
+For connected lessons or multi-step learning, read `user/practices/explainers.md`
+in repo-kit, or `$CODEX_HOME/practices/explainers.md` elsewhere (default
+`~/.codex/practices/explainers.md`). It owns progressive encounters, connected
+routes, state continuity and learner acceptance.
 
 For data transformations, read [show the states](references/data-transformations.md)
 and trace a representative record through what the consumer sees and what is stored.

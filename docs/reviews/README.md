@@ -1,8 +1,8 @@
 # Review outcomes
 
-Condensed on 24 October 2026. These are historical decisions and limits, not
-current verification results. Current source and contracts own behavior. Completed
-maps, captures, test logs and per-file hash receipts have been removed.
+These entries record historical decisions, results and limits. Current source
+and contracts own behavior and verification. Completed maps, captures, test logs
+and per-file hash receipts have been removed.
 
 ## Product outcomes
 
@@ -31,6 +31,27 @@ maps, captures, test logs and per-file hash receipts have been removed.
   splitting bundles. These are follow-ups, not new implementation authorization.
 
 ## Guidance outcomes and attribution
+
+- **Connected learning trial, 11 November:** user feedback favored a visible whole,
+  one meaningful action, concrete reinforcement and reversible routes. Earlier
+  attempts exposed too many controls, isolated examples and text-only recaps.
+  The isolated DCC candidate had four routes and 22 encounters. Its 48 behavior
+  tests and bounded browser/numerical checks covered paired samples, explicit
+  clocks, nested returns, narrow views and failure recovery. A dynamic route
+  fixture exercised the shared session without engine edits. The
+  [walkthrough practice](../../user/practices/explainers.md) owns the concise rules;
+  Bio OS was identified as a transfer trial. These results establish
+  implementation behavior and user preference. Comprehension remains unmeasured.
+
+- **Night Passage Animation Lab, 10 November:** user feedback identified terms
+  introduced before their roles, unrelated measurements, and confusing stillness.
+  The revision followed the right knee from the Blender rig to the exported swing,
+  aligned attack contact across the game and clip clocks, then distinguished the
+  knee joint from a point on the trousers. It moved pseudocode and raw coordinates
+  behind disclosure. The [explainer practice](../../user/practices/explainers.md)
+  owns the portable guidance. The example used game source `9e8a9544af6b` and
+  sampled rig and delivery data. Same-agent browser checks verified the comparisons
+  and interactions; they did not establish reader comprehension.
 
 - **Shader Pipeline Lab, 4 November:** the initial mesh stage exposed nine enabled
   scene controls although its mesh diagram was fixed; the page was 2,130 px tall

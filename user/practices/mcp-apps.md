@@ -1,69 +1,24 @@
 # MCP Apps
 
-Build each interactive tool in two modes: a standalone app and a Codex MCP App.
-Share domain operations, state rules and views; adapt transport and host controls.
-A development host can exercise integration, but simulated chat is not native
-Codex acceptance. Read the repository's design and runtime contracts first.
+Build an MCP App with a useful standalone mode. Share domain operations,
+validation and views across both modes. The host adapter owns host-specific
+capabilities; server checks enforce authority. Keep product exceptions in the repo.
 
-## Build and review
+- Name the app, host, conversation and server. Show the action's destination
+  and scope. Send the user's text as written; freeze any explicitly attached
+  context. Ordinary sends need no evidence lookup. Keep summary, exact reads
+  and provenance separately scoped.
+- Distinguish acknowledgment, completion and uncertain delivery. Apply and Save
+  are distinct. Preserve the draft and check delivery before an explicit retry.
+- Make the frozen request and observed result inspectable, including failures.
+  Inspection never repeats the action. Persist metadata by default; save payloads
+  only in an explicit bounded capture. Label omissions and inferred connections.
+- Report what was verified: standalone, source build, installed server or active
+  panel. A simulated chat or fresh probe cannot verify the actual Codex session.
 
-Use the `mcp-app` skill for implementation and integration debugging. It owns the
-build sequence, observability starter, payload/status contracts and boundary tests.
-Use `ui-discussion --mcp` for a visual review with a tool catalog, conversation
-fixtures, data-flow sequence and standalone/logging coverage. Keep domain-specific
-commands and exceptions in the product repository.
-
-## Action and evidence principles
-
-- **Honor the action.** Send the user's text directly to the owning conversation.
-  Context attachment is explicit, frozen and bounded; ordinary messages require
-  no evidence lookup. Summaries, exact source reads and provenance have distinct
-  scoped APIs. Fetch provenance only when needed. Apply and Save remain separate.
-- **Make the boundary visible.** Name the app, host, main conversation and server.
-  Show destination, scope and meaningful status. An acknowledgment is evidence of
-  acceptance, not an assistant reply or a completed external effect.
-- **Keep one owner.** Domain operations and schemas serve both HTTP and MCP;
-  server validation enforces authority. Generate the catalog from registrations.
-  App-only visibility is discovery metadata, not authorization.
-- **Make interactions inspectable.** Keep App info (ⓘ) available. Expose build,
-  mode, connection/capabilities and canonical log location. Let users inspect the
-  frozen request/result of each action, including failure. Label redaction,
-  truncation, missing observations and recording failure. Logs remain outside
-  ordinary model context; inspection must not repeat the action. Persist metadata
-  by default, inspect payloads live, and save payloads only for an explicitly
-  selected diagnostic capture. Explain that uncaptured payloads can be lost.
-- **Keep evidence honest.** Correlate observed boundaries through explicit IDs.
-  Local receipt order is not proof of cross-process causality. Distinguish live
-  observations, deterministic fixtures and unobserved host/model work.
-- **Prove the delivered route.** Source, package, installed server and active panel
-  are different acceptance layers. Test standalone operation and the real host
-  adapter, then report exactly which layers were verified.
-
-## Footguns
-
-- **Sandbox assumptions:** iframe localhost fetches, relative assets, localStorage
-  and History APIs may fail. Use the host bridge; keep view state usable without
-  storage, and route external links through the host when embedded.
-- **Blocked dialog controls:** a sandbox without `allow-forms` can block
-  `<form method="dialog">` submission, leaving Close/Cancel inert. Use
-  `type="button"` controls that call `dialog.close()`. Test dismissal in the
-  actual sandbox configuration, including Escape and focus return.
-- **False success:** transport success can contain `isError`. Parse the result.
-  Message acknowledgment means accepted delivery, not a completed model reply.
-  On timeout, show uncertain delivery and preserve the draft and selected context;
-  never auto-resend.
-- **Invented traces:** a host acknowledgment is not an observed conversation/model
-  event. Wire IDs and clocks may be local to a boundary; correlate across boundaries
-  only with explicit evidence and label inferred links. Preserve receipt order in
-  the log. A completed response is not a token stream; do not animate invented
-  chunks or fill unobserved steps with synthetic events in a live view.
-- **Stale state:** guard asynchronous results after switching/closing; pin lazy
-  source reads to their revision. Refreshing must not overwrite a newer draft.
-- **Oversharing:** keep full payloads out of routine model results and diagnostics.
-  Load bodies/images on demand; bound retained contexts, messages and logs.
-- **Stale installation:** source, package, cached server and active panel can be
-  different builds. Report each verified layer; restarting a separate probe
-  does not reload the desktop's server. Preserve drafts before reconnecting.
-
-Source review summary: `docs/reviews/README.md` in repo-kit.
-Keep product-specific commands and exceptions in their repository.
+Use `mcp-app` for implementation, diagnostics and boundary tests; use
+`ui-discussion --mcp` for visual review. In the hosted iframe, test without assuming
+localhost access, storage, relative assets or History APIs. Use the host bridge,
+route external links through the host and keep view state usable without storage.
+If form submission is blocked, close dialogs with a `type="button"` control that
+calls `dialog.close()`. Check dismissal, Escape and focus return in that host.
