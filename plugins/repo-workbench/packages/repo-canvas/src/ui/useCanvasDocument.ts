@@ -4,7 +4,13 @@ import { parseDocument, type Architecture } from '../model/document';
 import { initialDraft, transitionDraft } from '../model/draft';
 import { draftSchema } from '../model/contracts';
 import { request, type Session } from './api';
-import { hosted, prepareHost, rememberRepository, connectionStatus } from './host';
+import {
+  hosted,
+  prepareHost,
+  rememberRepository,
+  connectionStatus,
+  rememberLiveDraft,
+} from './host';
 
 /** Owns draft recovery, revision conflicts, save, history, and valid document navigation. */
 export function useCanvasDocument() {
@@ -133,13 +139,13 @@ export function useCanvasDocument() {
   }, [session, document, dirty, scope, selection, selections]);
   useEffect(() => {
     if (!session || !document) return;
+    const draft = dirty
+      ? { document, revision: session.revision, scope, selection, selections }
+      : null;
+    if (hosted) rememberLiveDraft(draft);
     const timer = setTimeout(
       () => {
-        void request('draft_write', session.token, {
-          draft: dirty
-            ? { document, revision: session.revision, scope, selection, selections }
-            : null,
-        }).catch(() => {
+        void request('draft_write', session.token, { draft }).catch(() => {
           /* Local draft remains intact if the bridge disconnects. */
         });
       },

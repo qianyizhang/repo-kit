@@ -7,6 +7,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { z } from "zod";
 const client = new Client({ name: "test-host", version: "1" });
+const threadId = randomUUID();
 const nonce = randomUUID(),
   port = 4398;
 await client.connect(
@@ -63,7 +64,10 @@ createServer(async (request, response) => {
       response.setHeader("Content-Type", "application/json");
       response.end(
         JSON.stringify(
-          await client.callTool(toolInput.parse(JSON.parse(text))),
+          await client.callTool({
+            ...toolInput.parse(JSON.parse(text)),
+            _meta: { threadId },
+          }),
         ),
       );
     } else {

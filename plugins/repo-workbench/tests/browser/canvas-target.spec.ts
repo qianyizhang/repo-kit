@@ -194,6 +194,18 @@ test('native metadata binds without messages; picker and restart preserve select
     persisted.close();
     await expect(newChat.locator('.checkout-path')).toHaveText(repos[1], { timeout: 12000 });
     await expect(picker.locator('.checkout-path')).not.toBeVisible();
+    const listContexts = async (threadId = newChatId) => {
+      const result = await client.callTool({
+        name: 'canvas_requests',
+        arguments: {},
+        _meta: { threadId },
+      });
+      const content = (result.content as Array<{ text: string }>)[0];
+      return (JSON.parse(content.text) as { canvases: unknown[] }).canvases.length;
+    };
+    expect(await listContexts()).toBe(1);
+    await pages[3].evaluate(() => window.testHost.teardownResource({}));
+    await expect.poll(listContexts).toBe(0);
     await second.getByRole('button', { name: 'Inspect src', exact: true }).click();
     await second.getByRole('button', { name: 'Inspect', exact: true }).click();
     await second.getByRole('button', { name: 'Edit', exact: true }).click();
@@ -224,23 +236,7 @@ test('native metadata binds without messages; picker and restart preserve select
     await pages[1].screenshot({ path: info.outputPath('connection-info.png') });
     await client.close();
     client = await start();
-    await expect
-      .poll(
-        async () => {
-          const result = await client.callTool({
-            name: 'canvas_requests',
-            arguments: {},
-            _meta: { threadId: ids[0] },
-          });
-          return (
-            JSON.parse((result.content as Array<{ text: string }>)[0].text) as {
-              canvases: unknown[];
-            }
-          ).canvases.length;
-        },
-        { timeout: 15000 },
-      )
-      .toBe(1);
+    await expect.poll(() => listContexts(ids[0]), { timeout: 15000 }).toBe(1);
     // The old draft stays visible during recovery. Wait for the new context to own it.
     await expect(async () => {
       await second.getByRole('button', { name: 'Refresh status', exact: true }).click();

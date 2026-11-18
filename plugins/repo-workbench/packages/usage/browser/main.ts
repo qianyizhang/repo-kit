@@ -574,9 +574,7 @@ export function mountUsage(initial: UsageData, host?: UsageHost) {
   });
   element('refresh').addEventListener('click', () => {
     if (!host && !['http:', 'https:'].includes(location.protocol)) {
-      message(
-        'This is a saved snapshot. Re-run npm run usage:dashboard, or use --serve for local refresh.',
-      );
+      message('This is a saved snapshot. Use repo-workbench usage --serve to refresh local logs.');
       return;
     }
     const b = element<HTMLButtonElement>('refresh');
@@ -605,7 +603,7 @@ export function mountUsage(initial: UsageData, host?: UsageHost) {
         message('Refreshed local usage logs.');
       } catch (e) {
         message(
-          `Refresh failed: ${e instanceof Error ? e.message : String(e)}. Start with npm run usage:dashboard -- --serve.`,
+          `Refresh failed: ${e instanceof Error ? e.message : String(e)}. Start with repo-workbench usage --serve.`,
           true,
         );
       } finally {

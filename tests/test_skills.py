@@ -26,6 +26,7 @@ class SkillSyncTest(unittest.TestCase):
         self.root.mkdir()
         shutil.copytree(ROOT / "skills", self.root / "skills")
         shutil.copy2(ROOT / "skills-lock.json", self.root / "skills-lock.json")
+        subprocess.run(["git", "init", "-q"], cwd=self.root, check=True)
         self.target = Path(self.temp.name) / "installed"
 
     def sync(self, **options) -> bool:
@@ -255,6 +256,28 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         self.assertTrue(collision.is_symlink())
         self.assertEqual([], list(outside.iterdir()))
 
+    def test_source_inventory_ignores_generated_files_but_keeps_tracked_inputs(self) -> None:
+        skill = self.root / "skills/next-slice"
+        subprocess.run(["git", "add", "skills"], cwd=self.root, check=True)
+        (self.root / ".gitignore").write_text("*.pyc\nSKILL.md\n")
+        generated = skill / "cache.pyc"
+        generated.write_bytes(b"generated")
+        MODULE.bundle(self.root)
+        extra = skill / "notes.md"
+        extra.write_text("Reviewed addition.")
+        with self.assertRaisesRegex(ValueError, "Bundle differs"):
+            MODULE.bundle(self.root)
+        with contextlib.redirect_stdout(io.StringIO()):
+            MODULE.relock(self.root)
+        _, content = MODULE.bundle(self.root)
+        self.assertIn("next-slice/SKILL.md", content)
+        self.assertIn("next-slice/notes.md", content)
+        self.assertNotIn("next-slice/cache.pyc", content)
+        self.sync(apply=True)
+        self.assertFalse((self.target / "next-slice/cache.pyc").exists())
+        (self.target / "next-slice/cache.pyc").write_bytes(b"installed drift")
+        self.assertFalse(self.sync())
+
     def test_source_drift_and_upstream_relocking_are_rejected(self) -> None:
         source = self.root / "skills/codebase-design/SKILL.md"
         source.write_text("modified upstream")
@@ -330,6 +353,18 @@ module.sync(Path(sys.argv[2]), Path(sys.argv[3]), apply=True)
         lock, content = MODULE.bundle(self.root)
         self.assertEqual(revision, lock["upstream"]["revision"])
         self.assertNotIn("grilling/generated.tmp", content)
+
+    def test_refresh_does_not_erase_ignored_destination_files(self) -> None:
+        checkout = self.upstream_fixture()
+        revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
+        (self.root / ".gitignore").write_text("*.tmp\n")
+        local = self.root / "skills/grilling/local.tmp"
+        local.write_text("keep locally")
+        before = MODULE.read_lock(self.root)
+        with self.assertRaisesRegex(ValueError, "unmanaged"):
+            MODULE.refresh(self.root, checkout, revision)
+        self.assertEqual(local.read_text(), "keep locally")
+        self.assertEqual(before, MODULE.read_lock(self.root))
 
     def test_declared_adaptation_relocks_and_preserves_baseline(self) -> None:
         before = MODULE.read_lock(self.root)

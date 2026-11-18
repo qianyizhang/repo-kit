@@ -36,7 +36,14 @@ const client = new HostClient(
     }
   },
   () => connectionStatus(),
+  () =>
+    contextId && !latestDraft
+      ? { name: 'canvas_release', arguments: { contextId, panelId } }
+      : undefined,
 );
+export function rememberLiveDraft(draft: Draft | null) {
+  latestDraft = draft;
+}
 export const interactionDiagnostics = client.inspection;
 export function inspectLastMessage() {
   client.inspection.show('Interactions', client.lastMessageInteraction);
@@ -67,19 +74,22 @@ async function appCall<K extends Action>(
   args: Input<K>,
   timeout?: number,
   interaction?: string,
+  target = contextId,
 ) {
   const input = contracts[action].input.parse(args);
-  return client.call({ action, args: input }, contextId, timeout, interaction);
+  return client.call({ action, args: input }, target, timeout, interaction);
 }
 export async function hostTool<K extends Operation>(
   action: K,
   args: Input<K>,
   interaction?: string,
 ): Promise<Output<K>> {
-  if (action === 'draft_write') latestDraft = contracts.draft_write.input.parse(args).draft;
+  const generation = bindingGeneration;
+  await connecting;
+  if (generation !== bindingGeneration)
+    throw new RuntimeError('stale', 'Canvas target changed before the operation started.');
   if (action === 'view_write') latestView = contracts.view_write.input.parse(args).view;
   const previousContext = contextId;
-  const generation = bindingGeneration;
   let result = await appCall(action, args, undefined, interaction);
   if (generation !== bindingGeneration)
     throw new RuntimeError('stale', 'Canvas target changed before the operation completed.');
@@ -116,28 +126,46 @@ async function connectRepository(repo?: string, recover = false): Promise<boolea
   const error = toolError(result);
   if (error) throw new Error(error);
   const value = parseOutput('connect', result.structuredContent?.value);
-  connectionState = value;
   client.requireBuild(value.server.build);
   if (!value.target) {
+    connectionState = value;
     window.dispatchEvent(new Event('repo-canvas-connection'));
     return false;
   }
-  contextId = value.target.contextId;
-  repository = value.target.repo;
-  if (recover) {
+  const target = value.target;
+  if (recover && target.contextId !== contextId && target.repo === repository) {
     if (latestDraft !== undefined) {
-      const restored = await appCall('draft_write', { draft: latestDraft });
+      const restored = await appCall(
+        'draft_write',
+        { draft: latestDraft },
+        undefined,
+        undefined,
+        target.contextId,
+      );
       const error = toolError(restored);
       if (error) throw new Error(error);
       parseOutput('draft_write', restored.structuredContent?.value);
     }
     if (latestView !== undefined) {
-      const restored = await appCall('view_write', { view: latestView });
+      const restored = await appCall(
+        'view_write',
+        { view: latestView },
+        undefined,
+        undefined,
+        target.contextId,
+      );
       const error = toolError(restored);
       if (error) throw new Error(error);
       parseOutput('view_write', restored.structuredContent?.value);
     }
   }
+  if (repository && repository !== target.repo) {
+    latestDraft = undefined;
+    latestView = undefined;
+  }
+  contextId = target.contextId;
+  repository = target.repo;
+  connectionState = value;
   window.dispatchEvent(new Event('repo-canvas-connection'));
   return true;
 }
@@ -151,7 +179,7 @@ export async function openRepository(repo: string) {
   await connecting;
 }
 export async function prepareHost(): Promise<boolean> {
-  connecting ??= connectRepository(repository).finally(() => {
+  connecting ??= connectRepository(repository, true).finally(() => {
     connecting = undefined;
   });
   return connecting;

@@ -10,7 +10,7 @@ Checks:
    status: deprecated, index README excluded).
 3. Forbidden generated trailer tokens (e.g., </content>, </invoke>) are absent
    as standalone lines.
-4. Local markdown file links point to existing files.
+4. Local Markdown links point to repository paths and existing Markdown anchors.
 5. Backticked repo-relative path references in authority docs point to
    existing files/directories.
 6. Skill manifests (SKILL.md under a skills dir) carry a semver `version:`.
@@ -27,8 +27,10 @@ import os
 import re
 import sys
 import tomllib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 # Regex patterns
 FRONTMATTER_START = re.compile(r"^---\s*$")
@@ -278,6 +280,84 @@ def check_document_class(rel_path: str, metadata: dict[str, str], cfg: Governanc
     return errors
 
 
+def prose_lines(content: str) -> Iterator[tuple[int, str]]:
+    """Yield numbered lines outside backtick or tilde fences."""
+    fence = ""
+    for number, line in enumerate(content.splitlines(), 1):
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = ""
+        elif marker and (marker[1][0] == "~" or "`" not in marker[2]):
+            fence = marker[1]
+        else:
+            yield number, line
+
+
+def markdown_anchors(content: str) -> set[str]:
+    prose = "\n".join(line for _, line in prose_lines(content))
+    anchors = set(re.findall(r"""<[^>]+\s(?:id|name)=["']([^"']+)["']""", prose))
+    used: set[str] = set()
+    for heading in re.findall(r"(?m)^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*$", prose):
+        heading = re.sub(r"[ \t]+#+$", "", heading)
+        heading = MARKDOWN_LINK_PATTERN.sub(r"\1", heading)
+        heading = re.sub(r"<[^>]*>", "", heading)
+        base = re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
+        anchor, suffix = base, 0
+        while anchor in used:
+            suffix += 1
+            anchor = f"{base}-{suffix}"
+        used.add(anchor)
+        anchors.add(anchor)
+    return anchors
+
+
+def local_link_errors(document: Path, content: str, root: Path, *, template_root: Path | None = None) -> list[str]:
+    """Check inline destinations within the repository. A leading slash is root-relative."""
+    root = root.resolve()
+    document = document.resolve()
+    anchors: dict[Path, set[str]] = {}
+    errors = []
+    for number, line in prose_lines(content):
+        for _, angle_url, bare_url in MARKDOWN_LINK_PATTERN.findall(line):
+            url = angle_url or bare_url
+            cleaned = re.sub(r"\\([\\`*{}\[\]()#+.!_<> -])", r"\1", url)
+            try:
+                target = urlsplit(cleaned)
+                path = unquote(target.path)
+                if target.scheme != "file" and (target.scheme or target.netloc):
+                    continue
+                # Never probe a machine-local absolute path.
+                if target.scheme == "file":
+                    errors.append(f"Line {number}: Use a repository link instead of '{url}'")
+                    continue
+                if path.startswith("/"):
+                    destination = (root / path.lstrip("/")).resolve()
+                elif path:
+                    destination = (document.parent / path).resolve()
+                else:
+                    destination = document
+                if not destination.is_relative_to(root):
+                    errors.append(f"Line {number}: Local link escapes repository: '{url}'")
+                    continue
+                if template_root and not destination.exists() and destination.is_relative_to(template_root):
+                    destination = Path(f"{destination}.jinja").resolve()
+                    if not destination.is_relative_to(root):
+                        errors.append(f"Line {number}: Local link escapes repository: '{url}'")
+                        continue
+                if not destination.exists():
+                    errors.append(f"Line {number}: Broken local link to '{url}'")
+                elif target.fragment and destination.is_file() and destination.name.endswith((".md", ".md.jinja")):
+                    if destination not in anchors:
+                        text = content if destination == document else destination.read_text(encoding="utf-8")
+                        anchors[destination] = markdown_anchors(text)
+                    if unquote(target.fragment) not in anchors[destination]:
+                        errors.append(f"Line {number}: Missing heading or anchor in '{url}'")
+            except (OSError, RuntimeError, ValueError) as error:
+                errors.append(f"Line {number}: Cannot check local link '{url}': {error}")
+    return errors
+
+
 def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[list[str], bool]:
     """Run hygiene checks on a single markdown file. Returns (list of error strings, is_ignored)."""
     try:
@@ -332,29 +412,10 @@ def check_file(filepath: Path, repo_root: Path, cfg: GovernanceConfig) -> tuple[
             if token_pat.match(line):
                 errors.append(f"Line {idx}: Contains forbidden generated trailer token '{token_pat.pattern}'")
 
+    errors.extend(local_link_errors(filepath, content, repo_root))
     check_backticks = is_authority_doc(rel_path, cfg)
     backtick_pattern = cfg.backtick_path_pattern
-    for idx, line in enumerate(lines, start=1):
-        for _, angle_url, bare_url in MARKDOWN_LINK_PATTERN.findall(line):
-            url = angle_url or bare_url
-            clean_url = re.sub(r"\\([\\`*{}\[\]()#+.!_<> -])", r"\1", url).split("#")[0].split("?")[0]
-            if not clean_url:
-                continue
-
-            if clean_url.startswith("file:///"):
-                target_path = Path(clean_url.replace("file://", ""))
-            elif clean_url.startswith(("http://", "https://", "mailto:", "javascript:")):
-                continue
-            else:
-                target_path = (filepath.parent / clean_url).resolve()
-
-            if not target_path.exists():
-                if clean_url.startswith("/"):
-                    target_path = (repo_root / clean_url.lstrip("/")).resolve()
-
-                if not target_path.exists():
-                    errors.append(f"Line {idx}: Broken local link to '{url}' (resolved to '{target_path}')")
-
+    for idx, line in prose_lines(content):
         if check_backticks:
             for raw_path in backtick_pattern.findall(line):
                 if any(token in raw_path for token in ("<", ">", "*", "{", "}", "...", "…")):

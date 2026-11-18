@@ -22,12 +22,15 @@ The server writes app/server JSONL under
 2 MiB with one previous file. Startup prunes only recognized inactive sessions,
 keeping at most 8 and at most 7 days; live processes are excluded. Payloads mask
 credential-named fields and retain up to 64 KiB in bounded live memory. Only
-metadata is persisted automatically. Payloads can be lost when the session ends.
+metadata is persisted automatically. The stdio host supplies trusted chat
+identity in the tool callback metadata. Hosted diagnostic operations require
+that identity and access only its own observations. Loopback HTTP uses a
+separate local identity. Payloads can be lost when the session ends.
 Selecting an observation enables **Save diagnostic capture**, which writes only
 that interaction's currently retained payloads. Captures are capped at 8 per
 session and 2 MiB each, with the same session retention. Limits and write failures
 remain explicit. Logs are local, not model context. App info shows persistence
-failures and coverage limitations.
+failures, retention errors, and coverage limitations.
 
 Run `npm ci` with the included lockfile, then `npm run check`, `npm run dev` for
 standalone mode (loopback port 4397 by default), and `npm run test:browser` for the

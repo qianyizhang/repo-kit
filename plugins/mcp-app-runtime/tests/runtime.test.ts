@@ -161,6 +161,10 @@ void test("registry resolves ownership for every lookup and releases expired or 
   const a = hostedPrincipal({ threadId: crypto.randomUUID() }),
     b = hostedPrincipal({ threadId: crypto.randomUUID() });
   assert.throws(() => hostedPrincipal({}), code("forbidden"));
+  assert.throws(
+    () => hostedPrincipal({ threadId: a.id, thread_id: "" }),
+    code("forbidden"),
+  );
   let now = 0;
   const disposed: string[] = [];
   const registry = new ScopedRegistry<string>(

@@ -106,6 +106,10 @@ Portable scripts read repository-owned bindings from `pyproject.toml`:
 - `scripts/check_docs.py` checks frontmatter classes and locations, deprecated
   status, links and repository paths, index routes, skill invocation metadata,
   work-item identity and lifecycle, and the symlink map.
+  Inline Markdown links use document-relative or repository-root paths. Local
+  destinations must resolve inside the repository, including through symlinks.
+  The checker verifies ATX heading fragments and explicit HTML anchors in
+  Markdown and skips top-level fenced examples. External URLs are outside this check.
 - `scripts/check_authoring.py` reports profile-scoped terminology and prose
   findings. It never edits text or becomes another vocabulary authority.
 - `scripts/check_file_sizes.py` reports advisory size findings for changed files.

@@ -38,7 +38,9 @@ type HandlerName =
   | "onteardown"
   | "onclose"
   | "onerror";
-export type HostHandlers = Partial<Pick<App, HandlerName>>;
+export type HostHandlers = Partial<Pick<App, HandlerName>> & {
+  releaseOnTeardown?: () => Parameters<App["callServerTool"]>[0] | undefined;
+};
 export type HostAdapter = Pick<
   App,
   | HandlerName
@@ -105,7 +107,16 @@ export class HostSession {
     };
     this.#app.onteardown = async (value, extra) => {
       if (this.#phase === "closed") return {};
+      const canRelease =
+        this.#phase === "ready" && this.#capabilities?.serverTools;
       this.#end();
+      const release = canRelease && this.#handlers.releaseOnTeardown?.();
+      if (release) {
+        // Cancel ordinary work first. Cleanup gets one bounded call while the bridge is open.
+        await this.#app
+          .callServerTool(release, { timeout: 1500 })
+          .catch(() => {});
+      }
       return (await this.#handlers.onteardown?.(value, extra)) ?? {};
     };
     this.#app.onclose = () => {

@@ -52,6 +52,12 @@ path. Empty new chats can have an ID before their workspace is persisted. The pi
 Each mounted panel has its own identity. After a server restart, a confirmed
 missing-context response reconnects to that panel’s selected repository and
 restores its in-memory draft/view. A transport timeout does not replay mutations.
+On host teardown a clean panel asks `canvas_release` to free its context.
+The server checks caller and panel ownership. A draft, pending review work or
+another panel can keep the context alive. A pending side-chat request keeps at
+least one caller-owned context for its repository available for the reply. The same tool releases an unused
+context opened by the chat. Abandoned contexts and their bindings expire after
+24 idle hours. The server rejects opens at 32 live contexts.
 Closing/recreating a panel has a different recovery boundary: browser storage may
 be unavailable, so export unsaved drafts before replacing the whole panel.
 Connection uses the typed `connect` operation. Panels never send automatic chat messages.

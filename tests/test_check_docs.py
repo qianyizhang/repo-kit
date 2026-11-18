@@ -102,6 +102,7 @@ class CheckDocsTest(unittest.TestCase):
     def test_markdown_link_titles_and_destinations(self) -> None:
         for name in ("existing.md", "a (draft).md", "nested(draft).md"):
             (self.root / name).touch()
+        (self.root / "existing.md").write_text("## Section\n")
         for link in (
             '[Existing](existing.md "A title")',
             "[Existing](existing.md 'A title')",
@@ -119,6 +120,23 @@ class CheckDocsTest(unittest.TestCase):
                 for error in self.check_document(METADATA + '[Missing](missing.md "A title")')
             )
         )
+
+    def test_link_paths_are_repository_only_and_fences_do_not_create_links_or_anchors(self) -> None:
+        (self.root / "existing.md").write_text("# Guide\n")
+        outside = Path(self.temp.name + "-outside")
+        outside.mkdir()
+        self.addCleanup(outside.rmdir)
+        (self.root / "outside").symlink_to(outside)
+        errors = self.check_document(
+            METADATA
+            + "   ~~~md\n[Example](hypothetical.md)\n## Example\n   ~~~~~\n"
+            + "[Example heading](#example)\n[Root link](/existing.md#guide)\n"
+            + "[Outside](outside)\n[Escape](../outside.md)\n[Absolute](file:///etc/passwd)\n"
+        )
+        self.assertEqual(len(errors), 4, errors)
+        self.assertIn("Missing heading or anchor", errors[0])
+        self.assertTrue(all("escapes repository" in error for error in errors[1:3]))
+        self.assertIn("Use a repository link", errors[3])
 
     def make_item(
         self, work_id: str = "AB-X-001", status: str = "ready", depends_on: str = "none", history: str = ""

@@ -61,16 +61,24 @@ function showTip(target: HTMLElement, body: string) {
   const tip = el('payload-tip', HTMLDivElement);
   tip.innerHTML = body;
   tip.hidden = false;
+  positionTip(target, tip);
+}
+function positionTip(target: HTMLElement, tip: HTMLDivElement) {
   const b = target.getBoundingClientRect();
   tip.style.left = `${Math.max(10, Math.min(b.left, innerWidth - tip.offsetWidth - 10))}px`;
-  tip.style.top = `${Math.max(10, b.top - tip.offsetHeight - 8)}px`;
+  tip.style.top = `${Math.max(10, Math.min(b.top - tip.offsetHeight - 8, innerHeight - tip.offsetHeight - 10))}px`;
 }
 export function bindPreviews(recordedInput: () => string) {
   const main = el('workspace', HTMLElement);
+  const tip = el('payload-tip', HTMLDivElement);
+  const anchor = (node: EventTarget | null) =>
+    node instanceof Element
+      ? node.closest<HTMLElement>('[data-event], [data-role], #recorded-input')
+      : null;
+  const focusOwnsTip = () => tipAnchor && anchor(document.activeElement) === tipAnchor;
   function preview(event: Event) {
-    if (!(event.target instanceof HTMLElement)) return;
-    const target = event.target.closest<HTMLElement>('[data-event], [data-role], #recorded-input');
-    if (!target) return;
+    const target = anchor(event.target);
+    if (!target || target === tipAnchor || (event.type === 'pointerover' && focusOwnsTip())) return;
     if (target.dataset.event) {
       const r = rowFor(target.dataset.event),
         e = r?.event ?? records.find((e) => e.key === target.dataset.event);
@@ -85,8 +93,17 @@ export function bindPreviews(recordedInput: () => string) {
   }
   main.addEventListener('focusin', preview);
   main.addEventListener('pointerover', preview);
-  main.addEventListener('pointerout', hideTip);
-  main.addEventListener('focusout', hideTip);
+  main.addEventListener('pointerout', (event) => {
+    if (
+      anchor(event.target) === tipAnchor &&
+      anchor(event.relatedTarget) !== tipAnchor &&
+      !focusOwnsTip()
+    )
+      hideTip();
+  });
+  main.addEventListener('focusout', (event) => {
+    if (anchor(event.target) === tipAnchor && anchor(event.relatedTarget) !== tipAnchor) hideTip();
+  });
   main.addEventListener('click', (event) => {
     if (event.target instanceof HTMLElement) {
       const key = event.target.closest<HTMLElement>('[data-event]')?.dataset.event;
@@ -96,7 +113,15 @@ export function bindPreviews(recordedInput: () => string) {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') hideTip();
   });
-  window.addEventListener('scroll', hideTip, true);
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!tipAnchor) return;
+      if (focusOwnsTip()) positionTip(tipAnchor, tip);
+      else hideTip();
+    },
+    true,
+  );
 }
 export function renderGraph(
   run: Run | undefined,

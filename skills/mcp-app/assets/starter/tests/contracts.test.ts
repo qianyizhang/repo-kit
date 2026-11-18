@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import {
   mkdtempSync,
   readFileSync,
@@ -8,13 +10,14 @@ import {
   mkdirSync,
   writeFileSync,
   symlinkSync,
+  rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Composer, messagePayload } from "../src/message.ts";
 import { Recorder, snapshot } from "../src/observability.ts";
 import { LogStore, MAX_FILE_BYTES, pruneSessions } from "../src/log-store.ts";
-import { createOperations } from "../src/operations.ts";
+import { createOperations, LOCAL_OWNER } from "../src/operations.ts";
 
 test("plain text is direct; selected context is frozen and bounded", () => {
   assert.deepEqual(messagePayload(" hi "), {
@@ -145,9 +148,9 @@ test("logs are bounded, private, inspectable and non-recursive", () => {
       "sending",
       "private diagnostic prose",
     );
-    operations.call("logs_append", { event });
+    operations.call("logs_append", { event }, LOCAL_OWNER);
   }
-  assert.equal(store.events.length, 500);
+  assert.equal(store.events(LOCAL_OWNER).length, 500);
   assert.ok(readdirSync(store.directory).includes("app.jsonl.1"));
   for (const name of readdirSync(store.directory).filter((name) =>
     name.includes(".jsonl"),
@@ -161,16 +164,23 @@ test("logs are bounded, private, inspectable and non-recursive", () => {
       .split("\n")
       .forEach((line) => JSON.parse(line));
   }
-  const before = store.events.length;
-  const summaries = operations.call("logs_list", { limit: 2 });
+  const before = store.events(LOCAL_OWNER).length;
+  const summaries = operations.call("logs_list", { limit: 2 }, LOCAL_OWNER);
   assert.equal(summaries.structuredContent?.events instanceof Array, true);
   assert.doesNotMatch(JSON.stringify(summaries), /xxxx/);
   assert.equal(
-    operations.call("logs_event", { id: store.events[0]!.id }).isError,
+    operations.call(
+      "logs_event",
+      { id: store.events(LOCAL_OWNER)[0]!.id },
+      LOCAL_OWNER,
+    ).isError,
     undefined,
   );
-  assert.equal(store.events.length, before);
-  assert.equal(operations.call("logs_list", { limit: 21 }).isError, true);
+  assert.equal(store.events(LOCAL_OWNER).length, before);
+  assert.equal(
+    operations.call("logs_list", { limit: 21 }, LOCAL_OWNER).isError,
+    true,
+  );
 });
 test("payloads stay live until one interaction is explicitly captured", () => {
   const store = new LogStore(mkdtempSync(join(tmpdir(), "mcp-capture-")));
@@ -192,10 +202,12 @@ test("payloads stay live until one interaction is explicitly captured", () => {
     "sending",
     "unrelated-private-text",
   );
-  operations.call("logs_append", { event: selected });
-  operations.call("logs_append", { event: unrelated });
+  operations.call("logs_append", { event: selected }, LOCAL_OWNER);
+  operations.call("logs_append", { event: unrelated }, LOCAL_OWNER);
   assert.match(
-    JSON.stringify(operations.call("logs_event", { id: selected.id })),
+    JSON.stringify(
+      operations.call("logs_event", { id: selected.id }, LOCAL_OWNER),
+    ),
     /selected-private-text/,
   );
   assert.doesNotMatch(
@@ -206,19 +218,26 @@ test("payloads stay live until one interaction is explicitly captured", () => {
     readdirSync(store.directory).some((name) => name.startsWith("capture-")),
     false,
   );
-  const saved = operations.call("logs_capture", {
-    interaction: selected.interaction,
-  });
+  const saved = operations.call(
+    "logs_capture",
+    {
+      interaction: selected.interaction,
+    },
+    LOCAL_OWNER,
+  );
   const path = saved.structuredContent!.path as string;
   const capture = readFileSync(path, "utf8");
   assert.match(capture, /selected-private-text/);
   assert.doesNotMatch(capture, /unrelated-private-text|never-save-secret/);
   assert.equal(JSON.parse(capture).events.length, 1);
   assert.equal(statSync(path).mode & 0o777, 0o600);
-  assert.equal(store.events.length, 2); // Inspection and capture do not observe themselves.
+  assert.equal(store.events(LOCAL_OWNER).length, 2); // Inspection and capture do not observe themselves.
   assert.equal(
-    operations.call("logs_capture", { interaction: crypto.randomUUID() })
-      .isError,
+    operations.call(
+      "logs_capture",
+      { interaction: crypto.randomUUID() },
+      LOCAL_OWNER,
+    ).isError,
     true,
   );
 });
@@ -236,8 +255,9 @@ test("capture limits fail explicitly without creating partial or unbounded files
         "sending",
         "x".repeat(64000),
       ),
+      LOCAL_OWNER,
     );
-  assert.throws(() => store.capture(interaction), /2 MiB/);
+  assert.throws(() => store.capture(interaction, LOCAL_OWNER), /2 MiB/);
   assert.equal(
     readdirSync(store.directory).filter((name) => name.startsWith("capture-"))
       .length,
@@ -253,9 +273,13 @@ test("capture limits fail explicitly without creating partial or unbounded files
       "accepted",
       {},
     ),
+    LOCAL_OWNER,
   );
-  for (let i = 0; i < 8; i++) store.capture(small);
-  assert.throws(() => store.capture(small), /8 per server session/);
+  for (let i = 0; i < 8; i++) store.capture(small, LOCAL_OWNER);
+  assert.throws(
+    () => store.capture(small, LOCAL_OWNER),
+    /8 per server session/,
+  );
   assert.equal(
     readdirSync(store.directory).filter((name) => name.startsWith("capture-"))
       .length,
@@ -270,12 +294,15 @@ test("logging failure leaves domain operations usable and exposes the gap", () =
     operations = createOperations(store);
   assert.equal(store.status().health, "memory-only");
   assert.equal(
-    operations.call("note_read", { id: "welcome" }).isError,
+    operations.call("note_read", { id: "welcome" }, LOCAL_OWNER).isError,
     undefined,
   );
-  assert.equal(operations.call("note_read", { id: "missing" }).isError, true);
+  assert.equal(
+    operations.call("note_read", { id: "missing" }, LOCAL_OWNER).isError,
+    true,
+  );
   assert.throws(
-    () => store.capture(store.events[0]!.interaction),
+    () => store.capture(store.events(LOCAL_OWNER)[0]!.interaction, LOCAL_OWNER),
     /storage unavailable/,
   );
 });
@@ -298,11 +325,46 @@ test("retention excludes live sessions, symlinks and unknown directories", () =>
   pruneSessions(root);
   assert.equal(readdirSync(root).length, 2);
 });
+test("startup still persists events when another process prunes a listed session", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "starter-prune-race-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const expired = join(root, "__APP_ID__", crypto.randomUUID());
+  const marker = join(expired, "session.json");
+  mkdirSync(expired, { recursive: true });
+  writeFileSync(
+    marker,
+    JSON.stringify({ owner: "__APP_ID__", pid: 2147483647, started: 0 }),
+  );
+  const lstat = fs.lstatSync;
+  t.mock.method(fs, "lstatSync", (path: string) => {
+    if (path === marker) rmSync(expired, { recursive: true, force: true });
+    return lstat(path);
+  });
+  syncBuiltinESMExports();
+  let store: LogStore;
+  try {
+    store = new LogStore(root);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+  const operations = createOperations(store);
+  assert.equal(
+    operations.call("note_read", { id: "welcome" }, LOCAL_OWNER).isError,
+    undefined,
+  );
+  assert.equal(store.status().health, "recording");
+  assert.equal(store.status().retentionError, null);
+  assert.match(
+    readFileSync(join(store.directory, "server.jsonl"), "utf8"),
+    /note_read/,
+  );
+});
 test("opening is compact; catalog accounts for every registered operation", () => {
   const operations = createOperations(
     new LogStore(mkdtempSync(join(tmpdir(), "mcp-catalog-"))),
   );
-  const opened = operations.call("app_open", {});
+  const opened = operations.call("app_open", {}, LOCAL_OWNER);
   assert.doesNotMatch(JSON.stringify(opened), /welcome|Another note|notes/);
   assert.deepEqual(
     operations.catalog().map((tool) => tool.name),

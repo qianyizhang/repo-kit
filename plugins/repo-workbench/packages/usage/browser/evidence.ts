@@ -57,7 +57,7 @@ export function createEvidenceDrawer(options: {
         link.rel = 'noopener noreferrer';
       } else {
         link.setAttribute('aria-disabled', 'true');
-        link.title = 'Run npm run usage:dashboard -- --serve to open full local traces.';
+        link.title = 'Run repo-workbench usage --serve to open full local traces.';
       }
       actions.append(link);
     }
@@ -67,7 +67,7 @@ export function createEvidenceDrawer(options: {
         'p',
         options.openTrace || location.protocol === 'http:'
           ? 'Full trace includes available messages, tools, outputs and indexed child sessions, regardless of the current usage filters.'
-          : 'Full traces require the local dashboard server: npm run usage:dashboard -- --serve.',
+          : 'Full traces require the local dashboard server: repo-workbench usage --serve.',
         'caption',
       ),
     );

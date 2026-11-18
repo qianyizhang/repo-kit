@@ -47,6 +47,26 @@ def files(root: Path) -> dict[str, bytes]:
     return result
 
 
+def source_files(root: Path) -> dict[str, bytes]:
+    """Read tracked files and nonignored additions from the working tree."""
+    skills = root / "skills"
+    if skills.is_symlink():
+        raise ValueError(f"Symlink inside managed tree: {skills}")
+    if not (root / ".git").exists():
+        raise ValueError("A Git checkout is required to select skill sources")
+    listed = installation.git(root, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "skills/")
+    result = {}
+    for name in sorted(set(filter(None, os.fsdecode(listed).split("\0")))):
+        path = root / name
+        if path.is_symlink() or any(parent.is_symlink() for parent in path.parents if parent.is_relative_to(skills)):
+            raise ValueError(f"Symlink inside managed tree: {path}")
+        if path.is_file():
+            result[path.relative_to(skills).as_posix()] = path.read_bytes()
+        elif path.exists():
+            raise ValueError(f"Unsupported bundle path: {path}")
+    return result
+
+
 def hashes(content: dict[str, bytes]) -> dict[str, str]:
     return {path: digest(data) for path, data in content.items()}
 
@@ -108,7 +128,9 @@ def validate_upstream(lock: dict, inventory: dict[str, str]) -> None:
 def bundle(root: Path) -> tuple[dict, dict[str, bytes]]:
     lock = read_lock(root)
     validate_content(lock["files"], lock["skills"])
-    content = files(root / "skills")
+    # Committed snapshots and exported bundles have no Git index. Every exported
+    # file must match the lock, which already records the selected inventory.
+    content = source_files(root) if (root / ".git").exists() else files(root / "skills")
     if hashes(content) != lock["files"]:
         raise ValueError("Bundle differs from skills-lock.json; review changes and run lock or refresh")
     return lock, content
@@ -355,6 +377,10 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
     local_content = {p: data for p, data in content.items() if p.split("/")[0] in local_names}
     validate_content({**local_content, **delivered}, previous["skills"])
     for name in UPSTREAM_SKILLS:
+        for path in (destination / name).rglob("*"):
+            if path.is_symlink() or (not path.is_dir() and path.relative_to(destination).as_posix() not in content):
+                raise ValueError(f"Refresh would remove an unmanaged path: {path}")
+    for name in UPSTREAM_SKILLS:
         if (destination / name).exists():
             shutil.rmtree(destination / name)
     for path, data in delivered.items():
@@ -373,7 +399,7 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
                 "paths": {name: p.relative_to(checkout).as_posix() for name, p in source_paths.items()},
                 "files": baseline,
             },
-            "files": hashes(files(destination)),
+            "files": hashes({**local_content, **delivered}),
         },
     )
     print(f"Pinned upstream {revision}; review the Git diff before sync")
@@ -381,7 +407,7 @@ def refresh(root: Path, checkout: Path, revision: str) -> None:
 
 def relock(root: Path) -> None:
     lock = read_lock(root)
-    content = files(root / "skills")
+    content = source_files(root)
     validate_content(content, lock["skills"])
     validate_upstream(lock, hashes(content))
     lock["schemaVersion"] = 2

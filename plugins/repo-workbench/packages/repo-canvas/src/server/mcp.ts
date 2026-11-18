@@ -37,13 +37,18 @@ export function canvasMcp(
 ): ObservableServer {
   type Context = { repository: Repository; bridge: CanvasBridge; id: string; threadId?: string };
   type Caller = { _meta?: Record<string, unknown> };
-  const contexts = new ScopedRegistry<Context>({
-    maxEntries: 100,
-    maxBytes: 256 * 1024 * 1024,
-    maxAgeMs: 24 * 3600_000,
-    overflow: 'reject',
-  });
   const panels = new Map<string, string>();
+  const contexts = new ScopedRegistry<Context>(
+    {
+      maxEntries: 32,
+      maxBytes: 256 * 1024 * 1024,
+      maxAgeMs: 24 * 3600_000,
+      overflow: 'reject',
+    },
+    (expired) => {
+      for (const [key, id] of panels) if (id === expired.id) panels.delete(key);
+    },
+  );
   const fixed = repository ? { repository, bridge, id: 'fixed' } : undefined;
   const principal = (extra: Caller) => (fixed ? LOCAL_PRINCIPAL : hostedPrincipal(extra._meta));
   if (fixed) contexts.create(LOCAL_PRINCIPAL, fixed, 8 * 1024 * 1024, fixed.id);
@@ -92,6 +97,32 @@ export function canvasMcp(
         throw new RuntimeError('expired', 'Reconnect this canvas to its selected repository.');
       throw error;
     }
+  }
+  const panelKeyFor = (owner: ReturnType<typeof principal>, panelId: string) =>
+    `${owner.kind}:${owner.id}:${panelId}`;
+  function releaseUnused(selected: Context, owner: ReturnType<typeof principal>) {
+    const inbox = selected.bridge.session.inbox();
+    if (
+      fixed ||
+      selected.bridge.draft() ||
+      inbox.proposal ||
+      inbox.command?.status === 'pending' ||
+      [...panels.values()].includes(selected.id)
+    )
+      return false;
+    const hasOtherMailbox = contexts
+      .list(owner)
+      .some(
+        ({ value }) =>
+          value.id !== selected.id && value.repository.root === selected.repository.root,
+      );
+    if (
+      !hasOtherMailbox &&
+      selected.bridge.discussion.read().history.some((exchange) => exchange.status === 'pending')
+    )
+      return false;
+    contexts.release(selected.id, owner);
+    return true;
   }
   function requested(requestId: string, extra: Caller): Context {
     const value = contexts
@@ -204,6 +235,38 @@ export function canvasMcp(
   );
   registerAppTool(
     server,
+    'canvas_release',
+    {
+      description:
+        'Release an unused Canvas context owned by the calling chat. A closing panel supplies its panel ID. Unsaved drafts, pending review work and contexts used by other panels are retained.',
+      inputSchema: { contextId: z.string(), panelId: z.uuid().optional() },
+      outputSchema: { released: z.boolean() },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      _meta: { ui: { visibility: ['app', 'model'] } },
+    },
+    ({ contextId, panelId }, extra) => {
+      const owner = principal(extra);
+      const selected = context(contextId, extra);
+      if (panelId && !fixed) {
+        const key = panelKeyFor(owner, panelId);
+        if (panels.get(key) !== selected.id)
+          throw new RuntimeError('expired', 'Panel binding unavailable for this context.');
+        panels.delete(key);
+      }
+      const released = releaseUnused(selected, owner);
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: released ? 'Canvas context released.' : 'Canvas context retained.',
+          },
+        ],
+        structuredContent: { released },
+      };
+    },
+  );
+  registerAppTool(
+    server,
     'canvas_app',
     {
       description:
@@ -228,11 +291,12 @@ export function canvasMcp(
             panelId: args.panelId,
             metadataKeys: Object.keys(extra._meta ?? {}).sort(),
           });
-          const panelKey = `${threadId ?? 'unidentified'}:${args.panelId}`;
-          const candidateId = contextId ?? panels.get(panelKey);
-          const existing = contexts.list(owner).find(({ id }) => id === candidateId)?.value;
-          if (existing?.threadId && existing.threadId !== threadId)
-            throw new Error('Canvas belongs to a different chat.');
+          const panelKey = panelKeyFor(owner, args.panelId);
+          const owned = contexts.list(owner);
+          const previous = owned.find(({ id }) => id === panels.get(panelKey))?.value;
+          const existing = previous ?? owned.find(({ id }) => id === contextId)?.value;
+          if (!fixed && !panels.has(panelKey) && panels.size >= 100)
+            throw new RuntimeError('limit', 'Too many connected Canvas panels.');
           const targetRepo = args.repo ?? (threadId ? resolveThread(threadId) : undefined);
           const selected =
             existing && (!args.repo || existing.repository.root === args.repo)
@@ -240,10 +304,10 @@ export function canvasMcp(
               : targetRepo
                 ? open(targetRepo, extra)
                 : fixed;
-          if (selected) {
-            if (!panels.has(panelKey) && panels.size >= 100)
-              panels.delete(panels.keys().next().value!);
+          if (selected && !fixed) {
+            contexts.resolve(selected.id, owner);
             panels.set(panelKey, selected.id);
+            if (previous && previous.id !== selected.id) releaseUnused(previous, owner);
           }
           const reason = selected
             ? null

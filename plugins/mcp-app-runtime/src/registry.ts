@@ -6,7 +6,9 @@ export function hostedPrincipal(
 ): Principal {
   const id = meta?.threadId ?? meta?.thread_id;
   if (
-    (meta?.threadId && meta.thread_id && meta.threadId !== meta.thread_id) ||
+    (meta?.threadId != null &&
+      meta.thread_id != null &&
+      meta.threadId !== meta.thread_id) ||
     typeof id !== "string" ||
     !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
   )

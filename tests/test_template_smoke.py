@@ -16,7 +16,8 @@ ROOT = Path(__file__).parents[1]
 COPIER_VERSION = "9.17.1"
 FIXTURE_V1 = "fixture-v1"
 FIXTURE_V2 = "fixture-v2"
-HISTORICAL_BASELINE = "v0.10.3"
+# Former v0.10.3 release, reachable from main without local tags.
+HISTORICAL_BASELINE = "196cbfbc2e749029213fdfd681e2057808db996b"
 FIXTURE_HISTORICAL = "fixture-historical"
 V2_MARKER = "<!-- repo-kit-smoke-v2 -->"
 SEED_V2_MARKER = "# repo-kit-smoke-seed-v2"
@@ -85,8 +86,18 @@ class CopierTemplateSmokeTest(unittest.TestCase):
 
         # Exercise a real seeded-to-managed transition, not only marker changes
         # between two versions of the current ownership map.
-        archive = subprocess.check_output(["git", "archive", HISTORICAL_BASELINE, "copier.yml", "template"], cwd=ROOT)
-        with tarfile.open(fileobj=io.BytesIO(archive)) as historical:
+        archive = subprocess.run(
+            ["git", "archive", HISTORICAL_BASELINE, "copier.yml", "template"],
+            cwd=ROOT,
+            capture_output=True,
+            check=False,
+        )
+        if archive.returncode:
+            raise AssertionError(
+                f"Cannot export historical Copier fixture {HISTORICAL_BASELINE}. "
+                f"Fetch repository history. Git reported: {archive.stderr.decode().strip()}"
+            )
+        with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as historical:
             historical.extractall(cls.source, filter="data")
         run("git", "init", cwd=cls.source)
         run("git", "config", "user.name", "repo-kit smoke", cwd=cls.source)
@@ -143,6 +154,7 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         self.copy(destination)
         (destination / "pyproject-doc-governance.toml").replace(destination / "pyproject.toml")
         self.assertIn("Rendered smoke project.", (destination / "AGENTS.md").read_text())
+        self.assertNotIn("project_slug:", (destination / ".copier-answers.yml").read_text())
         self.assertEqual((ROOT / "template/CLAUDE.md").read_text(), (destination / "CLAUDE.md").read_text())
         authority = tomllib.loads((destination / "pyproject.toml").read_text())["tool"]["doc_governance"][
             "authority_files"
@@ -170,6 +182,12 @@ document_class: coordination
 ## Destination
 
 Prove that an advisory Campaign needs no dedicated document class or status.
+
+```md
+[Illustrative link](hypothetical.md)
+```
+
+[Valid anchor](#destination)
 """,
             encoding="utf-8",
         )
@@ -190,6 +208,10 @@ document_class: coordination
             encoding="utf-8",
         )
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
+        pilot = campaign_dir / "pilot.md"
+        pilot.write_text(pilot.read_text() + "\n[Broken anchor](#missing-heading)\n", encoding="utf-8")
+        with self.assertRaisesRegex(AssertionError, "Missing heading or anchor"):
+            run(sys.executable, "scripts/check_docs.py", cwd=destination)
 
     def test_first_copy_delivers_advisory_size_check(self) -> None:
         destination = self.temp_root / "file-size-check"
@@ -242,6 +264,8 @@ document_class: coordination
     def test_historical_update_requires_binding_reconciliation_and_then_passes_gate(self) -> None:
         destination = self.temp_root / "historical-update"
         self.copy(destination, FIXTURE_HISTORICAL)
+        answers = destination / ".copier-answers.yml"
+        self.assertIn("project_slug: smoke_project", answers.read_text())
         config_path = destination / "pyproject.toml"
         (destination / "pyproject-doc-governance.toml").replace(config_path)
         local_setting = '\n[tool.consumer_fixture]\nretained = "consumer owned"\n'
@@ -270,6 +294,7 @@ document_class: coordination
         run("git", "commit", "-m", "reconcile local policy into AGENTS", cwd=destination)
 
         copier("update", "--trust", "--defaults", "--vcs-ref", FIXTURE_V1, cwd=destination)
+        self.assertNotIn("project_slug:", answers.read_text())
         self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
         self.assertIn(independent_rule, constitution.read_text())
         self.assertEqual((reference / "CLAUDE.md").read_bytes(), legacy.read_bytes())

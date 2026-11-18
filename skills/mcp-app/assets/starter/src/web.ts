@@ -1,7 +1,7 @@
 import { createServer, type IncomingMessage } from "node:http";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { createOperations } from "./operations.ts";
+import { createOperations, LOCAL_OWNER } from "./operations.ts";
 
 const operations = createOperations(),
   nonce = randomUUID();
@@ -48,7 +48,9 @@ createServer(async (request, response) => {
       throw new Error("Same-origin JSON request required");
     const name = request.url.slice("/api/".length);
     response.setHeader("Content-Type", "application/json");
-    response.end(JSON.stringify(operations.call(name, await body(request))));
+    response.end(
+      JSON.stringify(operations.call(name, await body(request), LOCAL_OWNER)),
+    );
   } catch (error) {
     response.statusCode = 400;
     response.setHeader("Content-Type", "application/json");

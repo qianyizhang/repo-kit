@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import importlib.util
-import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
 
 ROOT = Path(__file__).parents[1]
 SPEC = importlib.util.spec_from_file_location("link_doc_rules", ROOT / "template/scripts/check_docs.py")
@@ -17,47 +15,10 @@ sys.modules[SPEC.name] = DOC_RULES
 SPEC.loader.exec_module(DOC_RULES)
 
 
-def prose(content: str) -> str:
-    # Examples inside fenced code name hypothetical paths and headings.
-    return re.sub(r"(?ms)^(`{3,}|~{3,})[^\n]*\n.*?^\1[ \t]*$", "", content)
-
-
-def markdown_anchors(content: str) -> set[str]:
-    content = prose(content)
-    anchors = set(re.findall(r"<[^>]+\b(?:id|name)=[\"\']([^\"\']+)[\"\']", content))
-    used: set[str] = set()
-    for heading in re.findall(r"(?m)^#{1,6}\s+(.+?)\s*#*$", content):
-        heading = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", heading)
-        heading = re.sub(r"<[^>]*>", "", heading)
-        base = re.sub(r"[^\w\- ]", "", heading.lower()).replace(" ", "-")
-        anchor, number = base, 0
-        while anchor in used:
-            number += 1
-            anchor = f"{base}-{number}"
-        used.add(anchor)
-        anchors.add(anchor)
-    return anchors
-
-
 def local_link_errors(document: Path, root: Path) -> list[str]:
-    errors = []
-    for match in DOC_RULES.MARKDOWN_LINK_PATTERN.finditer(prose(document.read_text(encoding="utf-8"))):
-        target = match.group(2) or match.group(3)
-        url = urlsplit(target)
-        if url.scheme or url.netloc:
-            continue
-        destination = (document.parent / unquote(url.path)).resolve() if url.path else document.resolve()
-        # Private historical evidence is audited locally, not required on CI hosts.
-        if not destination.is_relative_to(root):
-            continue
-        if not destination.exists() and destination.is_relative_to(root / "template"):
-            destination = Path(f"{destination}.jinja")
-        if not destination.exists():
-            errors.append(f"Missing destination: {target}")
-        elif url.fragment and destination.is_file() and destination.name.endswith((".md", ".md.jinja")):
-            if unquote(url.fragment) not in markdown_anchors(destination.read_text(encoding="utf-8")):
-                errors.append(f"Missing heading: {target}")
-    return errors
+    return DOC_RULES.local_link_errors(
+        document, document.read_text(encoding="utf-8"), root, template_root=root / "template"
+    )
 
 
 class SkillLinksTest(unittest.TestCase):
@@ -87,7 +48,7 @@ class SkillLinksTest(unittest.TestCase):
             root = Path(temporary).resolve()
             document = root / "guide.md"
             document.write_text("# Guide\n[Old](#retired)\n```md\n## Retired\n```\n")
-            self.assertEqual(local_link_errors(document, root), ["Missing heading: #retired"])
+            self.assertEqual(local_link_errors(document, root), ["Line 2: Missing heading or anchor in '#retired'"])
             document.write_text(document.read_text() + "\n## Retired\n")
             self.assertEqual(local_link_errors(document, root), [])
 

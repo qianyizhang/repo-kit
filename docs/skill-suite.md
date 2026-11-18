@@ -31,6 +31,10 @@ license; its generated receipt records the applied lock.
 Use [installation status](installation.md) for source-commit provenance and one
 check of both user bundles against a committed revision.
 
+In a Git checkout, source checks and lock generation read tracked files and
+nonignored additions under `skills/`. The `lock` command requires a checkout.
+Committed snapshots and exported bundles must match the lock in full.
+Installed checks inspect every file in managed skills.
 The source lock must match. Sync refuses unmanaged collisions (including empty
 directories), edited or missing installed files, and symlinks inside managed
 skills. Additions require absent destinations and an unchanged prior installation.
@@ -64,7 +68,8 @@ python3.12 -m unittest discover -s tests -p 'test_skills.py' -v
 ```
 
 Refresh reads committed blobs, excludes ignored generated files, and neither
-fetches nor installs. It preserves declared adaptations only against unchanged
+fetches nor installs. If an upstream-owned destination contains an unmanaged
+file, refresh stops before replacing any skill. It preserves declared adaptations only against unchanged
 upstream baselines. A changed or removed adapted file stops refresh before
 writes; reconcile the adaptation and exact provenance explicitly.
 

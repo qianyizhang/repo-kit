@@ -18,65 +18,76 @@ import { eventSchema, type Event } from "./observability.ts";
 
 const UUID = /^[a-f0-9-]{36}$/;
 export const MAX_FILE_BYTES = 2 * 1024 * 1024;
+const LOG_FILES = new Set([
+  "session.json",
+  "app.jsonl",
+  "app.jsonl.1",
+  "server.jsonl",
+  "server.jsonl.1",
+]);
 const CAPTURE_FILE = /^capture-[a-f0-9-]{36}\.json$/;
 export function pruneSessions(root: string, now = Date.now()) {
   const inactive: { path: string; started: number }[] = [];
   for (const name of readdirSync(root)) {
     if (!UUID.test(name)) continue;
     const path = join(root, name);
-    if (lstatSync(path).isSymbolicLink() || !lstatSync(path).isDirectory())
-      continue;
-    // Only our flat known files are eligible; never recurse into an unknown tree.
-    const children = readdirSync(path);
-    if (
-      !children.includes("session.json") ||
-      children.some(
-        (child) =>
-          (![
-            "session.json",
-            "app.jsonl",
-            "app.jsonl.1",
-            "server.jsonl",
-            "server.jsonl.1",
-          ].includes(child) &&
-            !CAPTURE_FILE.test(child)) ||
-          !lstatSync(join(path, child)).isFile() ||
-          lstatSync(join(path, child)).isSymbolicLink(),
-      )
-    )
-      continue;
     try {
-      const info = JSON.parse(
-        readFileSync(join(path, "session.json"), "utf8"),
-      ) as { owner?: string; pid?: number; started?: number };
+      if (!lstatSync(path).isDirectory()) continue;
+      // Only remove recognized, flat session directories.
+      const children = readdirSync(path);
       if (
-        info.owner !== "__APP_ID__" ||
+        !children.includes("session.json") ||
+        children.some(
+          (child) =>
+            (!LOG_FILES.has(child) && !CAPTURE_FILE.test(child)) ||
+            !lstatSync(join(path, child)).isFile(),
+        )
+      )
+        continue;
+      const raw = readFileSync(join(path, "session.json"), "utf8");
+      let info: { owner?: string; pid?: number; started?: number } | null;
+      try {
+        info = JSON.parse(raw);
+      } catch {
+        continue;
+      }
+      if (
+        info?.owner !== "__APP_ID__" ||
+        typeof info.pid !== "number" ||
         !Number.isInteger(info.pid) ||
+        info.pid <= 0 ||
+        typeof info.started !== "number" ||
         !Number.isFinite(info.started)
       )
         continue;
       try {
-        process.kill(info.pid!, 0);
+        process.kill(info.pid, 0);
         continue;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== "ESRCH") continue;
       }
-      inactive.push({ path, started: info.started! });
-    } catch {
-      /* Unrecognized evidence is not ours to remove. */
+      inactive.push({ path, started: info.started });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
   inactive.sort((a, b) => b.started - a.started);
   inactive.forEach((entry, index) => {
     if (index >= 8 || now - entry.started > 7 * 86400_000)
-      rmSync(entry.path, { recursive: true });
+      rmSync(entry.path, { recursive: true, force: true });
   });
 }
 export class LogStore {
   readonly instance = randomUUID();
   readonly directory: string;
   error: string | undefined;
-  readonly events: Event[] = [];
+  readonly retentionError?: string;
+  private readonly records: { event: Event; owner: string }[] = [];
+  events(owner: string) {
+    return this.records
+      .filter((record) => record.owner === owner)
+      .map(({ event }) => event);
+  }
   constructor(
     root = process.env.MCP_APP_LOG_ROOT ??
       join(
@@ -90,7 +101,6 @@ export class LogStore {
       mkdirSync(appRoot, { recursive: true, mode: 0o700 });
       if (lstatSync(appRoot).isSymbolicLink())
         throw new Error("Log app root must not be a symlink");
-      pruneSessions(appRoot);
       mkdirSync(this.directory, { mode: 0o700 });
       writeFileSync(
         join(this.directory, "session.json"),
@@ -103,13 +113,24 @@ export class LogStore {
       );
     } catch (error) {
       this.error = String(error);
+      return;
+    }
+    try {
+      pruneSessions(appRoot);
+    } catch (error) {
+      this.retentionError = String(error);
     }
   }
-  append(input: Event) {
+  append(input: Event, owner: string) {
     const event = eventSchema.parse(input);
-    if (this.events.some((item) => item.id === event.id)) return;
-    this.events.push(event);
-    if (this.events.length > 500) this.events.shift();
+    if (
+      this.records.some(
+        (item) => item.owner === owner && item.event.id === event.id,
+      )
+    )
+      return;
+    this.records.push({ event, owner });
+    if (this.records.length > 500) this.records.shift();
     if (this.error) return;
     try {
       const file = join(this.directory, `${event.source}.jsonl`);
@@ -134,8 +155,8 @@ export class LogStore {
       this.error = String(error);
     }
   }
-  capture(interaction: string) {
-    const events = this.events.filter(
+  capture(interaction: string, owner: string) {
+    const events = this.events(owner).filter(
       (event) => event.interaction === interaction,
     );
     if (!events.length) throw new Error("Interaction unavailable or expired");
@@ -164,6 +185,7 @@ export class LogStore {
       directory: this.directory,
       health: this.error ? "memory-only" : "recording",
       error: this.error ?? null,
+      retentionError: this.retentionError ?? null,
       payloads:
         "Metadata on disk; credential-masked payloads in bounded memory. Closing/restarting can lose payloads. Save diagnostic capture persists one interaction explicitly.",
       captures:

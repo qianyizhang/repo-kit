@@ -54,11 +54,6 @@ project_name:
   type: str
   help: Human-readable project name (e.g. "drug-safety")
 
-project_slug:
-  type: str
-  help: Python package / import name (snake_case)
-  default: "{{ project_name | lower | replace('-', '_') | replace(' ', '_') }}"
-
 project_tagline:
   type: str
   help: One line describing what this repo is

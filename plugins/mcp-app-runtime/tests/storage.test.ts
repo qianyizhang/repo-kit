@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
 import {
   mkdtempSync,
   readFileSync,
@@ -112,8 +114,74 @@ void test("startup retention keeps active and unrecognized evidence and never fo
   writeFileSync(join(outside, "sentinel"), "keep");
   const link = join(app, crypto.randomUUID());
   symlinkSync(outside, link);
+  const unknown = join(app, crypto.randomUUID());
+  mkdirSync(unknown);
+  writeFileSync(
+    join(unknown, "session.json"),
+    JSON.stringify({ owner: "test", pid: 2147483647, started: 0 }),
+  );
+  writeFileSync(join(unknown, "unrecognized"), "keep");
   pruneSessions(app, "test", now);
-  assert.equal(readdirSync(app).length, 10); // 8 inactive + active + unowned symlink.
+  assert.equal(readdirSync(app).length, 11); // 8 inactive, active, symlink, unknown directory.
+  assert.equal(readFileSync(join(unknown, "unrecognized"), "utf8"), "keep");
   assert.equal(existsSync(active), true);
   assert.equal(readFileSync(join(outside, "sentinel"), "utf8"), "keep");
+});
+void test("startup tolerates another pruner removing an enumerated session and reports genuine errors", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "shared-prune-race-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const app = join(root, "race");
+  const expired = join(app, crypto.randomUUID());
+  const session = join(expired, "session.json");
+  mkdirSync(expired, { recursive: true });
+  writeFileSync(
+    session,
+    JSON.stringify({ owner: "race", pid: 2147483647, started: 0 }),
+  );
+  const lstat = fs.lstatSync;
+  t.mock.method(fs, "lstatSync", (path: string) => {
+    // Reproduce a second process winning the race after directory enumeration.
+    if (path === session) rmSync(expired, { recursive: true, force: true });
+    return lstat(path);
+  });
+  syncBuiltinESMExports();
+  let store: LogStore;
+  try {
+    store = new LogStore("race", root);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+  assert.equal(store.status().health, "recording");
+  assert.equal(store.status().retentionError, null);
+  new Recorder("app", (event) => store.append(event)).record(
+    crypto.randomUUID(),
+    "startup",
+    "App → Server",
+    "result",
+    "observed",
+    {},
+  );
+  assert.equal(existsSync(join(store.directory, "app.jsonl")), true);
+
+  const readdir = fs.readdirSync;
+  t.mock.method(fs, "readdirSync", (path: string) => {
+    if (path === app)
+      throw Object.assign(new Error("retention denied"), { code: "EACCES" });
+    return readdir(path);
+  });
+  syncBuiltinESMExports();
+  try {
+    const status = new LogStore("race", root).status();
+    assert.equal(status.health, "recording");
+    assert.match(status.retentionError ?? "", /retention denied/);
+  } finally {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  }
+
+  writeFileSync(join(root, "blocked"), "not a directory");
+  const blocked = new LogStore("blocked", root).status();
+  assert.equal(blocked.health, "memory-only");
+  assert.match(blocked.error ?? "", /EEXIST|ENOTDIR/);
 });

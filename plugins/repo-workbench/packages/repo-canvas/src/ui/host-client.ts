@@ -1,5 +1,5 @@
 import { backgroundActions } from '../model/operations.ts';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { HostSession } from '../../../../../mcp-app-runtime/src/host-session.ts';
 import { RuntimeError } from '../../../../../mcp-app-runtime/src/definition.ts';
 import { eventMetadataSchema } from '../../../../../mcp-app-runtime/src/events.ts';
@@ -10,10 +10,16 @@ import { AppDiagnostics, plainMessageFlow } from '../../../diagnostics/client';
 export class HostClient {
   #session: HostSession;
   #onTarget: (value: unknown) => void;
+  #releaseOnTeardown: () => CallToolRequest['params'] | undefined;
   readonly inspection: AppDiagnostics;
   lastMessageInteraction?: string;
-  constructor(onTarget: (value: unknown) => void, connection: () => object = () => ({})) {
+  constructor(
+    onTarget: (value: unknown) => void,
+    connection: () => object,
+    releaseOnTeardown: () => CallToolRequest['params'] | undefined,
+  ) {
     this.#onTarget = onTarget;
+    this.#releaseOnTeardown = releaseOnTeardown;
     this.#session = this.create();
     const remote = async (name: string, args: Record<string, unknown>) => {
       await this.ready();
@@ -65,7 +71,10 @@ export class HostClient {
         version: VERSION,
         capabilities: { availableDisplayModes: ['inline', 'fullscreen'] },
       },
-      { ontoolresult: (result) => this.#onTarget(result.structuredContent) },
+      {
+        ontoolresult: (result) => this.#onTarget(result.structuredContent),
+        releaseOnTeardown: this.#releaseOnTeardown,
+      },
     );
   }
   async ready() {

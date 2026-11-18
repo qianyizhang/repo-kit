@@ -20,6 +20,7 @@ const notes = [
     text: "This unrelated note must not appear in a message about Welcome.",
   },
 ];
+export const LOCAL_OWNER = "local:standalone";
 const correlation = z.uuid().optional();
 type Result = Record<string, unknown>;
 type Definition = {
@@ -33,20 +34,25 @@ type Definition = {
   input: z.ZodObject;
   output: z.ZodObject;
   example: Record<string, unknown>;
-  run: (value: unknown) => Result;
+  run: (value: unknown, owner: string | undefined) => Result;
 };
 function define<I extends z.ZodObject, O extends z.ZodObject>(
   input: I,
   output: O,
   description: Omit<Definition, "input" | "output" | "run">,
-  run: (value: z.infer<I>) => z.infer<O>,
+  run: (value: z.infer<I>, owner: string | undefined) => z.infer<O>,
 ): Definition {
   return {
     ...description,
     input,
     output,
-    run: (value) => output.parse(run(input.parse(value))),
+    run: (value, owner) => output.parse(run(input.parse(value), owner)),
   };
+}
+function requireOwner(owner: string | undefined): string {
+  if (!owner)
+    throw new Error("Hosted diagnostics require a caller chat identity");
+  return owner;
 }
 const noteSchema = z.object({
   id: z.string(),
@@ -55,7 +61,7 @@ const noteSchema = z.object({
   text: z.string(),
 });
 export function createOperations(store = new LogStore()) {
-  const log = new Recorder("server", (event) => store.append(event));
+  const log = new Recorder("server");
   const definitions: Definition[] = [
     define(
       z.object({}).strict(),
@@ -143,7 +149,8 @@ export function createOperations(store = new LogStore()) {
         visibility: ["app"],
         effect:
           "Persists metadata; keeps the payload in bounded memory; never adds model context",
-        authorization: "Validated event; source forced to app",
+        authorization:
+          "Caller chat or explicit standalone owner; source forced to app",
         scope: "One live 64 KiB payload; app-origin claim",
         source: "src/log-store.ts",
         example: {
@@ -164,8 +171,8 @@ export function createOperations(store = new LogStore()) {
           },
         },
       },
-      ({ event }) => {
-        store.append({ ...event, source: "app" });
+      ({ event }, owner) => {
+        store.append({ ...event, source: "app" }, requireOwner(owner));
         return { stored: !store.error, health: store.status().health };
       },
     ),
@@ -186,16 +193,16 @@ export function createOperations(store = new LogStore()) {
         purpose: "List recent event summaries",
         visibility: ["app"],
         effect: "Reads diagnostics without recording the inspection",
-        authorization: "Current server memory only",
+        authorization: "Caller-owned observations in current server memory",
         scope:
           "Up to 20 summaries; optional exact interaction; payloads excluded",
         source: "src/operations.ts",
         example: { limit: 10 },
       },
-      ({ interaction, offset, limit }) => {
-        const matching = store.events.filter(
-          (item) => !interaction || item.interaction === interaction,
-        );
+      ({ interaction, offset, limit }, owner) => {
+        const matching = store
+          .events(requireOwner(owner))
+          .filter((item) => !interaction || item.interaction === interaction);
         return {
           events: matching
             .slice(offset, offset + limit)
@@ -218,13 +225,14 @@ export function createOperations(store = new LogStore()) {
         effect:
           "Explicitly writes the retained masked payloads for one interaction to disk",
         authorization:
-          "User chooses Save diagnostic capture for this interaction; app-only visibility is not authorization",
+          "Caller-owned observations only; user chooses Save diagnostic capture",
         scope:
           "Current retained observations only; up to 2 MiB and 8 captures per session; no reread or replay",
         source: "src/log-store.ts",
         example: { interaction: "00000000-0000-4000-8000-000000000003" },
       },
-      ({ interaction }) => store.capture(interaction),
+      ({ interaction }, owner) =>
+        store.capture(interaction, requireOwner(owner)),
     ),
     define(
       z.object({ id: z.uuid() }).strict(),
@@ -234,14 +242,16 @@ export function createOperations(store = new LogStore()) {
         purpose: "Inspect one frozen event payload",
         visibility: ["app"],
         effect: "Reads a recorded payload; never reruns its action",
-        authorization: "Exact event ID in current server memory",
+        authorization: "Exact caller-owned event ID in current server memory",
         scope:
           "One live retained event; historical payloads exist only in explicitly saved captures",
         source: "src/operations.ts",
         example: { id: "00000000-0000-4000-8000-000000000000" },
       },
-      ({ id }) => {
-        const event = store.events.find((item) => item.id === id);
+      ({ id }, owner) => {
+        const event = store
+          .events(requireOwner(owner))
+          .find((item) => item.id === id);
         if (!event) throw new Error("Event unavailable or expired");
         return { event };
       },
@@ -254,7 +264,11 @@ export function createOperations(store = new LogStore()) {
       outputSchema: z.toJSONSchema(output, { target: "draft-7", io: "output" }),
     }));
   }
-  function call(name: string, value: unknown): CallToolResult {
+  function call(
+    name: string,
+    value: unknown,
+    owner: string | undefined,
+  ): CallToolResult {
     const definition = definitions.find((item) => item.name === name);
     if (!definition) throw new Error("Unknown operation");
     const observer = name.startsWith("logs_") || name === "app_info";
@@ -263,41 +277,29 @@ export function createOperations(store = new LogStore()) {
       .safeParse(value);
     const interaction =
       (supplied.success && supplied.data.interaction) || crypto.randomUUID();
-    if (!observer)
-      log.record(
-        interaction,
-        name,
-        "Adapter → Server",
-        "request",
-        "received",
-        value,
+    function observe(
+      direction: string,
+      phase: "request" | "result" | "error",
+      status: string,
+      value: unknown,
+    ) {
+      if (observer || !owner) return;
+      store.append(
+        log.record(interaction, name, direction, phase, status, value),
+        owner,
       );
+    }
+    observe("Adapter → Server", "request", "received", value);
     try {
-      const data = definition.run(value);
+      const data = definition.run(value, owner);
       const result = {
         content: [{ type: "text" as const, text: JSON.stringify(data) }],
         structuredContent: data,
       };
-      if (!observer)
-        log.record(
-          interaction,
-          name,
-          "Server → Adapter",
-          "result",
-          "completed",
-          result,
-        );
+      observe("Server → Adapter", "result", "completed", result);
       return result;
     } catch (error) {
-      if (!observer)
-        log.record(
-          interaction,
-          name,
-          "Server → Adapter",
-          "error",
-          "failed",
-          String(error),
-        );
+      observe("Server → Adapter", "error", "failed", String(error));
       return {
         isError: true,
         content: [{ type: "text" as const, text: String(error) }],
