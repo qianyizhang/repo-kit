@@ -45,7 +45,7 @@ Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`
 ## Accounting and indexing
 
 - **Record precedence**: Modern `token_usage_record` `(thread_id, response_id)` takes precedence over legacy cumulative snapshots. Responses are globally deduplicated across archived/copied files.
-- **Incremental indexing**: Maintained under `~/.cache/repo-workbench/usage/<root-key>/` or the `--cache` override. Tracks file size, mtime, and trailing 4 KiB to resume reading without reparsing unchanged prefixes.
+- **Incremental indexing**: Maintained under `~/.cache/repo-workbench/usage/<root-key>/` or the `--cache` override. Unchanged device, inode, size, mtime and ctime permit a cache hit. When a plain log grows, the scanner reads and hashes the entire former prefix before reusing its parsed records. A mismatch triggers a full reparse. Bytes scanned includes verification reads; an unfinished last line is parsed again.
 - **Integrity**: Serialized SHA-256 states preserve exact whole-file hashes. Malformed lines and counter reconciliation mismatches (`input + output != total`) are logged as coverage gaps without halting scans.
 
 ## Refresh and evidence

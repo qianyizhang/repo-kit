@@ -9,7 +9,7 @@ export function fileTransaction<T>(path: string, run: () => T): T {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
   }
   if (lstatSync(path).isSymbolicLink() || !lstatSync(path).isFile())
-    throw new Error('Refusing an unsafe discussion transaction file');
+    throw new Error('Refusing an unsafe transaction file');
   const database = new DatabaseSync(path);
   let acquired = false;
   try {
@@ -17,10 +17,9 @@ export function fileTransaction<T>(path: string, run: () => T): T {
     try {
       database.exec('BEGIN IMMEDIATE');
       acquired = true;
-    } catch {
-      throw new Error(
-        'Conflict: Another panel is updating this discussion. Retry after it finishes.',
-      );
+    } catch (error) {
+      if ((error as { errcode?: number }).errcode !== 5) throw error;
+      throw new Error('Conflict: Another writer is saving changes. Retry after it finishes.');
     }
     // No domain data is stored in this sidecar. An OS-released SQLite lock cannot orphan.
     return run();

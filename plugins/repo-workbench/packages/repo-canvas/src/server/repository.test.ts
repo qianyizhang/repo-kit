@@ -11,7 +11,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { Repository, documentName } from './repository';
 import { createHash } from 'node:crypto';
 const roots: string[] = [];
@@ -88,6 +88,46 @@ it('limits source inspection and refuses architecture symlink writes outside the
   expect(() => repo.source('private.txt')).toThrow('Git-visible');
   symlinkSync(tmpdir(), join(root, '.repo-canvas'));
   expect(() => repo.snapshot()).toThrow('symlink');
+});
+it('excludes other Workbench processes from both writes while accepting a map revision', () => {
+  const { root, repo } = setup();
+  const state = repo.snapshot();
+  const snapshot = repo.snapshot.bind(repo);
+  vi.spyOn(repo, 'snapshot').mockImplementationOnce(() => {
+    const checked = snapshot();
+    const script = `
+      import assert from 'node:assert/strict';
+      import { Repository } from ${JSON.stringify(new URL('./repository.ts', import.meta.url).href)};
+      const other = new Repository(process.cwd());
+      const {document, revision} = other.snapshot();
+      assert.throws(() => other.save({...document, title: 'competing'}, revision), /Conflict/);
+      const path = 'src/main.ts';
+      assert.throws(() => other.saveSource(path, other.source(path).revision, 'competing', document), /Conflict/);
+    `;
+    execFileSync(process.execPath, ['--input-type=module', '-e', script], { cwd: root });
+    return checked;
+  });
+  expect(repo.save({ ...state.document, title: 'accepted' }, state.revision).document.title).toBe(
+    'accepted',
+  );
+  const source = repo.source('src/main.ts');
+  expect(source.content).toContain('42');
+  repo.saveSource('src/main.ts', source.revision, 'retry', state.document);
+  expect(repo.source('src/main.ts').content).toBe('retry');
+});
+it('rejects oversized UTF-8 block edits before changing disk and accepts the exact byte limit', () => {
+  const { root, repo } = setup();
+  const path = join(root, 'src/main.ts');
+  const original = 'a\n' + 'x'.repeat(499_996);
+  writeFileSync(path, original);
+  const reference = 'src/main.ts#L1';
+  const { document } = repo.snapshot();
+  document.modules[0].sources = [reference];
+  const { revision } = repo.source(reference);
+  expect(() => repo.saveSource(reference, revision, '界a\n', document)).toThrow('500 KB');
+  expect(readFileSync(path, 'utf8')).toBe(original);
+  repo.saveSource(reference, revision, '界\n', document);
+  expect(repo.source(reference).content).toBe('界\n');
 });
 it('rejects an oversized encoded document before replacing a readable save', () => {
   const { repo } = setup();

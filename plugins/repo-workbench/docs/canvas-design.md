@@ -11,6 +11,11 @@ artifacts belong in source references, not separate nodes.
 This contract owns the accepted reading, contextual authoring and grouping
 decisions. [Review notes](../../../docs/reviews/README.md) retain the brief rationale.
 
+Map and source saves share a worktree-local SQLite writer lock in the Git directory.
+A second Workbench writer gets a conflict rather than overwriting an accepted revision.
+External editors do not take this lock. Source saves still check the on-disk revision
+and reject a resulting file larger than 500,000 UTF-8 bytes before replacement.
+
 ## Source and provenance
 
 Adapted on 2026-10-15 from Qianyi Zhang's public

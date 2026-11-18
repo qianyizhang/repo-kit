@@ -352,7 +352,7 @@ void test('standalone build and loopback refresh preserve inputs and refuse over
   }
 });
 
-void test('durable index restores unchanged files and reads only appended bytes, including provisional tails', async () => {
+void test('durable index verifies prefixes and reuses parsed records, including provisional tails', async () => {
   const dir = await fixture();
   const index = await mkdtemp(resolve(tmpdir(), 'usage-index-test-'));
   try {
@@ -378,7 +378,7 @@ void test('durable index restores unchanged files and reads only appended bytes,
     await appendFile(path, event.slice(0, 80));
     const partial = await scan([dir], restored);
     assert.equal(partial.appendedFiles, 1);
-    assert.ok(partial.scannedBytes <= 80 + 63);
+    assert.ok(partial.scannedBytes >= original.length + 80);
     assert.equal(summarize(partial.records, {}).total, 2860);
     assert.ok(partial.gaps.some((g) => g.reason.includes('Malformed JSON')));
     await saveIndex(index, restored, cache);
@@ -387,7 +387,8 @@ void test('durable index restores unchanged files and reads only appended bytes,
     const complete = await scan([dir], resumed);
     assert.equal(summarize(complete.records, {}).total, 2890);
     assert.equal(complete.gaps.length, 0);
-    assert.ok(complete.scannedBytes <= event.length + 63);
+    assert.equal(complete.appendedFiles, 1);
+    assert.ok(complete.scannedBytes >= original.length + event.length);
     assert.equal(complete.records.find((r) => r.id === 'child:append')?.effort, 'high');
     await appendFile(path, '\n');
     const newline = await scan([dir], resumed);
@@ -429,6 +430,31 @@ void test('resumable source SHA-256 matches native hashing across block and rest
     assert.equal(resumed.hex(), createHash('sha256').update(bytes).digest('hex'));
     hash.update(bytes.subarray(split));
     assert.equal(hash.hex(), resumed.hex());
+  }
+});
+void test('prefix edits outside the old tail invalidate parsed records and digest on growth', async () => {
+  const dir = await fixture();
+  try {
+    const path = resolve(dir, 'child.jsonl');
+    await appendFile(path, '\n' + ' '.repeat(5200) + '\n');
+    const original = await readFile(path, 'utf8');
+    const changed = original.replaceAll('workshop', 'worksite');
+    assert.notEqual(changed, original);
+    assert.equal(original.slice(-4096), changed.slice(-4096));
+    assert.equal(Buffer.byteLength(original), Buffer.byteLength(changed));
+    const cache: ScanCache = new Map();
+    await scan([path], cache);
+    await writeFile(path, changed + '{}\n');
+    const warm = await scan([path], cache);
+    const fresh = await scan([path]);
+    assert.equal(warm.appendedFiles, 0);
+    assert.deepEqual(warm.records, fresh.records);
+    assert.deepEqual(warm.sources, fresh.sources);
+    const bytes = await readFile(path);
+    assert.equal(warm.sources[0]?.sha256, createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(warm.sources[0]?.bytes, bytes.length);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
   }
 });
 void test('current official prices apply long-context rates and inconsistent snapshots explain exclusion', async () => {

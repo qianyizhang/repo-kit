@@ -1,6 +1,4 @@
-// Serializable SHA-256 state lets append-only scans preserve exact source hashes
-// without rereading old bytes. Persist only words and the byte count at a
-// 64-byte boundary; the scanner rereads the unpersisted suffix of at most 63 bytes.
+// After prefix verification, resume at the last complete 64-byte block.
 export type HashState = { words: number[]; bytes: number };
 const constants = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,

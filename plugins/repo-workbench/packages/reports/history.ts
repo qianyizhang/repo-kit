@@ -11,7 +11,7 @@ declare const WORKBENCH_BUNDLED: boolean;
 const zip = promisify(gzip),
   unzip = promisify(gunzip);
 const filename = (directory: string, timezone: string) =>
-  resolve(directory, `overview-v1-${timezone.replace('/', '-')}.json.gz`);
+  resolve(directory, `overview-v2-${timezone.replace('/', '-')}.json.gz`);
 export async function loadOverview(
   directory: string,
   timezone: string,

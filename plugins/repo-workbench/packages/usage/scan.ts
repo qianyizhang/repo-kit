@@ -46,12 +46,11 @@ type Entry = {
   ctime: number;
   ino: number;
   dev: number;
-  boundary: string;
   parsed: Parsed;
   cursor: Cursor;
 };
 export type ScanCache = Map<string, Entry>;
-const indexVersion = 4;
+const indexVersion = 5;
 export async function loadIndex(directory: string): Promise<ScanCache> {
   try {
     const index = JSON.parse(await readFile(resolve(directory, 'manifest.json'), 'utf8')) as {
@@ -86,7 +85,10 @@ export async function saveIndex(directory: string, cache: ScanCache, prior: Scan
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const entries: [string, string][] = [];
   for (const [path, entry] of cache) {
-    const name = createHash('sha256').update(path).digest('hex') + '.json.gz';
+    const name =
+      createHash('sha256')
+        .update(JSON.stringify([indexVersion, path]))
+        .digest('hex') + '.json.gz';
     entries.push([path, name]);
     if (prior.get(path) !== entry)
       await atomicWrite(resolve(directory, name), gzipSync(JSON.stringify(entry)));
@@ -96,10 +98,25 @@ export async function saveIndex(directory: string, cache: ScanCache, prior: Scan
     JSON.stringify({ version: indexVersion, entries }),
   );
 }
-async function boundary(handle: Awaited<ReturnType<typeof open>>, size: number) {
-  const bytes = Buffer.alloc(Math.min(4096, size));
-  await handle.read(bytes, 0, bytes.length, size - bytes.length);
-  return createHash('sha256').update(bytes).digest('hex');
+async function verifyPrefix(handle: Awaited<ReturnType<typeof open>>, previous: Entry) {
+  const digest = createHash('sha256');
+  let bytes = 0;
+  if (previous.size) {
+    for await (const chunk of handle.createReadStream({
+      start: 0,
+      end: previous.size - 1,
+      autoClose: false,
+    })) {
+      if (!Buffer.isBuffer(chunk))
+        throw new Error('Expected file bytes during prefix verification');
+      digest.update(chunk);
+      bytes += chunk.length;
+    }
+  }
+  return {
+    bytes,
+    matches: bytes === previous.size && digest.digest('hex') === previous.parsed.source.sha256,
+  };
 }
 export function defaultRoots(): string[] {
   const home = process.env.CODEX_HOME || resolve(homedir(), '.codex');
@@ -154,15 +171,27 @@ async function parseFile(
   previous?: Entry,
 ): Promise<{ entry: Entry; readBytes: number; appended: boolean }> {
   const handle = await open(path, 'r');
+  try {
+    return await parseOpenFile(path, handle, previous);
+  } finally {
+    await handle.close();
+  }
+}
+async function parseOpenFile(
+  path: string,
+  handle: Awaited<ReturnType<typeof open>>,
+  previous?: Entry,
+) {
   const before = await handle.stat();
-  const append =
+  const verification =
     !compressedLog(path) &&
     previous &&
     before.size > previous.size &&
     before.ino === previous.ino &&
-    before.dev === previous.dev &&
-    (await boundary(handle, previous.size)) === previous.boundary;
-  const prior = append ? previous : undefined;
+    before.dev === previous.dev
+      ? await verifyPrefix(handle, previous)
+      : undefined;
+  const prior = verification?.matches ? previous : undefined;
   const source: Source = prior
     ? { ...prior.cursor.source, bytes: before.size }
     : {
@@ -297,7 +326,7 @@ async function parseFile(
     // A valid unterminated line is provisional; retry it from its beginning on append.
     if (pending.length) parseLine(pending.toString('utf8'));
     source.sha256 = archiveDigest ? archiveDigest.digest('hex') : digest.hex();
-    source.bytes = archiveDigest ? position : digest.state().bytes;
+    source.bytes = position;
     if (compressedLog(path)) {
       source.encoding = 'zstd';
       source.storedBytes = before.size;
@@ -316,16 +345,14 @@ async function parseFile(
         ctime: before.ctimeMs,
         ino: before.ino,
         dev: before.dev,
-        boundary: await boundary(handle, before.size),
         parsed: { source, events, responses, gaps },
         cursor,
       },
-      readBytes: before.size - start,
+      readBytes: (verification?.bytes ?? 0) + before.size - start,
       appended: !!prior,
     };
   } finally {
     stream?.destroy();
-    await handle.close();
   }
 }
 async function discover(root: string, gaps: Gap[]): Promise<string[]> {

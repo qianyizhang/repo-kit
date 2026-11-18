@@ -13,6 +13,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, resolve, sep } from 'node:path';
+import { fileTransaction } from '../../../runtime/file-transaction.ts';
 import {
   parseDocument,
   parseSourceReference,
@@ -22,6 +23,7 @@ import {
 } from '../model/document.ts';
 
 export const documentName = '.repo-canvas/architecture.json';
+const sourceByteLimit = 500_000;
 const digest = (text: string) => createHash('sha256').update(text).digest('hex');
 export function repositoryFiles(root: string): string[] {
   return execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z'], {
@@ -132,21 +134,34 @@ export class Repository {
       return { ...metadata, document: discover(this.root), problem: String(error) };
     }
   }
+  private writeTransaction<Result>(run: () => Result): Result {
+    const directory = execFileSync('git', ['rev-parse', '--absolute-git-dir'], {
+      cwd: this.root,
+      encoding: 'utf8',
+    }).replace(/\n$/, '');
+    return fileTransaction(resolve(directory, 'repo-canvas-write.sqlite'), run);
+  }
   save(value: unknown, revision: string): Snapshot {
     const document = parseDocument(value);
     const serialized = `${JSON.stringify(document, null, 2)}\n`;
     if (Buffer.byteLength(serialized) > 2_000_000)
       throw new Error('Architecture document exceeds 2 MB');
-    if (this.snapshot().revision !== revision)
-      throw new Error(
-        'Conflict: the architecture changed on disk. Export your draft, then reload.',
-      );
-    const path = this.documentPath();
-    mkdirSync(dirname(path), { recursive: true });
-    const temporary = `${path}.${randomUUID()}.tmp`;
-    writeFileSync(temporary, serialized, { flag: 'wx' });
-    renameSync(temporary, path);
-    return this.snapshot();
+    return this.writeTransaction(() => {
+      if (this.snapshot().revision !== revision)
+        throw new Error(
+          'Conflict: the architecture changed on disk. Export your draft, then reload.',
+        );
+      const path = this.documentPath();
+      mkdirSync(dirname(path), { recursive: true });
+      const temporary = `${path}.${randomUUID()}.tmp`;
+      try {
+        writeFileSync(temporary, serialized, { flag: 'wx' });
+        renameSync(temporary, path);
+      } finally {
+        if (existsSync(temporary)) unlinkSync(temporary);
+      }
+      return this.snapshot();
+    });
   }
   private readSource(reference: string) {
     const { path, startLine, endLine } = parseSourceReference(reference);
@@ -166,7 +181,7 @@ export class Repository {
     if (!absolute.startsWith(this.root + sep))
       throw new Error('Source resolves outside the repository');
     const stat = statSync(absolute);
-    if (!stat.isFile() || stat.nlink !== 1 || stat.size > 500_000)
+    if (!stat.isFile() || stat.nlink !== 1 || stat.size > sourceByteLimit)
       throw new Error('Source must be a regular text file under 500 KB');
     const bytes = readFileSync(absolute);
     const raw = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
@@ -208,37 +223,41 @@ export class Repository {
     ];
     if (!references.includes(reference))
       throw new Error('Only an explicitly referenced source block can be saved');
-    const file = this.readSource(reference);
-    if (file.revision !== revision)
-      throw new Error('Conflict: Source changed on disk. Reload and review a fresh diff.');
-    if (content.includes('\0') || content.length > 40000)
-      throw new Error('Source block must be text under 40,000 characters');
-    const replacement = file.raw.includes('\r\n')
-      ? content.replace(/\r?\n/g, '\r\n')
-      : content.replace(/\r\n/g, '\n');
-    if (file.last < file.lines.length && replacement && !replacement.endsWith('\n'))
-      throw new Error('A block before following lines must end with a newline');
-    const next =
-      file.lines.slice(0, file.first - 1).join('') +
-      replacement +
-      file.lines.slice(file.last).join('');
-    const temporary = file.absolute + '.' + randomUUID() + '.tmp';
-    try {
-      writeFileSync(temporary, next, { flag: 'wx', mode: file.stat.mode });
-      chmodSync(temporary, file.stat.mode); // Creation umask must not change the source permissions.
-      const current = this.readSource(reference);
-      if (current.revision !== revision || current.stat.ino !== file.stat.ino)
-        throw new Error('Conflict: Source changed during save');
-      renameSync(temporary, file.absolute);
-    } finally {
-      if (existsSync(temporary)) unlinkSync(temporary);
-    }
-    // A block can change its length; return its new bounds without silently changing the map.
-    const count = replacement ? replacement.split(/(?<=\n)/).filter(Boolean).length : 0;
-    const updated =
-      count === 0 || parseSourceReference(reference).startLine === undefined
-        ? file.path
-        : `${file.path}#L${file.first}-L${file.first + Math.max(1, count) - 1}`;
-    return { revision: digest(next), reference: updated };
+    return this.writeTransaction(() => {
+      const file = this.readSource(reference);
+      if (file.revision !== revision)
+        throw new Error('Conflict: Source changed on disk. Reload and review a fresh diff.');
+      if (content.includes('\0') || content.length > 40000)
+        throw new Error('Source block must be text under 40,000 characters');
+      const replacement = file.raw.includes('\r\n')
+        ? content.replace(/\r?\n/g, '\r\n')
+        : content.replace(/\r\n/g, '\n');
+      if (file.last < file.lines.length && replacement && !replacement.endsWith('\n'))
+        throw new Error('A block before following lines must end with a newline');
+      const next =
+        file.lines.slice(0, file.first - 1).join('') +
+        replacement +
+        file.lines.slice(file.last).join('');
+      if (Buffer.byteLength(next, 'utf8') > sourceByteLimit)
+        throw new Error('Updated source exceeds 500 KB');
+      const temporary = file.absolute + '.' + randomUUID() + '.tmp';
+      try {
+        writeFileSync(temporary, next, { flag: 'wx', mode: file.stat.mode });
+        chmodSync(temporary, file.stat.mode); // Creation umask must not change the source permissions.
+        const current = this.readSource(reference);
+        if (current.revision !== revision || current.stat.ino !== file.stat.ino)
+          throw new Error('Conflict: Source changed during save');
+        renameSync(temporary, file.absolute);
+      } finally {
+        if (existsSync(temporary)) unlinkSync(temporary);
+      }
+      // A block can change its length; return its new bounds without silently changing the map.
+      const count = replacement ? replacement.split(/(?<=\n)/).filter(Boolean).length : 0;
+      const updated =
+        count === 0 || parseSourceReference(reference).startLine === undefined
+          ? file.path
+          : `${file.path}#L${file.first}-L${file.first + Math.max(1, count) - 1}`;
+      return { revision: digest(next), reference: updated };
+    });
   }
 }
