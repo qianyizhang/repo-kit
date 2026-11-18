@@ -45,7 +45,9 @@ SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
 WORK_ID_PATTERN = re.compile(r"^AB-[A-Z0-9]+-\d{3}$")
 WORK_STATUSES = {"deferred", "ready", "wip", "blocked", "done", "partial", "canceled"}
 WORK_KINDS = {"decision", "build", "research"}
-BACKLOG_ITEM_DIR = "records/work-items/items"
+DEFAULT_WORK_ITEMS_DIR = "records/work-items/items"
+WORK_ITEM_LINK_FIELDS = ("depends_on", "residual_of", "residual_items")
+WORK_ITEM_FIELDS = ("work_id", "work_status", "work_kind", "added", "tags", *WORK_ITEM_LINK_FIELDS)
 BACKLOG_REQUIRED_HEADINGS = (
     "## Intent",
     "## Acceptance Criteria",
@@ -75,6 +77,7 @@ class GovernanceConfig:
     index_route_areas: tuple[str, ...]
     document_classes: dict[str, DocumentClassProfile]
     symlinks: dict[str, str]
+    work_items_dir: str = DEFAULT_WORK_ITEMS_DIR
 
     @property
     def backtick_path_pattern(self) -> re.Pattern[str]:
@@ -91,6 +94,12 @@ def load_config(repo_root: Path) -> GovernanceConfig:
         sys.exit(f"check_docs: cannot read {pyproject}: {e}")
     if raw is None:
         sys.exit("check_docs: missing [tool.doc_governance] in pyproject.toml (see docs/rules/governance.md)")
+    work_items_dir = raw.get("work_items_dir", DEFAULT_WORK_ITEMS_DIR)
+    if not isinstance(work_items_dir, str):
+        sys.exit("check_docs: work_items_dir must be a repository-relative directory")
+    work_items_path = Path(work_items_dir)
+    if not work_items_path.parts or work_items_path.is_absolute() or ".." in work_items_path.parts:
+        sys.exit("check_docs: work_items_dir must be a repository-relative directory")
     try:
         return GovernanceConfig(
             exclude_dirs=frozenset(raw["exclude_dirs"]),
@@ -111,6 +120,7 @@ def load_config(repo_root: Path) -> GovernanceConfig:
                 for name, profile in raw["document_classes"].items()
             },
             symlinks=dict(raw.get("symlinks", {})),
+            work_items_dir=work_items_path.as_posix(),
         )
     except KeyError as e:
         sys.exit(f"check_docs: [tool.doc_governance] missing required key {e}")
@@ -166,9 +176,9 @@ def is_skill_manifest(rel_path: str, cfg: GovernanceConfig) -> bool:
     return any(glob_match(rel_path, f"{sd}/*/SKILL.md") for sd in cfg.skills_dirs)
 
 
-def is_backlog_item(rel_path: str) -> bool:
+def is_backlog_item(rel_path: str, cfg: GovernanceConfig) -> bool:
     path = Path(rel_path)
-    return path.parent.as_posix() == BACKLOG_ITEM_DIR and path.suffix == ".md"
+    return path.parent.as_posix() == cfg.work_items_dir and path.suffix == ".md"
 
 
 def markdown_section(content: str, heading: str) -> str:
@@ -255,13 +265,18 @@ def check_document_class(rel_path: str, metadata: dict[str, str], cfg: Governanc
     profile = cfg.document_classes.get(class_name)
     if profile is None:
         return [f"Frontmatter: Undeclared document_class '{class_name}'"]
+    is_work_item = class_name == "work_record" and is_backlog_item(rel_path, cfg)
+    if class_name == "work_record" and not is_work_item:
+        return [f"Work record '{rel_path}' must be directly in '{cfg.work_items_dir}'"]
     errors = [
         f"Frontmatter: Class '{class_name}' missing required key '{key}'"
         for key in profile.required_fields
-        if not metadata.get(key, "").strip()
+        if not (is_work_item and key in WORK_ITEM_FIELDS) and not metadata.get(key, "").strip()
     ]
-    if rel_path not in profile.allowed_paths and not any(
-        rel_path.startswith(prefix) for prefix in profile.allowed_prefixes
+    if (
+        not is_work_item
+        and rel_path not in profile.allowed_paths
+        and not any(rel_path.startswith(prefix) for prefix in profile.allowed_prefixes)
     ):
         errors.append(f"Frontmatter: Class '{class_name}' is not allowed at '{rel_path}'")
     if class_name == "report":
@@ -530,30 +545,24 @@ def check_skill_invocation_policies(repo_root: Path, cfg: GovernanceConfig, md_f
     return errors
 
 
-def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
+def check_backlog_items(repo_root: Path, cfg: GovernanceConfig, md_files: list[Path]) -> list[str]:
     """Validate durable one-file-per-item backlog records and their lineage."""
-    records: dict[str, tuple[Path, dict[str, str], str]] = {}
+    records: dict[str, Path] = {}
+    references: list[tuple[str, str, str, set[str]]] = []
     errors = []
 
     for filepath in sorted(md_files):
         rel = rel_posix(filepath, repo_root)
-        if rel is None or not is_backlog_item(rel):
+        if rel is None or not is_backlog_item(rel, cfg):
             continue
         content = filepath.read_text(encoding="utf-8")
         metadata, _, fm_err = parse_frontmatter(content)
         if fm_err:
             continue  # check_file reports the frontmatter failure
 
-        for key in (
-            "work_id",
-            "work_status",
-            "work_kind",
-            "added",
-            "tags",
-            "depends_on",
-            "residual_of",
-            "residual_items",
-        ):
+        if metadata.get("document_class") != "work_record":
+            errors.append(f"Backlog item: '{rel}' must use document_class 'work_record'")
+        for key in WORK_ITEM_FIELDS:
             if not metadata.get(key, "").strip():
                 errors.append(f"Backlog item: '{rel}' is missing frontmatter key '{key}'")
 
@@ -563,10 +572,10 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         if work_id and not filepath.stem.startswith(f"{work_id}-"):
             errors.append(f"Backlog item: filename '{filepath.name}' must start with '{work_id}-'")
         if work_id in records:
-            other = rel_posix(records[work_id][0], repo_root)
+            other = rel_posix(records[work_id], repo_root)
             errors.append(f"Backlog item: duplicate work_id '{work_id}' in '{other}' and '{rel}'")
         elif work_id:
-            records[work_id] = (filepath, metadata, content)
+            records[work_id] = filepath
 
         work_status = metadata.get("work_status", "")
         if work_status and work_status not in WORK_STATUSES:
@@ -602,6 +611,9 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
                 f"Backlog item: '{rel}' final Status History To '{final_status}' "
                 f"does not match current status '{work_status}'"
             )
+        for terminal in ("partial", "canceled"):
+            if terminal in transitions[:-1]:
+                errors.append(f"Backlog item: '{rel}' has a Status History transition after terminal '{terminal}'")
 
         implementation_ledger = markdown_section(content, "## Implementation Ledger")
         if work_status in {"wip", "blocked", "done", "partial"} and (
@@ -613,7 +625,7 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
         if work_status == "done" and re.search(r"^\s*[-*]\s+\[ \]", acceptance, re.MULTILINE):
             errors.append(f"Backlog item: '{rel}' is done but has unchecked acceptance criteria")
 
-        for key in ("depends_on", "residual_of", "residual_items"):
+        for key in WORK_ITEM_LINK_FIELDS:
             try:
                 linked_ids = metadata_work_ids(metadata.get(key, ""))
             except ValueError as exc:
@@ -621,20 +633,15 @@ def check_backlog_items(repo_root: Path, md_files: list[Path]) -> list[str]:
             else:
                 if key == "residual_items" and work_status == "partial" and not linked_ids:
                     errors.append(f"Backlog item: '{rel}' is partial but has no residual_items work ID")
+                if linked_ids and work_id:
+                    references.append((rel, work_id, key, linked_ids))
 
-    known_ids = set(records)
-    for work_id, (filepath, metadata, _) in records.items():
-        rel = rel_posix(filepath, repo_root)
-        for key in ("depends_on", "residual_of", "residual_items"):
-            try:
-                linked_ids = metadata_work_ids(metadata.get(key, ""))
-            except ValueError:
-                continue  # Syntax failures were reported while collecting records.
-            for linked_id in linked_ids:
-                if linked_id not in known_ids:
-                    errors.append(f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'")
-                elif linked_id == work_id:
-                    errors.append(f"Backlog item: '{rel}' {key} cannot reference itself")
+    for rel, work_id, key, linked_ids in references:
+        for linked_id in sorted(linked_ids):
+            if linked_id not in records:
+                errors.append(f"Backlog item: '{rel}' {key} references missing work item '{linked_id}'")
+            elif linked_id == work_id:
+                errors.append(f"Backlog item: '{rel}' {key} cannot reference itself")
 
     return errors
 
@@ -648,7 +655,7 @@ def run(repo_root: Path, file_args: list[str] | None = None) -> int:
         check_symlink_layout(repo_root, cfg)
         + check_index_routes(repo_root, cfg)
         + check_skill_invocation_policies(repo_root, cfg, all_md_files)
-        + check_backlog_items(repo_root, all_md_files)
+        + check_backlog_items(repo_root, cfg, all_md_files)
     )
 
     if file_args:

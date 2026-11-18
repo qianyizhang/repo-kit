@@ -90,9 +90,16 @@ to account for every deletion; use one only for a demonstrated remaining need.
 
 ## Work-item records
 
-`records/work-items/backlog.md` is the repository-owned lifecycle and schema.
-Each active or not-yet-archived item has one file under
-`records/work-items/items/`; status and ledger history live only in that file.
+Repo-kit owns the portable lifecycle and schema, enforced by
+[`check_docs.py`](../../scripts/check_docs.py). The repository owns its triage
+tags, discovery page, and work-item directory. Set `work_items_dir` under
+`[tool.doc_governance]` in `pyproject.toml` to a repository-relative directory.
+The default is the directory used in the seeded backlog page. Each active or
+retained item has one Markdown file directly in that directory. Status and
+ledger history live in the item file. After updating an older copy, keep local
+tags, paths, and discovery instructions in the backlog page and replace any
+copied schema or lifecycle text with a link to this section. Existing
+configuration can keep extra local class fields.
 
 Create a work record when coordination must cross a session boundary or carry a
 durable decision, deviation, residual, verification, or handoff. A completed
@@ -104,6 +111,82 @@ Record material findings, decisions, deviations, and verification once. Routine
 progress belongs in the execution's existing state or ledger. Retained terminal
 items should carry outcome, acceptance evidence, residuals, and links to promoted
 owners; trim spent execution prose subject to the preservation rules above.
+
+### Work status and kind
+
+- `deferred`: valid work, deliberately not scheduled.
+- `ready`: scope and acceptance criteria are sufficient to begin.
+- `wip`: actively owned; implementation has started.
+- `blocked`: needs a named decision, dependency, or capability.
+- `done`: all acceptance criteria are satisfied and verified.
+- `partial`: terminal accepted subset; remaining scope exists as linked items.
+- `canceled`: terminal intentional abandonment, with rationale.
+
+Keep `partial` terminal. Close the residual scope through new items linked
+with `residual_of` / `residual_items`. The original outcome remains historical.
+
+Canonical `work_kind` values are `decision`, `build`, and `research`.
+Names start with the work ID followed by a hyphen, for example
+`AB-AREA-001-confirm-fixture.md`. The area uses uppercase letters or digits.
+IDs are unique across the work-item directory.
+
+### Record shape
+
+```markdown
+---
+description: Confirm the fixture meets its contract.
+scope: backlog item
+status: stable
+last_update: 2026-09-11
+document_class: work_record
+work_id: AB-AREA-001
+work_status: deferred
+work_kind: build
+added: 2026-09-11
+tags: tag-a, tag-b
+depends_on: none
+residual_of: none
+residual_items: none
+---
+
+# AB-AREA-001 — Confirm the fixture
+
+## Intent
+
+Confirm the fixture behavior.
+
+## Acceptance Criteria
+
+- [ ] Verify the fixture through its public interface.
+
+## Context and Trade-offs
+
+Use the existing fixture to keep the check reproducible.
+
+## Status History
+
+| Date | Actor | From | To | Reason / evidence |
+| --- | --- | --- | --- | --- |
+| 2026-09-11 | maintainer | — | deferred | Item captured |
+
+## Implementation Ledger
+
+No implementation events yet.
+```
+
+Status History is terse and append-only. Implementation Ledger entries are
+substantive and use one of `finding`, `decision`, `assumption`, `deviation`,
+`verification`, or `handoff`; each records evidence, consequence, follow-up, and
+review state (`not-required`, `pending`, `ratified`, `rejected`, `superseded`, or
+`audit-requested`).
+
+The checker requires the frontmatter and headings in the example. The final
+Status History destination must match `work_status`. Items in `wip`, `blocked`,
+`done`, or `partial` require a ledger event. A `done` item has no unchecked
+acceptance boxes. Each lineage field is `none` or a comma-separated list of
+existing work IDs other than the item's own ID. A `partial` item requires at
+least one residual item. Review the history and ledger for meaningful evidence
+and preserve their recorded outcomes.
 
 ## Campaign records
 

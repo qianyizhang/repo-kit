@@ -166,6 +166,25 @@ class CopierTemplateSmokeTest(unittest.TestCase):
         run(sys.executable, "scripts/bootstrap_agents.py", cwd=destination)
         run(sys.executable, "scripts/check_docs.py", cwd=destination)
 
+        # Exercise the managed contract itself as a runnable example. Local
+        # binding selects the folder while the shipped checker owns the schema.
+        config_path = destination / "pyproject.toml"
+        config = config_path.read_text()
+        config_path.write_text(
+            config.replace('work_items_dir = "records/work-items/items"', 'work_items_dir = "planning/work"')
+        )
+        contract = (destination / "docs/rules/doc.md").read_text()
+        work_item = destination / "planning/work/AB-AREA-001-confirm-fixture.md"
+        work_item.parent.mkdir(parents=True)
+        example = re.search(r"(?ms)^### Record shape\s+```markdown\n(.*?)^```$", contract)
+        self.assertIsNotNone(example)
+        work_item.write_text(example.group(1))
+        run(sys.executable, "scripts/check_docs.py", cwd=destination)
+        work_item.write_text(example.group(1).replace("work_kind: build", "work_kind: local-kind"))
+        with self.assertRaisesRegex(AssertionError, "invalid work_kind 'local-kind'"):
+            run(sys.executable, "scripts/check_docs.py", cwd=destination)
+        work_item.write_text(example.group(1).replace("tags: tag-a, tag-b", "tags: local-priority"))
+
         campaign_dir = destination / "records" / "campaigns"
         campaign_dir.mkdir(parents=True)
         (campaign_dir / "pilot.md").write_text(
@@ -278,6 +297,10 @@ document_class: coordination
         constitution.write_text(constitution.read_text() + independent_rule)
         glossary = destination / "docs/glossary/ddd.md"
         glossary.write_text(glossary.read_text(encoding="utf-8") + local_marker, encoding="utf-8")
+        backlog_path = destination / "records/work-items/backlog.md"
+        local_triage = "\n## Local triage\n\n- `field-test` means on-site validation.\n"
+        backlog_path.write_text(backlog_path.read_text() + local_triage)
+        local_backlog = backlog_path.read_bytes()
         run("git", "init", cwd=destination)
         run("git", "config", "user.name", "repo-kit smoke", cwd=destination)
         run("git", "config", "user.email", "smoke@repo-kit.invalid", cwd=destination)
@@ -294,6 +317,8 @@ document_class: coordination
         run("git", "commit", "-m", "reconcile local policy into AGENTS", cwd=destination)
 
         copier("update", "--trust", "--defaults", "--vcs-ref", FIXTURE_V1, cwd=destination)
+        self.assertEqual(backlog_path.read_bytes(), local_backlog)
+        self.assertIn("### Work status and kind", (destination / "docs/rules/doc.md").read_text())
         self.assertNotIn("project_slug:", answers.read_text())
         self.assertIn(local_marker, constitution.read_text(encoding="utf-8"))
         self.assertIn(independent_rule, constitution.read_text())
@@ -311,11 +336,12 @@ document_class: coordination
 
         # Model an explicit consumer reconciliation using the candidate's
         # rendered seeds, preserving known local policy and configuration.
-        for relative in ("AGENTS.md", "docs/index.md", "records/work-items/backlog.md"):
+        for relative in ("AGENTS.md", "docs/index.md"):
             content = (reference / relative).read_text(encoding="utf-8")
             if relative == "AGENTS.md":
                 content += local_marker + "\n" + independent_rule + "\n"
             (destination / relative).write_text(content, encoding="utf-8")
+        backlog_path.write_text((reference / "records/work-items/backlog.md").read_text() + local_triage)
         config_path.write_text(
             (reference / "pyproject-doc-governance.toml").read_text(encoding="utf-8") + local_setting,
             encoding="utf-8",

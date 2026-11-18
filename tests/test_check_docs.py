@@ -4,6 +4,7 @@ import importlib.util
 import sys
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 SCRIPT = Path(__file__).parents[1] / "template" / "scripts" / "check_docs.py"
@@ -141,10 +142,10 @@ class CheckDocsTest(unittest.TestCase):
     def make_item(
         self, work_id: str = "AB-X-001", status: str = "ready", depends_on: str = "none", history: str = ""
     ) -> Path:
-        path = self.root / "records/work-items/items" / f"{work_id}-fixture.md"
+        path = self.root / self.cfg.work_items_dir / f"{work_id}-fixture.md"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
-            METADATA[:-4]
+            METADATA.replace("document_class: coordination", "document_class: work_record")[:-4]
             + f"work_id: {work_id}\nwork_status: {status}\nwork_kind: build\nadded: 2026-09-21\n"
             + f"tags: fixture\ndepends_on: {depends_on}\nresidual_of: none\nresidual_items: none\n---\n"
             + "## Intent\nFixture.\n## Acceptance Criteria\n- [x] Tested.\n## Context and Trade-offs\nFixture.\n"
@@ -158,10 +159,10 @@ class CheckDocsTest(unittest.TestCase):
     def test_current_status_matches_last_history_transition(self) -> None:
         history = "| 2026-09-20 | test | — | ready | Captured |\n| 2026-09-21 | test | ready | done | Complete |\n"
         path = self.make_item(history=history)
-        errors = check_docs.check_backlog_items(self.root, [path])
+        errors = check_docs.check_backlog_items(self.root, self.cfg, [path])
         self.assertTrue(any("final Status History To 'done'" in error for error in errors), errors)
         path = self.make_item(status="done", history=history)
-        self.assertEqual(check_docs.check_backlog_items(self.root, [path]), [])
+        self.assertEqual(check_docs.check_backlog_items(self.root, self.cfg, [path]), [])
 
     def test_complete_reference_fields_are_validated(self) -> None:
         other = self.make_item("AB-X-002")
@@ -175,14 +176,45 @@ class CheckDocsTest(unittest.TestCase):
         ):
             with self.subTest(value=value):
                 path = self.make_item(depends_on=value)
-                errors = check_docs.check_backlog_items(self.root, [path, other])
+                errors = check_docs.check_backlog_items(self.root, self.cfg, [path, other])
                 self.assertTrue(any("invalid depends_on" in error for error in errors), errors)
         path = self.make_item(depends_on="AB-X-002")
-        self.assertEqual(check_docs.check_backlog_items(self.root, [path, other]), [])
+        self.assertEqual(check_docs.check_backlog_items(self.root, self.cfg, [path, other]), [])
         path = self.make_item(depends_on="AB-X-001, AB-X-003")
-        errors = check_docs.check_backlog_items(self.root, [path, other])
+        errors = check_docs.check_backlog_items(self.root, self.cfg, [path, other])
         self.assertTrue(any("cannot reference itself" in error for error in errors))
         self.assertTrue(any("missing work item 'AB-X-003'" in error for error in errors))
+
+    def test_reopening_terminal_item_is_rejected(self) -> None:
+        for status in ("partial", "canceled"):
+            with self.subTest(status=status):
+                path = self.make_item(
+                    status="done",
+                    history=f"| 2026-09-20 | test | — | {status} | Closed |\n"
+                    f"| 2026-09-21 | test | {status} | done | Reopened |\n",
+                )
+                errors = check_docs.check_backlog_items(self.root, self.cfg, [path])
+                self.assertTrue(any(f"after terminal '{status}'" in error for error in errors), errors)
+
+    def test_work_item_directory_is_local_but_schema_is_shared(self) -> None:
+        default_item = self.make_item(status="invented")
+        self.cfg = replace(self.cfg, work_items_dir="planning/work")
+        item = self.make_item()
+        self.assertEqual(check_docs.check_backlog_items(self.root, self.cfg, [default_item, item]), [])
+        item.write_text(item.read_text().replace("document_class: work_record", "document_class: coordination"))
+        errors = check_docs.check_backlog_items(self.root, self.cfg, [default_item, item])
+        self.assertEqual(len(errors), 1, errors)
+        self.assertIn("must use document_class 'work_record'", errors[0])
+
+    def test_legacy_class_prefix_cannot_bypass_work_item_directory(self) -> None:
+        self.cfg.document_classes["work_record"] = check_docs.DocumentClassProfile(
+            (), ("records/work-items/",), frozenset()
+        )
+        self.cfg = replace(self.cfg, work_items_dir="planning/work")
+        self.doc = self.root / "records/work-items/items/old.md"
+        self.doc.parent.mkdir(parents=True)
+        errors = self.check_document(METADATA.replace("coordination", "work_record"))
+        self.assertTrue(any("planning/work" in error for error in errors), errors)
 
     def test_malformed_partial_residual_returns_diagnostic(self) -> None:
         path = self.make_item(status="partial")
@@ -190,7 +222,7 @@ class CheckDocsTest(unittest.TestCase):
             path.read_text(encoding="utf-8").replace("residual_items: none", "residual_items: AB-typo-123"),
             encoding="utf-8",
         )
-        errors = check_docs.check_backlog_items(self.root, [path])
+        errors = check_docs.check_backlog_items(self.root, self.cfg, [path])
         self.assertTrue(any("invalid residual_items" in error for error in errors), errors)
 
     def test_skill_policy_is_scoped_and_accepts_comments(self) -> None:
