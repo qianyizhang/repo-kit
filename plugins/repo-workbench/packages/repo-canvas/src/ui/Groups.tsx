@@ -1,3 +1,4 @@
+import { Modal } from './Modal';
 import { useState } from 'react';
 import type { Architecture, Group } from '../model/document';
 export function GroupEditor({
@@ -22,7 +23,7 @@ export function GroupEditor({
   });
   const existing = document.groups ?? [];
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="Groups">
+    <Modal label="Groups" close={close}>
       <form
         className="add-modal"
         onSubmit={(e) => {
@@ -138,6 +139,6 @@ export function GroupEditor({
           </button>
         </footer>
       </form>
-    </div>
+    </Modal>
   );
 }

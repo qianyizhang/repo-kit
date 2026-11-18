@@ -1,3 +1,4 @@
+import { Modal } from './Modal';
 import { useState } from 'react';
 import {
   moduleKinds,
@@ -32,7 +33,7 @@ export function TypeEditor({
     setPreview(null);
   }
   return (
-    <div className="overlay" role="dialog" aria-modal="true" aria-label="Node types">
+    <Modal label="Node types" close={close}>
       <section className="types-modal">
         <header>
           <h2>Node types</h2>
@@ -252,6 +253,6 @@ export function TypeEditor({
           </button>
         )}
       </section>
-    </div>
+    </Modal>
   );
 }
