@@ -1,27 +1,27 @@
 import { immutable, RuntimeError } from "./definition.ts";
 
-export type Principal = Readonly<{ kind: "chat" | "local"; id: string }>;
+import {
+  hostChatPrincipal,
+  type Principal,
+} from "../../../skills/mcp-app/assets/shared/diagnostic-owner.ts";
+export {
+  diagnosticOwner,
+  LOCAL_DIAGNOSTIC_OWNER,
+  LOCAL_PRINCIPAL,
+  type Principal,
+} from "../../../skills/mcp-app/assets/shared/diagnostic-owner.ts";
+
 export function hostedPrincipal(
   meta: Record<string, unknown> | undefined,
 ): Principal {
-  const id = meta?.threadId ?? meta?.thread_id;
-  if (
-    (meta?.threadId != null &&
-      meta.thread_id != null &&
-      meta.threadId !== meta.thread_id) ||
-    typeof id !== "string" ||
-    !/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(id)
-  )
+  const principal = hostChatPrincipal(meta);
+  if (!principal)
     throw new RuntimeError(
       "forbidden",
       "Hosted access requires a caller chat identity. Reopen in a supported host or use standalone mode.",
     );
-  return immutable({ kind: "chat" as const, id: id.toLowerCase() });
+  return principal;
 }
-export const LOCAL_PRINCIPAL: Principal = immutable({
-  kind: "local",
-  id: "standalone",
-});
 type Policy = {
   maxEntries: number;
   maxBytes: number;

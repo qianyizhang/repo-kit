@@ -20,7 +20,7 @@ const notes = [
     text: "This unrelated note must not appear in a message about Welcome.",
   },
 ];
-export const LOCAL_OWNER = "local:standalone";
+export { LOCAL_DIAGNOSTIC_OWNER as LOCAL_OWNER } from "./diagnostic-owner.ts";
 const correlation = z.uuid().optional();
 type Result = Record<string, unknown>;
 type Definition = {

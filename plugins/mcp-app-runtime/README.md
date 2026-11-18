@@ -30,9 +30,16 @@ active processes are excluded. Metadata rotates at 2 MiB per source. Explicit
 captures are limited to eight files of 2 MiB per session. No automatic payload
 capture, source reread, conversation message or uncertain-effect retry occurs.
 
-The independently distributed starter keeps a smaller teaching contract: no
-background domain polling and one 250-event budget. Its generated-app behavior
-tests and CI own verification; the skill delivery lock owns file integrity.
+[The MCP App skill's shared sources](../../skills/mcp-app/assets/shared) own
+diagnostic files, payload masking, and caller identity. Plugin builds bundle
+those sources and include them in their build fingerprints. The skill copies
+the same files into each generated app. The generated app runs with its own
+files and dependencies.
+
+The starter keeps 250 live browser events and 500 live server events. The
+runtime groups events by interaction and exposes retained coverage. Both
+preserve the explicit capture and caller boundary. Generated-app behavior
+tests and CI verify the starter. The skill lock verifies source integrity.
 
 `tests/host-client.ts` owns the native-host identity fixture shared by both
 plugin test suites. Test callers import it directly; production bundles do not.

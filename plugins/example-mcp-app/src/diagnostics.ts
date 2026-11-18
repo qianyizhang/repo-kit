@@ -16,8 +16,9 @@ export class Diagnostics {
   private seen = new Map<string, number>();
   record(connection: string, event: TraceEvent, owner = event.owner) {
     if (event.observer || event.provenance !== 'captured') return;
-    if (event.sequence <= (this.seen.get(connection) ?? 0)) return;
-    this.seen.set(connection, event.sequence);
+    const stream = JSON.stringify([connection, owner]);
+    if (event.sequence <= (this.seen.get(stream) ?? 0)) return;
+    this.seen.set(stream, event.sequence);
     if (this.seen.size > 16) this.seen.delete(this.seen.keys().next().value!);
     this.store.append({
       id: eventId(`${connection}:${event.sequence}`),

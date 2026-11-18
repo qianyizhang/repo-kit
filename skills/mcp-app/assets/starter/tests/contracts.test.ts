@@ -16,7 +16,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Composer, messagePayload } from "../src/message.ts";
 import { Recorder, snapshot } from "../src/observability.ts";
-import { LogStore, MAX_FILE_BYTES, pruneSessions } from "../src/log-store.ts";
+import { LogStore } from "../src/log-store.ts";
+import { MAX_FILE_BYTES, pruneSessions } from "../src/diagnostic-files.ts";
 import { createOperations, LOCAL_OWNER } from "../src/operations.ts";
 
 test("plain text is direct; selected context is frozen and bounded", () => {
@@ -322,7 +323,7 @@ test("retention excludes live sessions, symlinks and unknown directories", () =>
     );
     if (kind === "linked") symlinkSync(root, join(path, "app.jsonl"));
   }
-  pruneSessions(root);
+  pruneSessions(root, "__APP_ID__");
   assert.equal(readdirSync(root).length, 2);
 });
 test("startup still persists events when another process prunes a listed session", (t) => {

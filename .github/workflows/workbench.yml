@@ -1,9 +1,9 @@
 name: MCP Apps
 on:
   push:
-    paths: ['plugins/repo-workbench/**', 'plugins/example-mcp-app/**', 'plugins/mcp-app-runtime/**', '.nvmrc', '.github/workflows/workbench.yml']
+    paths: ['plugins/repo-workbench/**', 'plugins/example-mcp-app/**', 'plugins/mcp-app-runtime/**', 'skills/mcp-app/assets/shared/**', '.nvmrc', '.github/workflows/workbench.yml']
   pull_request:
-    paths: ['plugins/repo-workbench/**', 'plugins/example-mcp-app/**', 'plugins/mcp-app-runtime/**', '.nvmrc', '.github/workflows/workbench.yml']
+    paths: ['plugins/repo-workbench/**', 'plugins/example-mcp-app/**', 'plugins/mcp-app-runtime/**', 'skills/mcp-app/assets/shared/**', '.nvmrc', '.github/workflows/workbench.yml']
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,12 +1,16 @@
 import { z } from "zod";
 import { immutable } from "./definition.ts";
 
-export const PAYLOAD_LIMIT = 64 * 1024;
-export function isCredentialField(key: string) {
-  return /^(?:authorization|proxyauthorization|cookie|setcookie|password|secret|clientsecret|token|accesstoken|refreshtoken|idtoken|apikey|privatekey)$/.test(
-    key.replace(/[-_]/g, "").toLowerCase(),
-  );
-}
+import {
+  PAYLOAD_LIMIT,
+  snapshot,
+} from "../../../skills/mcp-app/assets/shared/diagnostic-payload.ts";
+export {
+  isCredentialField,
+  PAYLOAD_LIMIT,
+  snapshot,
+} from "../../../skills/mcp-app/assets/shared/diagnostic-payload.ts";
+
 export const payloadSchema = z.object({
   text: z.string().max(PAYLOAD_LIMIT),
   originalBytes: z.number().int().nonnegative(),
@@ -14,45 +18,6 @@ export const payloadSchema = z.object({
   truncated: z.boolean(),
   omitted: z.boolean(),
 });
-export function snapshot(
-  value: unknown,
-  omit = false,
-): z.infer<typeof payloadSchema> {
-  try {
-    let redacted = false;
-    const original = JSON.stringify(value) ?? "null";
-    const text =
-      JSON.stringify(
-        value,
-        (key, item: unknown) => {
-          if (isCredentialField(key)) {
-            redacted = true;
-            return "[redacted]";
-          }
-          return item;
-        },
-        2,
-      ) ?? "null";
-    const bytes = new TextEncoder().encode(text);
-    return {
-      text: omit
-        ? "[payload omitted by recording policy]"
-        : new TextDecoder().decode(bytes.slice(0, PAYLOAD_LIMIT)),
-      originalBytes: new TextEncoder().encode(original).length,
-      redacted,
-      truncated: bytes.length > PAYLOAD_LIMIT,
-      omitted: omit,
-    };
-  } catch {
-    return {
-      text: "[payload unavailable: serialization failed]",
-      originalBytes: 0,
-      redacted: false,
-      truncated: false,
-      omitted: true,
-    };
-  }
-}
 export const eventSchema = z.object({
   id: z.uuid(),
   session: z.uuid(),
@@ -95,7 +60,7 @@ export class InteractionJournal {
     }
   >();
   #pin?: string;
-  #order = new Map<string, number>();
+  #order = new WeakMap<Event, number>();
   #sequence = 0;
   #expired = new Map<string, number>();
   #dropped = 0;
@@ -106,7 +71,6 @@ export class InteractionJournal {
     const group = this.#groups.get(id);
     if (group) {
       this.#dropped += group.events.length;
-      group.events.forEach((event) => this.#order.delete(event.id));
       this.#expired.set(id, group.events.length + group.lost);
       if (this.#expired.size > 100)
         this.#expired.delete(this.#expired.keys().next().value!);
@@ -152,13 +116,12 @@ export class InteractionJournal {
     };
     // A user action is never demoted by a child/background observation.
     if (event.retention === "user") group.retention = "user";
-    this.#order.set(event.id, ++this.#sequence);
+    this.#order.set(event, ++this.#sequence);
     group.events.push(event);
     group.bytes += new TextEncoder().encode(JSON.stringify(event)).length;
     if (group.events.length > RETENTION.eventsPerInteraction) {
       // Mark bounded incompleteness; never pretend a partial group is a full capture.
       const removed = group.events.shift()!;
-      this.#order.delete(removed.id);
       group.lost++;
       group.bytes -= new TextEncoder().encode(JSON.stringify(removed)).length;
       this.#dropped++;
@@ -171,7 +134,7 @@ export class InteractionJournal {
     this.#prune();
     return [...this.#groups.values()]
       .flatMap((g) => g.events)
-      .sort((a, b) => this.#order.get(a.id)! - this.#order.get(b.id)!);
+      .sort((a, b) => this.#order.get(a)! - this.#order.get(b)!);
   }
   completeness(interaction: string, owner = "") {
     const id = `${owner}/${interaction}`;

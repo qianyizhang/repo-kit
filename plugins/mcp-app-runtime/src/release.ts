@@ -6,6 +6,7 @@ import { PROTOCOL_VERSION } from "./definition.ts";
 
 const sha = (value: string | Buffer) =>
   createHash("sha256").update(value).digest("hex");
+const sharedDiagnostics = "../../skills/mcp-app/assets/shared";
 async function files(root: string, prefix = ""): Promise<string[]> {
   const result: string[] = [];
   for (const entry of await readdir(resolve(root, prefix), {
@@ -22,6 +23,7 @@ export async function sharedFingerprint(): Promise<string> {
   const root = resolve(import.meta.dirname, "..");
   const entries = [
     ...(await files(root, "src")),
+    ...(await files(root, sharedDiagnostics)),
     "package.json",
     "package-lock.json",
   ];
@@ -51,7 +53,14 @@ export async function releaseReceipt(
     }).trim();
     dirty = !!execFileSync(
       "git",
-      ["status", "--porcelain", "--", ".", "../mcp-app-runtime"],
+      [
+        "status",
+        "--porcelain",
+        "--",
+        ".",
+        "../mcp-app-runtime",
+        sharedDiagnostics,
+      ],
       { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
     ).trim();
   } catch {

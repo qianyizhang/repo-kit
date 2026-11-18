@@ -127,6 +127,30 @@ void test("startup retention keeps active and unrecognized evidence and never fo
   assert.equal(existsSync(active), true);
   assert.equal(readFileSync(join(outside, "sentinel"), "utf8"), "keep");
 });
+void test("equal event IDs from different owners remain independently ordered and capturable", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "shared-capture-owner-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const store = new LogStore("test", root);
+  const event = new Recorder("app").record(
+    crypto.randomUUID(),
+    "test",
+    "App → Server",
+    "request",
+    "observed",
+    "private-a",
+  );
+  store.append({ ...event, owner: "chat:a" });
+  store.append({ ...event, owner: "chat:b", payload: snapshot("private-b") });
+  store.append({ ...event, owner: "chat:a" });
+  assert.deepEqual(
+    store.events.map((record) => record.owner),
+    ["chat:a", "chat:b"],
+  );
+  assert.throws(() => store.capture(event.interaction), /expired/);
+  const path = store.capture(event.interaction, "chat:b").path;
+  assert.match(readFileSync(path, "utf8"), /private-b/);
+  assert.doesNotMatch(readFileSync(path, "utf8"), /private-a/);
+});
 void test("startup tolerates another pruner removing an enumerated session and reports genuine errors", (t) => {
   const root = mkdtempSync(join(tmpdir(), "shared-prune-race-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));

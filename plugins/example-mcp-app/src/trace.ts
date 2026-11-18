@@ -1,4 +1,4 @@
-import { hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
+import { diagnosticOwner, hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { JSONRPCMessage } from '@modelcontextprotocol/sdk/types.js';
 import type { TraceEvent } from './contracts.ts';
@@ -67,7 +67,7 @@ export class TraceLog {
       owner: string | undefined;
     if ('method' in message) {
       try {
-        owner = `chat:${hostedPrincipal(message.params?._meta).id}`;
+        owner = diagnosticOwner(hostedPrincipal(message.params?._meta));
       } catch {
         /* No principal means no shared-host payload access. */
       }

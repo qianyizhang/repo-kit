@@ -1,4 +1,4 @@
-import { hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
+import { diagnosticOwner, hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import {
@@ -23,19 +23,13 @@ const reports = new PanelReports();
 type Caller = { _meta?: Record<string, unknown> };
 const owner = (extra: Caller) => hostedPrincipal(extra._meta);
 const serverEvents = (extra: Caller) => {
-  const id = `chat:${owner(extra).id}`;
-  return log.events.filter(
-    (event) =>
-      event.owner === id ||
-      [
-        'server.started',
-        'initialize',
-        'notifications/initialized',
-        'tools/list',
-        'resources/list',
-        'resources/read',
-      ].includes(event.method),
-  );
+  const id = diagnosticOwner(owner(extra));
+  return log.events.flatMap((event) => {
+    if (event.owner === id) return [event];
+    if (!event.owner && (event.runId === 'startup' || event.method === 'server.started'))
+      return [{ ...event, payload: '[shared startup metadata; payload omitted]' }];
+    return [];
+  });
 };
 const panelReports = (extra: Caller, panelId?: string) => reports.list(owner(extra), panelId);
 const server = new McpServer({ name: 'example-mcp-app', version: '0.4.0' });
@@ -150,7 +144,7 @@ registerAppTool(
       (event) => event.provenance === 'captured' && event.source === 'app',
     );
     liveEvents.forEach((event) =>
-      diagnostics.record(report.panelId, event, `chat:${principal.id}`),
+      diagnostics.record(report.panelId, event, diagnosticOwner(principal)),
     );
     reports.put(
       {
@@ -302,7 +296,7 @@ registerAppTool(
   },
   ({ interaction }, extra) => ({
     content: [],
-    structuredContent: diagnostics.store.capture(interaction, `chat:${owner(extra).id}`),
+    structuredContent: diagnostics.store.capture(interaction, diagnosticOwner(owner(extra))),
   }),
 );
 server.registerResource(

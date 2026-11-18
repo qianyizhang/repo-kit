@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { HostTestClient as Client } from '../../mcp-app-runtime/tests/host-client.ts';
+import { HostTestClient as Client, TEST_CHAT } from '../../mcp-app-runtime/tests/host-client.ts';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { snapshotSchema } from '../src/contracts.ts';
 import { z } from 'zod';
@@ -41,7 +41,8 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
     assert.match(ui.resourceUri, /^ui:\/\/example-mcp-app\/app-[a-f0-9]{12}\.html$/);
     const { resources } = await client.listResources();
     assert.equal(resources.length, 2);
-    const html = await client.readResource({ uri: ui.resourceUri });
+    const read = (uri: string) => client.readResource({ uri, _meta: { threadId: TEST_CHAT } });
+    const html = await read(ui.resourceUri);
     assert.equal(html.contents[0]?.mimeType, 'text/html;profile=mcp-app');
     assert.match(
       z.object({ text: z.string() }).parse(html.contents[0]).text,
@@ -65,9 +66,9 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
       (await client.callTool({ name: 'example_echo', arguments: { text: 42 } })).isError,
       true,
     );
-    const data = await client.readResource({ uri: 'example://sample/welcome' });
+    const data = await read('example://sample/welcome');
     assert.equal(data.contents[0]?.mimeType, 'application/json');
-    await assert.rejects(client.readResource({ uri: 'example://missing' }), /not found/i);
+    await assert.rejects(read('example://missing'), /not found/i);
     const trace = await client.callTool({ name: 'example_trace', arguments: {} });
     const snapshot = snapshotSchema.parse(trace.structuredContent);
     for (const method of [
@@ -133,7 +134,14 @@ void test('delivered server: discovery, resource, tool errors and correlated tra
       ['app'],
     );
     const resourceRun = '22222222-2222-4222-8222-222222222222';
-    const correlated = await client.readResource({ uri: `example://sample/run/${resourceRun}` });
+    const correlated = await read(`example://sample/run/${resourceRun}`);
+    const foreignTrace = await client.callTool({
+      name: 'example_trace',
+      arguments: {},
+      _meta: { threadId: crypto.randomUUID() },
+    });
+    const foreignEvents = snapshotSchema.parse(foreignTrace.structuredContent).events;
+    assert.ok(!foreignEvents.some((event) => event.runId === resourceRun));
     assert.match(
       z.object({ text: z.string() }).parse(correlated.contents[0]).text,
       new RegExp(resourceRun),

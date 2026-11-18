@@ -91,7 +91,10 @@ const server = createServer((request, response) => {
               ...message.params,
               _meta: { ...message.params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
             })
-          : await client.readResource(message.params);
+          : await client.readResource({
+              ...message.params,
+              _meta: { ...message.params._meta, threadId: '11111111-1111-4111-8111-111111111111' },
+            });
       response.end(JSON.stringify(result));
       return;
     }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -55,6 +56,19 @@ class MCPAppSkillTest(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 SCAFFOLD.scaffold(target, "sample")
         self.assertEqual("keep", (target / "other-work").read_text())
+
+    def test_isolated_skill_emits_exact_shared_diagnostic_sources(self):
+        skill = self.root / "isolated-skill"
+        shutil.copytree(SCAFFOLD.ASSETS.parent, skill)
+        target = self.root / "standalone"
+        subprocess.run(
+            [sys.executable, str(skill / "scripts/scaffold.py"), "--target", str(target), "--name", "sample-app"],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+        )
+        for source in (SCAFFOLD.ASSETS / "shared").glob("*.ts"):
+            self.assertEqual(source.read_bytes(), (target / "src" / source.name).read_bytes())
 
     def test_invalid_name_and_symlink_parent_refuse_writes(self):
         with self.assertRaises(ValueError):

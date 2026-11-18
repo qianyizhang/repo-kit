@@ -1,4 +1,8 @@
-import { hostedPrincipal } from '../../../mcp-app-runtime/src/registry.ts';
+import {
+  diagnosticOwner,
+  hostedPrincipal,
+  LOCAL_DIAGNOSTIC_OWNER,
+} from '../../../mcp-app-runtime/src/registry.ts';
 import {
   McpServer,
   type RegisteredTool,
@@ -50,8 +54,7 @@ export class ObservableServer extends McpServer {
     this.registerDiagnostics();
   }
   private owner(meta: Record<string, unknown> | undefined) {
-    const principal = this.#principal(meta);
-    return `${principal.kind}:${principal.id}`;
+    return diagnosticOwner(this.#principal(meta));
   }
   override registerTool<
     O extends ZodRawShapeCompat | AnySchema,
@@ -118,7 +121,7 @@ export class ObservableServer extends McpServer {
   callDiagnostics(name: string, args: unknown) {
     const operation = this.operations.find((operation) => operation.name === name);
     if (!operation) throw new Error('Unknown diagnostic operation');
-    return operation.run(args, 'local:standalone');
+    return operation.run(args, LOCAL_DIAGNOSTIC_OWNER);
   }
   async observeOperation<T>(
     method: string,
@@ -129,19 +132,19 @@ export class ObservableServer extends McpServer {
     const interaction = crypto.randomUUID();
     this.recorder.record(interaction, method, 'HTTP → Server', 'request', 'received', args, {
       retention,
-      owner: 'local:standalone',
+      owner: LOCAL_DIAGNOSTIC_OWNER,
     });
     try {
       const result = await run();
       this.recorder.record(interaction, method, 'Server → HTTP', 'result', 'completed', result, {
         retention,
-        owner: 'local:standalone',
+        owner: LOCAL_DIAGNOSTIC_OWNER,
       });
       return result;
     } catch (error) {
       this.recorder.record(interaction, method, 'Server → HTTP', 'error', 'failed', String(error), {
         retention,
-        owner: 'local:standalone',
+        owner: LOCAL_DIAGNOSTIC_OWNER,
       });
       throw error;
     }
@@ -149,7 +152,7 @@ export class ObservableServer extends McpServer {
   httpStatus(method: string, request: unknown) {
     const interaction = crypto.randomUUID();
     this.recorder.record(interaction, method, 'HTTP → Server', 'request', 'received', request, {
-      owner: 'local:standalone',
+      owner: LOCAL_DIAGNOSTIC_OWNER,
     });
     return (status: number) =>
       this.recorder.record(
@@ -159,7 +162,7 @@ export class ObservableServer extends McpServer {
         'result',
         status < 400 ? 'completed' : 'failed',
         { status, body: 'Not recorded at this server boundary; inspect the decoded app response' },
-        { owner: 'local:standalone' },
+        { owner: LOCAL_DIAGNOSTIC_OWNER },
       );
   }
   private observe(message: JSONRPCMessage, incoming: boolean) {

@@ -101,6 +101,35 @@ void test('actual MCP registrations, wire capture and explicit payload storage s
     'unrelated-private-prose',
   );
   await client.callTool({ name: 'diagnostics_append', arguments: { event: unrelated } });
+  const otherThread = crypto.randomUUID();
+  const repeatedId = {
+    ...unrelated,
+    owner: unrelated.owner ?? event.owner,
+    payload: snapshot('other chat private prose'),
+  };
+  assert.equal(
+    (
+      await client.callTool({
+        name: 'diagnostics_append',
+        arguments: { event: repeatedId },
+        _meta: { threadId: otherThread },
+      })
+    ).isError,
+    undefined,
+  );
+  const repeated = await client.callTool({
+    name: 'diagnostics_event',
+    arguments: { id: repeatedId.id },
+    _meta: { threadId: otherThread },
+  });
+  const secondOwner = z.object({ event: eventSchema }).parse(repeated.structuredContent).event;
+  assert.equal(secondOwner.owner, `chat:${otherThread}`);
+  assert.match(secondOwner.payload.text, /other chat private prose/);
+  const firstOwner = await client.callTool({
+    name: 'diagnostics_event',
+    arguments: { id: unrelated.id },
+  });
+  assert.match(JSON.stringify(firstOwner.structuredContent), /unrelated-private-prose/);
   for (const [name, args] of [
     ['diagnostics_event', { id: event.id }],
     ['diagnostics_capture', { interaction: event.interaction }],

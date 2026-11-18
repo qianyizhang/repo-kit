@@ -119,6 +119,10 @@ test("built stdio adapter scopes diagnostic writes, reads and captures to host c
       (await call(name, args, { threadId: a, thread_id: b })).isError,
       true,
     );
+    assert.equal(
+      (await call(name, args, { threadId: a, thread_id: "" })).isError,
+      true,
+    );
   }
   assert.equal(
     (await call("logs_append", appends, { threadId: a })).isError,
@@ -142,8 +146,31 @@ test("built stdio adapter scopes diagnostic writes, reads and captures to host c
     true,
   );
   assert.equal(
-    (await call("logs_append", appends, { threadId: b })).isError,
+    (
+      await call(
+        "logs_append",
+        {
+          event: {
+            ...event,
+            owner: `chat:${a}`,
+            payload: { ...event.payload, text: "other chat observation" },
+          },
+        },
+        { threadId: b },
+      )
+    ).isError,
     undefined,
+  );
+  const ownRead = await call("logs_event", reads, {
+    threadId: b.toUpperCase(),
+  });
+  assert.match(
+    JSON.stringify(ownRead.structuredContent),
+    /other chat observation/,
+  );
+  assert.doesNotMatch(
+    JSON.stringify(ownRead.structuredContent),
+    /owned message/,
   );
   assert.equal(
     capture.parse(

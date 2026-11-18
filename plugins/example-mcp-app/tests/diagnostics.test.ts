@@ -19,6 +19,8 @@ void test('existing frozen trace records feed metadata logs and one explicit cap
     diagnostics.record(panel, event);
     diagnostics.record(panel, event);
     assert.equal(diagnostics.store.events.length, 1);
+    diagnostics.record(panel, event, 'chat:another');
+    assert.equal(diagnostics.store.eventsFor('chat:another').length, 1);
     const metadata = readFileSync(join(diagnostics.store.directory, 'app.jsonl'), 'utf8');
     assert.doesNotMatch(metadata, /private selected text|private credential/);
     assert.equal(

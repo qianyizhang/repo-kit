@@ -68,12 +68,11 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
         .strict(),
       false,
       ({ limit, interaction }, owner) => ({
-        events: store.events
+        events: store
+          .eventsFor(owner)
           .filter(
             (event) =>
-              event.owner === owner &&
-              event.source === 'server' &&
-              (!interaction || event.interaction === interaction),
+              event.source === 'server' && (!interaction || event.interaction === interaction),
           )
           .slice(-limit)
           .map((event) => eventMetadataSchema.parse(event)),
@@ -85,7 +84,7 @@ export function diagnosticOperations(store: LogStore, identity: object, catalog:
       z.object({ id: z.uuid() }).strict(),
       false,
       ({ id }, owner) => {
-        const event = store.events.find((event) => event.id === id && event.owner === owner);
+        const event = store.eventsFor(owner).find((event) => event.id === id);
         if (!event) throw new Error('Observation unavailable or expired');
         return { event };
       },

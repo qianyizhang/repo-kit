@@ -8,7 +8,7 @@ import re
 import shutil
 from pathlib import Path
 
-ASSETS = Path(__file__).resolve().parents[1] / "assets" / "starter"
+ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 
 def scaffold(target: Path, name: str) -> Path:
@@ -22,20 +22,26 @@ def scaffold(target: Path, name: str) -> Path:
             raise ValueError(f"Target parent is a symlink: {parent}")
     if not target.parent.is_dir():
         raise ValueError("Target parent must exist")
-    files = []
-    for source in sorted(ASSETS.rglob("*")):
-        if source.is_symlink():
-            raise ValueError(f"Starter contains a symlink: {source}")
-        if source.is_file():
-            files.append((source.relative_to(ASSETS), source.read_text().replace("__APP_ID__", name)))
+    files: dict[Path, str] = {}
+    for root, prefix in ((ASSETS / "starter", Path()), (ASSETS / "shared", Path("src"))):
+        if root.is_symlink() or not root.is_dir():
+            raise ValueError(f"Starter source must be a directory: {root}")
+        for source in sorted(root.rglob("*")):
+            if source.is_symlink():
+                raise ValueError(f"Starter contains a symlink: {source}")
+            if source.is_file():
+                relative = prefix / source.relative_to(root)
+                if relative in files:
+                    raise ValueError(f"Starter contains a duplicate destination: {relative}")
+                files[relative] = source.read_text(encoding="utf-8").replace("__APP_ID__", name)
     created = False
     try:
         target.mkdir()
         created = True
-        for relative, text in files:
+        for relative, text in files.items():
             destination = target / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_text(text)
+            destination.write_text(text, encoding="utf-8")
     except OSError:
         # Only the new directory created by this call is eligible for rollback.
         if created and target.is_dir() and not target.is_symlink():
