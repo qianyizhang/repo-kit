@@ -167,6 +167,70 @@ class NpmInstallGateTest(unittest.TestCase):
         self.assertEqual(1, len(self.records()))
         self.assertEqual("25.9.0\n", (self.repo / ".nvmrc").read_text())
 
+    def test_docs_only_push_skips_installs_but_explicit_revision_checks(self) -> None:
+        self.package()
+        self.commit()
+
+        def push_main() -> subprocess.CompletedProcess:
+            return subprocess.run(
+                ["git", "push", "origin", "HEAD:refs/heads/main"],
+                cwd=self.repo,
+                env=self.env,
+                text=True,
+                capture_output=True,
+            )
+
+        first = push_main()
+        self.assertEqual(0, first.returncode, first.stderr)
+        guide = self.repo / "docs/install notes.md"
+        guide.parent.mkdir()
+        guide.write_text("# Install notes\n")
+        docs_tip = self.commit()
+        pushed = push_main()
+        self.assertEqual(0, pushed.returncode, pushed.stderr)
+        self.assertIn("docs-only", pushed.stderr)
+        self.assertIn(docs_tip, self.run_git("ls-remote", "--heads", "origin"))
+        self.assertEqual(1, len(self.records()))
+
+        explicit = self.invoke("--revision", docs_tip)
+        self.assertEqual(0, explicit.returncode, explicit.stderr)
+        self.assertEqual(2, len(self.records()))
+
+    def test_docs_skip_requires_an_existing_fast_forward_branch(self) -> None:
+        self.package()
+        baseline = self.commit()
+        (self.repo / "README.md").write_text("# Example\n")
+        docs_tip = self.commit()
+        for remote_ref, old, new in (
+            ("refs/heads/main", "0" * 40, docs_tip),
+            ("refs/heads/main", "f" * 40, docs_tip),
+            ("refs/heads/main", docs_tip, baseline),
+            ("refs/tags/v1", baseline, docs_tip),
+        ):
+            with self.subTest(remote_ref=remote_ref, old=old, new=new):
+                result = self.invoke(updates=f"HEAD {new} {remote_ref} {old}\n")
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("empty cache", result.stdout)
+
+    def test_docs_skip_rejects_mixed_changes_and_non_regular_docs(self) -> None:
+        package = self.package()
+        baseline = self.commit()
+        docs = self.repo / "docs"
+        docs.mkdir()
+        guide = docs / "setup.md"
+        guide.symlink_to("../app/package.json")
+        link_tip = self.commit()
+        guide.unlink()
+        guide.write_text("# Setup\n")
+        (package / "package-lock.json").write_text('{"lockfileVersion":3,"name":"changed"}')
+        mixed_tip = self.commit()
+
+        for tip in (link_tip, mixed_tip):
+            with self.subTest(tip=tip):
+                result = self.invoke(updates=f"HEAD {tip} refs/heads/main {baseline}\n")
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn("empty cache", result.stdout)
+
     def test_missing_pair_blocks_before_install_with_recovery_command(self) -> None:
         self.package()
         commit = self.commit()

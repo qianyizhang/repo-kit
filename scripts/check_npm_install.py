@@ -14,21 +14,76 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+DOC_FILES = frozenset(
+    {
+        b"README.md",
+        b"plugins/example-mcp-app/README.md",
+        b"plugins/example-mcp-app/design.md",
+        b"plugins/mcp-app-runtime/README.md",
+        b"plugins/repo-workbench/README.md",
+    }
+)
+DOC_DIRECTORIES = (b"docs/", b"plugins/repo-workbench/docs/")
+REGULAR_DOC_MODES = frozenset({b"000000", b"100644"})
+
 
 def git(root: Path, *args: str) -> bytes:
     return subprocess.check_output(["git", "-C", str(root), *args])
 
 
-def pushed_revisions(lines: str) -> list[str]:
+def docs_only_update(root: Path, old: str, new: str) -> bool:
+    if set(old) == {"0"}:
+        return False
+    ancestor = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", old, new],
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if ancestor.returncode != 0:
+        return False
+    try:
+        diff = git(
+            root,
+            "diff-tree",
+            "--raw",
+            "-r",
+            "-z",
+            "--no-renames",
+            "--no-relative",
+            "--ignore-submodules=none",
+            old,
+            new,
+        )
+    except subprocess.CalledProcessError:
+        return False
+    if not diff:
+        return False
+    # With rename detection disabled, each NUL-delimited record has one path.
+    # Check both modes so a symlink or executable Markdown file takes the full path.
+    entries = diff.split(b"\0")[:-1]
+    for metadata, path in zip(entries[::2], entries[1::2], strict=True):
+        modes = metadata.removeprefix(b":").split()[:2]
+        if not REGULAR_DOC_MODES.issuperset(modes):
+            return False
+        if path not in DOC_FILES and not (path.startswith(DOC_DIRECTORIES) and path.endswith(b".md")):
+            return False
+    return True
+
+
+def pushed_revisions(root: Path, lines: str) -> list[str]:
     revisions = []
     for line in lines.splitlines():
         fields = line.split()
         if len(fields) != 4:
             raise ValueError("Expected Git pre-push ref updates on stdin")
-        revision = fields[1]
-        if not revision or any(c not in "0123456789abcdef" for c in revision):
-            raise ValueError("Invalid outgoing object ID")
-        if set(revision) != {"0"}:
+        _, revision, remote_ref, old = fields
+        if any(re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", oid) is None for oid in (revision, old)):
+            raise ValueError("Invalid Git pre-push object ID")
+        if set(revision) == {"0"}:
+            continue
+        if remote_ref.startswith("refs/heads/") and docs_only_update(root, old, revision):
+            print(f"npm install gate: {remote_ref} · docs-only update, skipping fresh installs", file=sys.stderr)
+        else:
             revisions.append(revision)
     return revisions
 
@@ -118,7 +173,7 @@ def main() -> None:
     args = parser.parse_args()
     try:
         root = Path(subprocess.check_output(["git", "rev-parse", "--show-toplevel"], text=True).strip())
-        revisions = args.revision if args.revision is not None else pushed_revisions(sys.stdin.read())
+        revisions = args.revision if args.revision is not None else pushed_revisions(root, sys.stdin.read())
         checked = set()
         for revision in revisions:
             commit = git(root, "rev-parse", "--verify", "--end-of-options", f"{revision}^{{commit}}").decode().strip()

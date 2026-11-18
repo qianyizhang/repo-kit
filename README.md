@@ -115,10 +115,13 @@ git config --local core.hooksPath .githooks
 ```
 
 If a clone already uses custom hooks, integrate this hook with that setup instead
-of replacing it. The gate exports each outgoing commit tip and runs `npm ci` for
-each tracked standalone npm package with a separate empty cache. It preserves
-the working checkout and blocks a failed install. Package-manager registry and
-authentication settings still apply. For each outgoing tip, the gate reads its
+of replacing it. The hook skips installs for fast-forward updates to existing
+branches when the diff contains only regular Markdown files covered by the
+[documentation allowlist](scripts/check_npm_install.py). Other outgoing commit
+tips are exported and checked with `npm ci` for each tracked standalone npm
+package, each with a separate empty cache. The gate preserves the working
+checkout and blocks a failed install. Package-manager registry and
+authentication settings still apply. For each tip it checks, the gate reads its
 `.nvmrc` (the gate checkout's pin for older, unpinned tips) and the packages' shared
 exact npm `packageManager` pin. It uses a matching pair from `PATH`, or selects
 the pinned Node installation under
@@ -126,8 +129,9 @@ the pinned Node installation under
 the same `.nvmrc`. No `nvm use` is needed before pushing. Missing or mismatched
 tools block before installation with a one-time setup command; the gate never
 downloads toolchains. Package engines remain enforced by `npm ci`.
-Ref deletions skip installation. The same gate runs in CI because local hooks can
-be bypassed. This repository's npm packages each own a sibling lockfile.
+Ref deletions skip installation. The [CI job](.github/workflows/npm-install.yml)
+runs the full fresh-install check on pushes and pull requests, including docs-only
+changes. This repository's npm packages each own a sibling lockfile.
 
 To run the fresh-install gate on the current commit locally:
 
