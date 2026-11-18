@@ -1,0 +1,4 @@
+interface:
+  display_name: "R2 Object Backup"
+  short_description: "Sync and verify Git-backed asset recovery"
+  default_prompt: "Use $r2-object-backup to set up, sync, or verify this repository's asset backup."

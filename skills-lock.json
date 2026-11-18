@@ -53,6 +53,13 @@
     "mcp-app/scripts/scaffold.py": "6d297943ee5beb1fd6902cfd677a4653a4c45f2f54149f45f1a7355a25b3a207",
     "next-slice/SKILL.md": "fee5908018ba9ae8ccb023fa5c5e590971fa8f448e16252c24138d1a7d01fcef",
     "next-slice/agents/openai.yaml": "66d7ee916d522a18f935febbd2aebbddddb8575606c685941625c4f4feef3e23",
+    "r2-object-backup/SKILL.md": "7d6905145d58a0c8862ff2f7f5a78271936bf4a3e385d27d11f888e0c4c93c4a",
+    "r2-object-backup/agents/openai.yaml": "90c81c35096b5ef5f088d96dd58f6c6cd3f76e0679998225313fa5962bafcf53",
+    "r2-object-backup/assets/starter/.gitignore": "ea49267c9c71ac9716166e54bec1a327076f8dbb2fad79475e87c48511d82e01",
+    "r2-object-backup/assets/starter/README.md": "6e7a36643f1806a446661d05fb452093483a6acd278f3d33b67c00c013360eeb",
+    "r2-object-backup/assets/starter/backup.py": "760384e89d602eacbc4e70fdfe11d0620f724380aa4b59e44c23fa05fb8042b0",
+    "r2-object-backup/references/scaffold.md": "d7479568013d590d055a696985315c77df33111e155662a9ccabfc4513fde708",
+    "r2-object-backup/scripts/scaffold.py": "2262af656e4171815bd435d8d59316e9299989e5ae8bc6ef2b354c16e9489a75",
     "reconcile-main/SKILL.md": "b8936236cdb98aaaf090dde1136744a8c1ed3624d3b6a262450b6cab6319eafb",
     "reconcile-main/agents/openai.yaml": "8ddf9d40a4802912ecc437643bf1e98afb2da76b01c86063ca170cab4b047bca",
     "retro/SKILL.md": "4df08cfe9670661ce356eb1986de2638ac2bedb34493872c1f850e9a0bdd9bed",
@@ -121,7 +128,8 @@
     "ui-discussion",
     "mcp-app",
     "reconcile-main",
-    "socratic-tutor"
+    "socratic-tutor",
+    "r2-object-backup"
   ],
   "upstream": {
     "files": {

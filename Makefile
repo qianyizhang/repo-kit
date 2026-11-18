@@ -1,6 +1,7 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3.12)
 RUFF_PATHS := scripts template/scripts tests .codex/skills/maintain-repo-kit/scripts \
-	skills/mcp-app/scripts skills/ui-discussion/scripts
+	skills/mcp-app/scripts skills/ui-discussion/scripts skills/r2-object-backup/scripts \
+	skills/r2-object-backup/assets/starter
 
 .PHONY: ci-check check-source test lint setup-check check-npm-install
 
