@@ -1,7 +1,7 @@
 import { poll } from '../../../../../mcp-app-runtime/src/poller.ts';
 import { useCallback, useEffect, useRef, useState, useReducer } from 'react';
 import { parseDocument, type Architecture } from '../model/document';
-import { initialDraft, transitionDraft } from '../model/draft';
+import { initialDraft, transitionDraft, type SourceSaved } from '../model/draft';
 import { draftSchema } from '../model/contracts';
 import { request, type Session } from './api';
 import {
@@ -72,6 +72,7 @@ export function useCanvasDocument() {
               setSession({ ...data, revision: draft.revision });
               dispatch({
                 type: 'load',
+                repo: data.repo,
                 document: restored,
                 view: {
                   scope: draft.scope,
@@ -92,7 +93,7 @@ export function useCanvasDocument() {
       }
       if (stale()) return;
       setSession(data);
-      dispatch({ type: 'load', document: data.document });
+      dispatch({ type: 'load', repo: data.repo, document: data.document });
       setConflict(false);
       setError('');
       setNeedsRepository(false);
@@ -200,6 +201,9 @@ export function useCanvasDocument() {
     dispatch({ type: 'edit', document: next });
     setNotice('');
   }
+  const sourceSaved: SourceSaved = (target, previous, reference) => {
+    if (session) dispatch({ type: 'sourceSaved', repo: session.repo, target, previous, reference });
+  };
   async function save() {
     if (!session || !document) return;
     setSaving(true);
@@ -253,6 +257,9 @@ export function useCanvasDocument() {
     setError,
     notice,
     setNotice,
+    sourceSaved,
+    sourceSaveNotice: draft.sourceSaveNotice,
+    dismissSourceSave: () => dispatch({ type: 'dismissSourceSave' }),
     load,
     edit,
     save,

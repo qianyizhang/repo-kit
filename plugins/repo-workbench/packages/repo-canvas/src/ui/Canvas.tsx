@@ -16,6 +16,7 @@ import {
   sameTarget,
 } from '../model/document';
 import { fitView, arrangeNodes, connectionPath, placeLabels, type Viewport } from '../model/layout';
+import type { SourceSaved } from '../model/draft';
 import { RelationshipDialog } from './RelationshipDialog';
 interface Props {
   token: string;
@@ -37,6 +38,8 @@ interface Props {
   enter: (id: string) => void;
   move: (id: string, x: number, y: number) => void;
   edit: (document: Architecture) => void;
+  sourceSaved: SourceSaved;
+  sourceSaveNotice: string;
 }
 export function Canvas({
   token,
@@ -56,6 +59,8 @@ export function Canvas({
   enter,
   move,
   edit,
+  sourceSaved,
+  sourceSaveNotice,
   reportView,
   viewAction,
 }: Props) {
@@ -680,6 +685,8 @@ export function Canvas({
             document={document}
             connections={relationships}
             edit={edit}
+            sourceSaved={sourceSaved}
+            sourceSaveNotice={sourceSaveNotice}
             close={() => setRelationships(null)}
           />
         </div>

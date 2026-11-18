@@ -1,5 +1,6 @@
 import { Notes } from './Notes';
 import { SourceBlock } from './SourceBlock';
+import type { SourceSaved } from '../model/draft';
 import type { Target } from '../model/document';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -12,12 +13,23 @@ interface Props {
   document: Architecture;
   connections: Connection[];
   edit: (document: Architecture) => void;
+  sourceSaved: SourceSaved;
+  sourceSaveNotice: string;
   close: () => void;
   token: string;
   comment: (target: Target) => void;
 }
 /** Exact relationships remain inspectable even when an edge represents nested modules. */
-export function RelationshipDialog({ document, connections, edit, close, token, comment }: Props) {
+export function RelationshipDialog({
+  document,
+  connections,
+  edit,
+  sourceSaved,
+  sourceSaveNotice,
+  close,
+  token,
+  comment,
+}: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const basis = useRef(
     new Map(
@@ -32,7 +44,7 @@ export function RelationshipDialog({ document, connections, edit, close, token, 
     !connections.every((c) => document.connections.some((edge) => edge.id === c.id)),
   );
   const [tab, setTab] = useState('details');
-  const [source, setSource] = useState<string | null>(null);
+  const [source, setSource] = useState<{ id: string; reference: string } | null>(null);
   useEffect(() => {
     dialog.current?.showModal();
   }, []);
@@ -78,6 +90,7 @@ export function RelationshipDialog({ document, connections, edit, close, token, 
           ))}
         </div>
       )}
+      {sourceSaveNotice && <p role="status">{sourceSaveNotice}</p>}
       {connections.map((original) => {
         const c = document.connections.find((edge) => edge.id === original.id) ?? original;
         return editing ? (
@@ -241,29 +254,22 @@ export function RelationshipDialog({ document, connections, edit, close, token, 
             {tab === 'sources' && (
               <>
                 {c.sources?.map((ref) => (
-                  <button className="source-link" key={ref} onClick={() => setSource(ref)}>
+                  <button
+                    className="source-link"
+                    key={ref}
+                    onClick={() => setSource({ id: c.id, reference: ref })}
+                  >
                     {ref}
                   </button>
                 ))}
-                {source && c.sources?.includes(source) && (
+                {source?.id === c.id && c.sources?.includes(source.reference) && (
                   <SourceBlock
-                    reference={source}
+                    key={source.reference}
+                    reference={source.reference}
                     token={token}
                     document={document}
-                    onReferenceChange={(next) => {
-                      edit({
-                        ...document,
-                        connections: document.connections.map((edge) =>
-                          edge.id === c.id
-                            ? {
-                                ...edge,
-                                sources: edge.sources?.map((ref) => (ref === source ? next : ref)),
-                              }
-                            : edge,
-                        ),
-                      });
-                      setSource(next);
-                    }}
+                    target={{ kind: 'connection', id: c.id }}
+                    sourceSaved={sourceSaved}
                   />
                 )}
               </>

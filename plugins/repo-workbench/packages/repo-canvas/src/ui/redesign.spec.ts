@@ -183,6 +183,123 @@ test('v3 reading, notes, groups, leaf promotion, contextual drafts and explicit 
     );
   }
 });
+for (const target of ['module', 'relationship'] as const) {
+  for (const replaceReference of [false, true]) {
+    test(`delayed ${target} source save ${replaceReference ? 'keeps a changed reference' : 'preserves the newer edit and Undo'}`, async ({
+      page,
+      request,
+    }) => {
+      const reference = 'src/core/rules.ts#L1-L1';
+      const nextReference = 'src/core/rules.ts#L1-L2';
+      const replacement = 'src/core/rules.ts#L2-L2';
+      const original = (await (await request.get('/api/state')).json()) as Session;
+      const headers = { 'X-Repo-Canvas-Token': original.token };
+      const path = join(original.repo, 'src/core/rules.ts');
+      const before = readFileSync(path, 'utf8');
+      const mapPath = join(original.repo, '.repo-canvas/architecture.json');
+      const document = {
+        ...model,
+        connections: [{ ...model.connections[0], sources: [reference] }],
+      };
+      expect(
+        (
+          await request.put('/api/state', {
+            headers,
+            data: { revision: original.revision, document },
+          })
+        ).ok(),
+      ).toBe(true);
+      let signalResponse!: () => void;
+      const responseReady = new Promise<void>((resolve) => (signalResponse = resolve));
+      let release!: () => void;
+      const deliver = new Promise<void>((resolve) => (release = resolve));
+      await page.route('**/api/source', async (route) => {
+        if (route.request().method() !== 'PUT') return route.continue();
+        const response = await route.fetch();
+        signalResponse();
+        await deliver;
+        await route.fulfill({ response });
+      });
+      page.on('dialog', (dialog) => void dialog.accept());
+      try {
+        await page.goto('/');
+        const dialog = page.getByRole('dialog', { name: 'Relationship', exact: true });
+        async function openSources(label: string) {
+          if (target === 'module') {
+            await page.getByRole('button', { name: `Inspect ${label}`, exact: true }).click();
+            await page.getByRole('button', { name: /^Sources ·/ }).click();
+          } else {
+            await page.locator('.edge-label').filter({ hasText: label }).click();
+            await dialog.getByRole('button', { name: 'sources', exact: true }).click();
+          }
+        }
+        await openSources(target === 'module' ? 'Owner' : 'calls');
+        await page.getByRole('button', { name: reference, exact: true }).click();
+        await page.getByRole('button', { name: 'Edit source', exact: true }).click();
+        const content = '// reviewed first line\n// reviewed second line\n';
+        await page.getByLabel('Edit source block').fill(content);
+        await page.getByRole('button', { name: 'Review diff' }).click();
+        await page.getByRole('button', { name: 'Save source file' }).click();
+        await responseReady;
+        expect(readFileSync(path, 'utf8').startsWith(content)).toBe(true);
+
+        const label = target === 'module' ? 'Renamed owner' : 'reads';
+        if (target === 'module') {
+          await page
+            .locator('.inspector')
+            .getByRole('button', { name: 'Edit', exact: true })
+            .click();
+          await page.getByLabel('Module name', { exact: true }).fill(label);
+          if (replaceReference) await page.getByLabel(/Source references/).fill(replacement);
+          await page.getByRole('button', { name: 'Apply edits', exact: true }).click();
+        } else {
+          await dialog.getByRole('button', { name: 'Edit relationship' }).click();
+          await dialog.getByLabel('Relationship label').fill(label);
+          if (replaceReference) await dialog.getByLabel('Relationship sources').fill(replacement);
+          await dialog.getByRole('button', { name: 'Save relationship', exact: true }).click();
+          await openSources(label);
+        }
+        release();
+
+        const view = target === 'relationship' ? dialog : page;
+        const status = view.getByRole('status').filter({ hasText: 'Source file saved' });
+        await expect(status).toContainText(nextReference);
+        await expect(status).toContainText(
+          replaceReference ? 'Map reference unchanged' : 'map draft',
+        );
+        if (target === 'relationship')
+          await dialog.getByRole('button', { name: 'Close relationship' }).click();
+        const changedObject = () =>
+          target === 'module'
+            ? page.getByRole('button', { name: `Inspect ${label}`, exact: true })
+            : page.locator('.edge-label').filter({ hasText: label });
+        await expect(changedObject()).toBeVisible();
+        await page.getByRole('button', { name: 'Save map', exact: true }).click();
+        await expect(page.getByText('✓ Shared document')).toBeVisible();
+        const saved = parseDocument(JSON.parse(readFileSync(mapPath, 'utf8')));
+        const sources =
+          target === 'module'
+            ? saved.modules.find((row) => row.id === 'owner')?.sources
+            : saved.connections.find((row) => row.id === 'link')?.sources;
+        expect(sources).toEqual([replaceReference ? replacement : nextReference]);
+
+        await page.getByRole('button', { name: 'Canvas context menu' }).click();
+        await page.getByRole('menuitem', { name: 'Undo', exact: true }).click();
+        if (replaceReference) await expect(changedObject()).toHaveCount(0);
+        else {
+          await expect(changedObject()).toBeVisible();
+          await openSources(label);
+          await expect(page.getByText(reference, { exact: true }).first()).toBeVisible();
+        }
+      } finally {
+        release();
+        writeFileSync(path, before);
+        writeFileSync(mapPath, JSON.stringify(original.document));
+      }
+    });
+  }
+}
+
 test('source blocks review before saving and reject an external edit; old maps offer explicit recovery', async ({
   page,
   request,

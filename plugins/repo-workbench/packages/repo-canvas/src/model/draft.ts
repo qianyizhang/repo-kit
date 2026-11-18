@@ -1,4 +1,4 @@
-import { rootOf, type Architecture } from './document';
+import { rootOf, type Architecture, type Module, type Target } from './document';
 
 export interface DraftView {
   scope: string;
@@ -6,22 +6,29 @@ export interface DraftView {
   selections: string[];
 }
 export interface DraftState extends DraftView {
+  repo: string | null;
   document: Architecture | null;
   history: Architecture[];
   dirty: boolean;
+  sourceSaveNotice: string;
 }
 export const initialDraft: DraftState = {
+  repo: null,
   document: null,
   scope: 'repo',
   selection: null,
   selections: [],
   history: [],
   dirty: false,
+  sourceSaveNotice: '',
 };
+export type SourceSaved = (target: Target, previous: string, reference: string) => void;
 type Action =
-  | { type: 'load'; document: Architecture; view?: DraftView; dirty?: boolean }
+  | { type: 'load'; repo: string; document: Architecture; view?: DraftView; dirty?: boolean }
   | { type: 'refresh' | 'edit'; document: Architecture }
   | { type: 'saved'; document: Architecture; expected: Architecture }
+  | { type: 'sourceSaved'; repo: string; target: Target; previous: string; reference: string }
+  | { type: 'dismissSourceSave' }
   | { type: 'undo' | 'startFresh' }
   | { type: 'enter' | 'locate'; id: string }
   | { type: 'select'; id: string | null; additive?: boolean }
@@ -41,10 +48,54 @@ function validView(document: Architecture, view: DraftView): DraftView {
   };
 }
 
+export function moduleSourceFields(document: Architecture, module: Module) {
+  return (
+    document.nodeTypes
+      ?.find((type) => type.id === module.typeId)
+      ?.fields.filter((field) => field.kind === 'source') ?? []
+  );
+}
+
+function replaceSourceReference(
+  document: Architecture,
+  target: Target,
+  previous: string,
+  reference: string,
+): Architecture | undefined {
+  const replace = (value: string) => (value === previous ? reference : value);
+  if (target.kind === 'node') {
+    const module = document.modules.find((module) => module.id === target.id);
+    if (!module) return;
+    const fieldIds = moduleSourceFields(document, module)
+      .map((field) => field.id)
+      .filter((id) => module.fields?.[id] === previous);
+    if (!module.sources.includes(previous) && fieldIds.length === 0) return;
+    const next = { ...module, sources: module.sources.map(replace) };
+    if (fieldIds.length) {
+      next.fields = { ...module.fields };
+      for (const id of fieldIds) next.fields[id] = reference;
+    }
+    return {
+      ...document,
+      modules: document.modules.map((item) => (item === module ? next : item)),
+    };
+  }
+  if (target.kind === 'connection') {
+    const connection = document.connections.find((connection) => connection.id === target.id);
+    if (!connection?.sources?.includes(previous)) return;
+    const next = { ...connection, sources: connection.sources.map(replace) };
+    return {
+      ...document,
+      connections: document.connections.map((item) => (item === connection ? next : item)),
+    };
+  }
+}
+
 /** All document/navigation transitions cross this seam, including human and agent actions. */
 export function transitionDraft(state: DraftState, action: Action): DraftState {
   if (action.type === 'load') {
     return {
+      repo: action.repo,
       document: action.document,
       ...validView(
         action.document,
@@ -52,6 +103,7 @@ export function transitionDraft(state: DraftState, action: Action): DraftState {
       ),
       history: [],
       dirty: action.dirty ?? false,
+      sourceSaveNotice: '',
     };
   }
   const document = state.document;
@@ -73,6 +125,24 @@ export function transitionDraft(state: DraftState, action: Action): DraftState {
         history: [...state.history.slice(-39), document],
         dirty: true,
       };
+    case 'sourceSaved': {
+      if (state.repo !== action.repo) return state;
+      const { target, previous, reference } = action;
+      const saved = `Source file saved at ${reference}.`;
+      if (previous === reference) return { ...state, sourceSaveNotice: saved };
+      const next = replaceSourceReference(document, target, previous, reference);
+      return next
+        ? {
+            ...transitionDraft(state, { type: 'edit', document: next }),
+            sourceSaveNotice: `${saved} The new range is in the map draft.`,
+          }
+        : {
+            ...state,
+            sourceSaveNotice: `${saved} Map reference unchanged because the original reference is no longer on that object.`,
+          };
+    }
+    case 'dismissSourceSave':
+      return { ...state, sourceSaveNotice: '' };
     case 'undo': {
       const previous = state.history.at(-1);
       return previous

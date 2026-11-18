@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import hljs from 'highlight.js/lib/common';
-import type { Architecture } from '../model/document';
+import type { Architecture, Target } from '../model/document';
+import type { SourceSaved } from '../model/draft';
 import type { Output } from '../model/contracts';
 import { request } from './api';
 function Code({ content, path, start = 1 }: { content: string; path: string; start?: number }) {
@@ -46,19 +47,20 @@ export function SourceBlock({
   reference,
   token,
   document,
-  onReferenceChange,
+  target,
+  sourceSaved,
 }: {
   reference: string;
   token: string;
   document: Architecture;
-  onReferenceChange: (next: string) => void;
+  target: Target;
+  sourceSaved: SourceSaved;
 }) {
   const [source, setSource] = useState<Output<'source'> | null>(null),
     [error, setError] = useState(''),
     [draft, setDraft] = useState<string | null>(null),
     [review, setReview] = useState(false),
-    [busy, setBusy] = useState(false),
-    [notice, setNotice] = useState('');
+    [busy, setBusy] = useState(false);
   async function load() {
     setError('');
     try {
@@ -98,11 +100,10 @@ export function SourceBlock({
         content: draft,
         document,
       });
-      if (saved.reference !== reference) onReferenceChange(saved.reference);
-      setNotice('Source file saved. Reference changes remain in the map draft.');
+      sourceSaved(target, reference, saved.reference);
       setDraft(null);
       setReview(false);
-      setSource(await request('source', token, { path: saved.reference }));
+      if (saved.reference === reference) await load();
     } catch (e) {
       setError(String(e));
     } finally {
@@ -115,10 +116,9 @@ export function SourceBlock({
         <code>{reference}</code>
         {draft === null ? (
           <button
-            disabled={!source || source.truncated}
+            disabled={busy || !source || source.truncated}
             onClick={() => {
               setDraft(source!.content);
-              setNotice('');
             }}
           >
             Edit source
@@ -141,7 +141,6 @@ export function SourceBlock({
           <button onClick={() => void load()}>Reload source</button>
         </div>
       )}
-      {notice && <p role="status">{notice}</p>}
       {source &&
         (draft === null ? (
           <>

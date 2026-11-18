@@ -81,7 +81,9 @@ zoom still scales the diagram; preserve zoom and Fit view controls.
   any node. Spatial lanes are deferred.
 - Source references accept a file or `path#L10-L25`. Render syntax colors and original
   line numbers. Inline editing requires a before/after diff and explicit Save source
-  file. File saves and map saves are independent; changed range bounds update the draft.
+  file. File saves and map saves are independent. A returned range updates the
+  current draft only while the same object still contains the original reference.
+  The save notice shows the new range and whether the draft was updated.
 - Remove repeated branding, ornamental module numbers and repeated network labels.
   Use spacing and type hierarchy rather than nested decorative cards.
 - At narrow widths, stack the active inspector/chat below the architecture. It must

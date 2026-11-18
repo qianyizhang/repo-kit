@@ -8,6 +8,7 @@ import {
   type Module,
   type Target,
 } from '../model/document';
+import { moduleSourceFields, type SourceSaved } from '../model/draft';
 import { SourceBlock } from './SourceBlock';
 import { Notes } from './Notes';
 interface Props {
@@ -15,6 +16,7 @@ interface Props {
   module: Module;
   token: string;
   edit: (document: Architecture) => void;
+  sourceSaved: SourceSaved;
   enter: (id: string) => void;
   close: () => void;
   initialTab?: 'details' | 'notes' | 'sources';
@@ -25,6 +27,7 @@ export function Inspector({
   module,
   token,
   edit,
+  sourceSaved,
   enter,
   close,
   initialTab = 'details',
@@ -40,11 +43,11 @@ export function Inspector({
   const noteCount = document.annotations.filter((a) =>
     sameTarget(a.target, { kind: 'node', id: module.id }),
   ).length;
-  const sourceFields =
-    type?.fields
-      .filter((f) => f.kind === 'source' && typeof module.fields?.[f.id] === 'string')
-      .map((f) => String(module.fields![f.id])) ?? [];
+  const sourceFields = moduleSourceFields(document, module)
+    .map((field) => module.fields?.[field.id])
+    .filter((value): value is string => typeof value === 'string');
   const sources = [...new Set([...module.sources, ...sourceFields])];
+  const activeSource = source && sources.includes(source) ? source : null;
   function setField(id: string, value: string | number | boolean | undefined) {
     if (!draft) return;
     const fields = { ...draft.fields };
@@ -262,7 +265,7 @@ export function Inspector({
           )}
           {tab === 'sources' && (
             <section>
-              {!source &&
+              {!activeSource &&
                 sources.map((path) => (
                   <button
                     key={path}
@@ -276,26 +279,15 @@ export function Inspector({
               {!sources.length && (
                 <p className="muted">No source references. Add a path or line block in Edit.</p>
               )}
-              {source && <button onClick={() => setSource(null)}>← All references</button>}
-              {source && (
+              {activeSource && <button onClick={() => setSource(null)}>← All references</button>}
+              {activeSource && (
                 <SourceBlock
-                  key={source}
-                  reference={source}
+                  key={activeSource}
+                  reference={activeSource}
                   token={token}
                   document={document}
-                  onReferenceChange={(next) => {
-                    update({
-                      ...module,
-                      sources: module.sources.map((p) => (p === source ? next : p)),
-                      fields: Object.fromEntries(
-                        Object.entries(module.fields ?? {}).map(([k, v]) => [
-                          k,
-                          sourceFields.includes(String(v)) && v === source ? next : v,
-                        ]),
-                      ),
-                    });
-                    setSource(next);
-                  }}
+                  target={{ kind: 'node', id: module.id }}
+                  sourceSaved={sourceSaved}
                 />
               )}
             </section>

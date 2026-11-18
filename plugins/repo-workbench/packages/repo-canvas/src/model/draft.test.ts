@@ -34,7 +34,7 @@ const document = parseDocument({
 });
 
 it('repairs removed selections at edit time so Undo cannot resurrect hidden selection state', () => {
-  let state = transitionDraft(initialDraft, { type: 'load', document });
+  let state = transitionDraft(initialDraft, { type: 'load', repo: '/repo', document });
   state = transitionDraft(state, { type: 'selectMany', ids: ['a', 'b'] });
   const removed = { ...document, modules: document.modules.filter((m) => m.id !== 'b') };
   state = transitionDraft(state, { type: 'edit', document: removed });
@@ -49,7 +49,7 @@ it('repairs removed selections at edit time so Undo cannot resurrect hidden sele
 });
 
 it('Undo keeps current navigation when valid and repairs a removed scope to root', () => {
-  let state = transitionDraft(initialDraft, { type: 'load', document });
+  let state = transitionDraft(initialDraft, { type: 'load', repo: '/repo', document });
   const added = parseDocument({
     ...document,
     modules: [
@@ -81,6 +81,7 @@ it('Undo keeps current navigation when valid and repairs a removed scope to root
 it('keeps root inspection distinct from selected children and filters agent/restored selections', () => {
   let state = transitionDraft(initialDraft, {
     type: 'load',
+    repo: '/repo',
     document,
     view: { scope: 'root', selection: 'root', selections: ['a', 'a', 'nested', 'missing'] },
     dirty: true,
@@ -99,7 +100,7 @@ it('keeps root inspection distinct from selected children and filters agent/rest
 });
 
 it('a late save cannot replace a newer edit; clean refresh clears obsolete history and view IDs', () => {
-  let state = transitionDraft(initialDraft, { type: 'load', document });
+  let state = transitionDraft(initialDraft, { type: 'load', repo: '/repo', document });
   const edited = { ...document, title: 'Edited' };
   state = transitionDraft(state, { type: 'edit', document: edited });
   state = transitionDraft(state, {

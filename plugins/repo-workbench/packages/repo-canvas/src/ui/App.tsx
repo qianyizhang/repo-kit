@@ -49,6 +49,9 @@ export function App() {
     setError,
     notice,
     setNotice,
+    sourceSaved,
+    sourceSaveNotice,
+    dismissSourceSave,
     load,
     edit,
     save,
@@ -408,6 +411,14 @@ export function App() {
             </button>
           </div>
         </div>
+        {sourceSaveNotice && (
+          <div className="status-banner" role="status">
+            <span>{sourceSaveNotice}</span>
+            <button onClick={dismissSourceSave} aria-label="Dismiss source save notification">
+              ×
+            </button>
+          </div>
+        )}
         {(error || conflict || notice) && (
           <div
             className={`status-banner ${error || conflict ? 'warning' : ''}`}
@@ -515,6 +526,8 @@ export function App() {
             setPanel('inspect');
           }}
           edit={edit}
+          sourceSaved={sourceSaved}
+          sourceSaveNotice={sourceSaveNotice}
           selections={activeSelections}
           multiSelect={multiSelect}
           reportView={reportView}
@@ -556,6 +569,7 @@ export function App() {
           module={inspected}
           token={session.token}
           edit={edit}
+          sourceSaved={sourceSaved}
           enter={enter}
           close={() => setPanel(null)}
         />
