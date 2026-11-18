@@ -174,5 +174,4 @@ runtime has no dependencies; the package pins development type checking. The
 [atlas CI job](.github/workflows/behavior-atlas.yml) checks that generated source.
 
 Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
-slice, committing when requested. [Review notes](docs/reviews/README.md)
-summarize its adoption; local bindings reuse each project's existing rules.
+slice, committing when requested.

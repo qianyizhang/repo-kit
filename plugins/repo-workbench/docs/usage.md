@@ -24,7 +24,7 @@ npm test
 npm run test:browser -- tests/browser/usage-dashboard.spec.ts
 ```
 
-Both modes initially show all recorded dates. The display follows the OS color mode standalone and the host color mode in Codex. Compressed sources show decoded and stored sizes; hashes and record offsets refer to decoded JSONL. Damaged archives appear as coverage gaps.
+Both modes initially show all recorded dates and share a semantic palette for status, selection, tooltips, and charts. The display follows the OS color mode standalone and the host color mode in Codex. Compressed sources show decoded and stored sizes; hashes and record offsets refer to decoded JSONL. Damaged archives appear as coverage gaps.
 
 Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`.
 
@@ -45,8 +45,26 @@ Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`
 ## Accounting and indexing
 
 - **Record precedence**: Modern `token_usage_record` `(thread_id, response_id)` takes precedence over legacy cumulative snapshots. Responses are globally deduplicated across archived/copied files.
-- **Incremental indexing**: Maintained under `~/.cache/repo-workbench/usage/<root-key>/ (or `--cache` override)`. Tracks file size, mtime, and trailing 4 KiB to resume reading without reparsing unchanged prefixes.
+- **Incremental indexing**: Maintained under `~/.cache/repo-workbench/usage/<root-key>/` or the `--cache` override. Tracks file size, mtime, and trailing 4 KiB to resume reading without reparsing unchanged prefixes.
 - **Integrity**: Serialized SHA-256 states preserve exact whole-file hashes. Malformed lines and counter reconciliation mismatches (`input + output != total`) are logged as coverage gaps without halting scans.
+
+## Refresh and evidence
+
+After the first successful scan, reopening in Codex can show a timestamped cached
+summary while a background worker refreshes the index. A failure leaves that
+summary visible and offers **Refresh logs**. You can discuss the cached summary
+while source inspection waits for the current index. The panel adopts refreshed
+data under a new revision, preserving filters and the discussion draft. Active
+traces remain pinned until deliberate refresh. The panel status tooltip shows
+initial load time, and the protocol status exposes index, scan, summary, and
+persistence timings.
+
+The embedded panel receives daily and session summaries with exact event counts,
+reasoning coverage, and per-event pricing bands. Evidence inspection loads up to
+100 exact usage records. CSV export explicitly requests all filtered records.
+Offline exports retain the complete usage records and use the same aggregation
+rules. [MCP Apps](mcp-apps.md#reports-and-conversation-context) covers host controls
+and discussion attachments.
 
 ## Code structure
 

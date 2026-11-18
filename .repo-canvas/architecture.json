@@ -253,7 +253,8 @@
       "kind": "interface",
       "summary": "Standalone and MCP report surfaces share session-review and usage evidence; transport and host capabilities remain adapters.",
       "sources": [
-        "plugins/repo-workbench/packages/reports/design.md",
+        "plugins/repo-workbench/docs/mcp-apps.md",
+        "plugins/repo-workbench/docs/usage.md",
         "plugins/repo-workbench/packages/reports/server.ts",
         "plugins/repo-workbench/packages/reports/app.ts"
       ],

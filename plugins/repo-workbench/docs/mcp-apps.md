@@ -8,16 +8,21 @@ The source review is repo-kit's `docs/reviews/README.md`.
 
 ## Reports and conversation context
 
-The embedded views reuse the standalone renderers and indexed source reader.
-Full bodies and images travel through `report_app`; the iframe does not fetch
-localhost. **Send** delivers the user's text directly. **Attach filters or open evidence** (usage) or **Attach selected turn/action** (trace) adds a
-small frozen summary of the current usage filters/open evidence, or a selected
-trace turn/action. An unchecked attachment sends no evidence and creates no
-selection. Additional totals, rows, events, event text and provenance use separate
-scoped tools; the message never requires an initial read. Selections retain the
-captured data and source identity through refresh. Up to 40 are retained; an
-expired selection must be attached again. Unconfirmed delivery keeps the draft;
-check the chat before resending.
+The embedded views reuse the standalone renderers and read-only indexed source
+reader. The host toolbar shows connection state, Back from trace to usage, and
+discussion controls. Back preserves usage filters. The iframe loads full bodies
+and images on demand through `report_app`. **Send** delivers the user's text
+directly. **Attach filters or open evidence** (usage) or **Attach selected
+turn/action** (trace) adds a small frozen summary of the chosen context. An
+unchecked attachment sends no evidence and creates no selection. Summaries omit
+provenance. Additional totals, rows, events, event text and provenance use
+separate scoped tools. The message is readable immediately. Selections retain
+the captured data and source identity through refresh. Up to 40 are retained.
+Attach the context again after a selection expires. Unconfirmed delivery keeps
+the draft and attachment choice. Check the chat before resending.
+
+See [Usage refresh and evidence](usage.md#refresh-and-evidence) for cached summaries
+and loading limits.
 
 The caller-aware registry retains at most 12 report contexts with a shared 512 MiB
 accounted memory budget and a 24-hour idle limit. Each report bounds scan results
@@ -61,8 +66,9 @@ payload area and can be pinned while inspected. Copy and metadata download remai
 available. Panel/server build mismatch blocks domain actions until reopened.
 
 App info also exposes generated tool contracts, conversation fixtures and individual
-frozen interactions. Inspect send opens only that send; server summaries and exact
-event payloads have separate bounded APIs. Metadata is written under
+frozen interactions. Report results are inspected after transport decompression.
+Inspect send opens only that send; server summaries and exact event payloads have
+separate bounded APIs. Metadata is written under
 `${XDG_STATE_HOME:-~/.local/state}/mcp-apps/<app-id>/<instance>/`, overridden by
 `MCP_APP_LOG_ROOT`. Each app/server file rotates at 2 MiB with one prior file.
 Startup keeps 8 inactive sessions for at most 7 days; live sessions are excluded.
