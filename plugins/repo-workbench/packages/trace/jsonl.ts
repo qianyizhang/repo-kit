@@ -137,7 +137,10 @@ function observableBody(data: Obj): RecordBody | null {
   return null;
 }
 /** Read only the pinned observable record, never a request-supplied file path. */
-export async function readSessionBody(thread: TraceThread, event: TraceEvent): Promise<RecordBody> {
+export async function readSessionBody(
+  thread: Pick<TraceThread, 'source'>,
+  event: TraceEvent,
+): Promise<RecordBody> {
   if (!event.body || !thread.source.path) throw new Error('Record body is not indexed.');
   const buffers = await readLogRanges(thread.source.path, event.body.sources);
   let result: RecordBody | null = null;

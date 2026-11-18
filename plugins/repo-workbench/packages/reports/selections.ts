@@ -5,25 +5,37 @@ import {
 } from '../../../mcp-app-runtime/src/registry.ts';
 import { immutable, RuntimeError } from '../../../mcp-app-runtime/src/definition.ts';
 import { z } from 'zod';
-import { summarize, selectRecords, type UsageData, type UsageRow } from '../usage/model.ts';
+import {
+  summarize,
+  selectRecords,
+  type Source,
+  type UsageData,
+  type UsageRow,
+} from '../usage/model.ts';
 import { bucketId } from '../usage/overview.ts';
-import type { ReviewDocument, TraceEvent } from '../session-review/src/model/contracts.ts';
+import type {
+  ReviewDocument,
+  TraceEvent,
+  TraceThread,
+} from '../session-review/src/model/contracts.ts';
 import { traceActions } from '../session-review/src/model/actions.ts';
-import { readRecord, textBlock } from '../usage/trace-service.ts';
+import { readSessionBody } from '../trace/jsonl.ts';
+import { textBlock } from '../usage/trace-service.ts';
 import { filtersSchema, traceScopeSchema } from './contracts.ts';
 
 type Scope = z.infer<typeof traceScopeSchema>;
 type UsageSelection = {
   kind: 'usage';
-  snapshot: UsageData;
+  generatedAt: string;
+  cached: boolean;
   rows: UsageRow[];
   filters: z.infer<typeof filtersSchema>;
+  provenance: Array<{ source: Source; gapCount: number }>;
 };
 type TraceSelection = {
   kind: 'trace';
-  document: ReviewDocument;
   events: TraceEvent[];
-  scope: Scope;
+  thread: ReturnType<typeof traceProvenance>;
 };
 type Selection = UsageSelection | TraceSelection;
 const pageSchema = {
@@ -47,6 +59,17 @@ const preview = (event: TraceEvent) => ({
   title: event.title.slice(0, 200),
   preview: event.preview.slice(0, 400),
 });
+function traceProvenance(thread: TraceThread) {
+  return {
+    thread: thread.id,
+    source: thread.source,
+    coverage: {
+      ...thread.coverage,
+      unsupportedItems: thread.coverage.unsupportedItems.length,
+      excludedItems: thread.coverage.excludedItems.length,
+    },
+  };
+}
 
 export class ReportSelections {
   #registry: ScopedRegistry<Selection>;
@@ -91,7 +114,24 @@ export class ReportSelections {
         !selected || selected.has('events' in row ? row.id : bucketId(row, filters.timezone)),
     );
     if (ids && !rows.length) throw new Error('Usage selection changed. Select it again.');
-    const selectionId = this.save({ kind: 'usage', snapshot, rows, filters: { ...filters } });
+    const paths = new Set(rows.map((row) => row.source));
+    const gaps = new Map<string, number>();
+    for (const gap of snapshot.gaps) {
+      if (paths.has(gap.source)) gaps.set(gap.source, (gaps.get(gap.source) ?? 0) + gap.count);
+    }
+    const selectionId = this.save({
+      kind: 'usage',
+      generatedAt: snapshot.generatedAt,
+      cached: 'overviewVersion' in snapshot,
+      rows,
+      filters,
+      provenance: snapshot.sources
+        .filter((source) => paths.has(source.path))
+        .map((source) => ({
+          source,
+          gapCount: gaps.get(source.path) ?? 0,
+        })),
+    });
     return { selectionId, ...this.usageSummary(selectionId) };
   }
   usageSummary(id: string) {
@@ -100,8 +140,8 @@ export class ReportSelections {
     const total = summarize(s.rows, {});
     return {
       kind: s.kind,
-      generatedAt: s.snapshot.generatedAt,
-      cached: 'overviewVersion' in s.snapshot,
+      generatedAt: s.generatedAt,
+      cached: s.cached,
       filters: Object.fromEntries(Object.entries(s.filters).filter(([, v]) => v !== '')),
       sessions: total.sessions,
       events: total.events,
@@ -134,7 +174,7 @@ export class ReportSelections {
   trace(document: ReviewDocument, scope: Scope) {
     const thread = document.threads.find((t) => t.id === scope.thread);
     const turn = thread?.turns.find((t) => t.id === scope.turn);
-    if (!turn || (!scope.reviews && thread?.purpose === 'auto-review'))
+    if (!thread || !turn || (!scope.reviews && thread.purpose === 'auto-review'))
       throw new Error('Select a visible turn or action first.');
     let events = turn.events.filter((e) => scope.reviews || e.kind !== 'auto-review');
     if (scope.event) {
@@ -142,7 +182,7 @@ export class ReportSelections {
       if (!action) throw new Error('Selected action is not in this turn.');
       events = action.records;
     }
-    const selectionId = this.save({ kind: 'trace', document, events, scope: { ...scope } });
+    const selectionId = this.save({ kind: 'trace', events, thread: traceProvenance(thread) });
     return {
       selectionId,
       kind: 'trace',
@@ -164,43 +204,12 @@ export class ReportSelections {
     if (s.kind !== 'trace') throw new Error('This is a usage selection.');
     const event = s.events.find((e) => e.key === eventId);
     if (!event) throw new Error('Event is outside this frozen selection.');
-    const body = event.body
-      ? await readRecord(s.document, eventId, event.body.sources.map((s) => s.sha256).join('.'))
-      : event;
+    const body = event.body ? await readSessionBody(s.thread, event) : event;
     return textBlock(field === 'output' ? (body.output ?? '') : body.text, offset);
   }
   provenance(id: string, offset: number, limit: number) {
     const s = this.get(id);
-    if (s.kind === 'usage') {
-      const paths = new Set(s.rows.map((r) => r.source));
-      return page(
-        s.snapshot.sources
-          .filter((source) => paths.has(source.path))
-          .map((source) => ({
-            source,
-            gapCount: s.snapshot.gaps
-              .filter((g) => g.source === source.path)
-              .reduce((n, g) => n + g.count, 0),
-          })),
-        offset,
-        limit,
-      );
-    }
-    const threads = new Set(s.events.map((e) => e.threadId));
-    return page(
-      s.document.threads
-        .filter((t) => threads.has(t.id))
-        .map((t) => ({
-          thread: t.id,
-          source: t.source,
-          coverage: {
-            ...t.coverage,
-            unsupportedItems: t.coverage.unsupportedItems.length,
-            excludedItems: t.coverage.excludedItems.length,
-          },
-        })),
-      offset,
-      limit,
-    );
+    if (s.kind === 'usage') return page(s.provenance, offset, limit);
+    return page(s.events.length ? [s.thread] : [], offset, limit);
   }
 }

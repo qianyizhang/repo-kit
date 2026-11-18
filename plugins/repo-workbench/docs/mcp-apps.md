@@ -28,7 +28,9 @@ The caller-aware registry retains at most 12 report contexts with a shared 512 M
 accounted memory budget and a 24-hour idle limit. Each report bounds scan results
 and retains at most 8 traces within 64 MiB. Eviction disposes the session and stops
 its worker. Reopen an expired report. Frozen selections have a separate bounded
-registry and preserve the caller who created them.
+registry and preserve the caller who created them. They retain the selected
+rows or events, the provenance and coverage they expose, and byte-pinned
+references for lazy trace reads.
 
 ## Canvas connection and recovery
 

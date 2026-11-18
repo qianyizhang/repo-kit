@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,9 +11,21 @@ import { canvasMcp } from '../packages/repo-canvas/src/server/mcp.ts';
 import { parseOutput } from '../packages/repo-canvas/src/model/contracts.ts';
 import { LogStore } from '../../mcp-app-runtime/src/store.ts';
 import { ReportSelections } from '../packages/reports/selections.ts';
-import { hostedPrincipal } from '../../mcp-app-runtime/src/registry.ts';
+import { hostedPrincipal, ScopedRegistry } from '../../mcp-app-runtime/src/registry.ts';
 import { scan } from '../packages/usage/scan.ts';
+import { bucketId } from '../packages/usage/overview.ts';
 import { createFixture } from '../packages/usage/fixture.ts';
+import { createTraceReader } from '../packages/usage/trace-service.ts';
+
+const filters = {
+  from: '',
+  to: '',
+  model: '',
+  project: '',
+  effort: '',
+  search: '',
+  timezone: 'UTC',
+};
 
 void test('every Canvas context/request tool checks caller before reading or enqueuing', async (t) => {
   const root = await mkdtemp(join(tmpdir(), 'canvas-owner-'));
@@ -124,15 +136,7 @@ void test('frozen report selections have immutable owners and survive refresh wi
   t.after(() => selections.dispose());
   const a = selections.forOwner(hostedPrincipal({ threadId: crypto.randomUUID() }));
   const b = selections.forOwner(hostedPrincipal({ threadId: crypto.randomUUID() }));
-  const selected = a.usage(snapshot, {
-    from: '',
-    to: '',
-    model: '',
-    project: '',
-    effort: '',
-    search: '',
-    timezone: 'UTC',
-  });
+  const selected = a.usage(snapshot, filters);
   const summary = a.usageSummary(selected.selectionId);
   snapshot.records.splice(0);
   assert.deepEqual(a.usageSummary(selected.selectionId), summary);
@@ -142,4 +146,121 @@ void test('frozen report selections have immutable owners and survive refresh wi
     () => b.provenance(selected.selectionId, 0, 10),
   ])
     assert.throws(read, /unavailable for this caller/);
+});
+
+void test('one-row and one-event selections fit a small shared budget amid unrelated evidence', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'selection-budget-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await createFixture(root);
+  const snapshot = await scan([root]);
+  const row = snapshot.records.find((record) => record.session === 'parent')!;
+  const selectedBucket = bucketId(row, filters.timezone);
+  snapshot.records = snapshot.records.filter(
+    (record) => record === row || bucketId(record, filters.timezone) !== selectedBucket,
+  );
+  const trace = (await createTraceReader(() => snapshot)('parent'))!.data;
+  const thread = trace.threads.find((candidate) => candidate.id === row.session)!;
+  const turn = thread.turns.find((candidate) => candidate.events.some((event) => event.body))!;
+  const event = turn.events.find((candidate) => candidate.body)!;
+  const scope = { thread: thread.id, turn: turn.id, event: event.key, reviews: false };
+  const source = snapshot.sources.find((candidate) => candidate.path === row.source)!;
+  snapshot.gaps.push({ source: row.source, count: 3, reason: 'Selected source coverage' });
+  const coverage = {
+    ...thread.coverage,
+    unsupportedItems: thread.coverage.unsupportedItems.length,
+    excludedItems: thread.coverage.excludedItems.length,
+  };
+  const selections = new ReportSelections(
+    new ScopedRegistry({
+      maxEntries: 8,
+      maxBytes: 8 * 1024,
+      maxAgeMs: 60_000,
+      overflow: 'reject',
+    }),
+  );
+  t.after(() => selections.dispose());
+  const smallUsage = selections.usage(snapshot, filters, [
+    bucketId(row, filters.timezone),
+  ]).selectionId;
+
+  snapshot.records.push(
+    ...Array.from({ length: 1000 }, (_, index) => ({
+      ...row,
+      id: `unrelated-${index}`,
+      source: '/unrelated.jsonl',
+    })),
+  );
+  snapshot.sources.push({ ...source, path: '/unrelated.jsonl' });
+  snapshot.gaps.push(
+    ...Array.from({ length: 1000 }, () => ({
+      source: '/unrelated.jsonl',
+      count: 1,
+      reason: 'Unrelated gap',
+    })),
+  );
+  thread.turns.push({
+    ...turn,
+    id: 'unrelated-turn',
+    events: Array.from({ length: 1000 }, (_, index) => ({
+      ...event,
+      key: `unrelated-${index}`,
+      text: 'unrelated evidence'.repeat(40),
+    })),
+  });
+  // The omitted record references are outside the selection even in its source thread.
+  thread.coverage.unsupportedItems.push({
+    type: 'unrelated-type',
+    count: 1000,
+    refs: Array.from({ length: 1000 }, (_, index) => ({
+      thread: thread.id,
+      turn: 'unrelated-turn',
+      event: `unsupported-${index}`,
+      ordinal: index,
+    })),
+  });
+
+  const usageId = selections.usage(snapshot, filters, [
+    bucketId(row, filters.timezone),
+  ]).selectionId;
+  const traceId = selections.trace(trace, scope).selectionId;
+  assert.deepEqual(selections.usageSummary(usageId), selections.usageSummary(smallUsage));
+  assert.deepEqual(
+    selections.usageRecords(usageId, 0, 10).items.map((item) => item.id),
+    [row.id],
+  );
+  assert.deepEqual(selections.provenance(usageId, 0, 10).items, [
+    {
+      source,
+      gapCount: snapshot.gaps
+        .filter((gap) => gap.source === row.source)
+        .reduce((n, gap) => n + gap.count, 0),
+    },
+  ]);
+  assert.deepEqual(selections.provenance(traceId, 0, 10).items, [
+    {
+      thread: thread.id,
+      source: thread.source,
+      coverage: { ...coverage, unsupportedItems: coverage.unsupportedItems + 1 },
+    },
+  ]);
+  assert.equal(selections.traceEvents(traceId, 0, 10).items[0].eventId, event.key);
+  await assert.rejects(
+    selections.traceText(traceId, 'unrelated-1', 'text', 0),
+    /outside this frozen selection/,
+  );
+
+  const path = thread.source.path!;
+  const body = await selections.traceText(traceId, event.key, 'text', 0);
+  assert.match(body.text, /PRIVATE_PROMPT_SENTINEL/);
+  thread.turns.length = 0;
+  thread.source.path = '/unrelated.jsonl';
+  assert.deepEqual(await selections.traceText(traceId, event.key, 'text', 0), body);
+  await writeFile(
+    path,
+    (await readFile(path, 'utf8')).replace('PRIVATE_PROMPT_SENTINEL', 'CHANGED_PROMPT_SENTINEL'),
+  );
+  await assert.rejects(
+    selections.traceText(traceId, event.key, 'text', 0),
+    /Source record changed/,
+  );
 });
