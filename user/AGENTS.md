@@ -38,8 +38,8 @@ Repository contracts, runtimes and required checks govern their scope.
 
 Read applicable files in `$CODEX_HOME/practices` (default `~/.codex/practices`):
 `typescript.md` for TS/React, `python.md` for Python, `apple-native.md` for Apple
-apps. Before proposing, building or revising a visible interface, read `ui-ux.md`;
-for MCP apps, also read `mcp-apps.md` before design or integration work.
+apps. Read `ui-ux.md` before using Modern Web Guidance or working on a visible
+interface. For MCP apps, also read `mcp-apps.md` before design or integration work.
 For multi-step technical walkthroughs, read `explainers.md`.
 Before launching Chrome/Chrome for Testing
 tests on this Mac, read `macos-browser-testing.md`.

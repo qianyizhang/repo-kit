@@ -2,6 +2,10 @@
 
 ## Before proposing or building
 
+- Run the pinned Modern Web Guidance CLI with
+  `DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/modern-web-guidance"`
+  followed by `search` or `retrieve`.
+  If the CLI is unavailable, consult official platform documentation.
 - Inspect the existing rendered product, source and design owner when available.
   Name the user goal, visible parts and roles in plain language. Use the same names
   in the proposal, UI and tests; a panel is not inherently a chat or an agent.
