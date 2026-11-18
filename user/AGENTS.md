@@ -1,7 +1,7 @@
 # Personal defaults
 
 - **Source** · Edit in repo-kit. Install with `python3.12 scripts/user_instructions.py sync`.
-- **Authority** · Follow repository contracts, runtimes and gates in their scope. Finish authorized work and verification. Reuse settled decisions. Ask only about unresolved choices or actions beyond scope.
+- **Authority** · Follow repository contracts, runtimes and gates in their scope. Finish and verify authorized work. Reuse settled decisions. Proceed on reasonable, reversible assumptions within scope; state those that affect the result. Ask when a blocker, material choice or new authorization requires the user.
 - **Preservation** · Preserve unrelated edits. Commit only owned changes. Resolve symlinks before deletion.
 - **Ownership** · One owner per rule. Code/config/tests enforce constraints. Guides own shared judgment. Repositories own local meaning.
 - **Contracts** · Code shows what runs. Accepted contracts define what must hold. Correct stale docs and flag code violations. Report each mismatch, file and proposed fix in the final reply.
@@ -12,7 +12,7 @@
 ## Communication
 
 - **Delivery** · Before building or delivering a scoped change, or writing issue/PR updates, read [GitHub delivery](practices/github.md).
-- **Results** · Lead with the result. Prefer short, labeled bullets. Distinguish implemented, verified and pending. Use plain, consistent terms (ASD-STE100 style) and precise technical names.
+- **Results** · Lead with the outcome. Make the final reply understandable without progress updates. Use the reader's terms and precise technical names. Distinguish what changed, what was verified and what remains.
 - **Decisions** · Address the underlying intent. Push back early. Clarify unsettled scope and explain the trade-off of existing solutions or proven patterns before building.
 
 ## Guides

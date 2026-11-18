@@ -9,11 +9,11 @@ DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/mo
 ```
 
 - **Shared terms** · Inspect the rendered product, source and design owner when available. Name the goal, visible parts and roles in plain words. Use the same names in proposal, UI and tests.
-- **Purpose** · Operate to complete a task, read to understand, persuade to decide and act, or experience to engage with the work. Set density, type, motion and expression per surface.
+- **Purpose** · Operate to complete a task, read to understand, persuade to decide and act, or experience to engage with the work. Set density, type, motion and expression per surface. For a new visual direction, specify imagery and typography in the design brief.
 - **Scope** · Polish fixes local defects within current visual identity and intended behavior. Redesign can replace the direction with authorization. Preserve product facts, core functions and platform conventions.
 - **Map** · Cover both spatial layout (regions, facts, actions, owners) and the journey (cue, action, outcome, recovery). Check neighbors before adding controls. Match review depth to the change. Use `ui-discussion` for a full map and shared review.
 - **Decision owner** · Establish principles before choosing direction. Record accepted terms and decisions in the product design owner. Code shows implemented behavior.
-- **Review** · Distinguish accessibility requirements from style heuristics. Judge density, type and motion against intent and demonstrated failures.
+- **Review** · Distinguish accessibility requirements from style heuristics. Judge density, type and motion against intent and demonstrated failures. Compare the rendered result with the agreed visual reference when there is one.
 
 ## Layout and disclosure
 
@@ -26,7 +26,7 @@ DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/mo
 | Progressive detail | Visible short facts, inputs and next actions. Disclose substantial detail on demand. Hover/focus supplements essential content and has a touch equivalent. Long payloads remain readable and selectable in the inspector. |
 | Meaningful relationships | Familiar form fits the question. Actor lanes and ordered events show exchanges over time. Name destinations and label observations and inference. |
 | Scoped diagnostics | Show evidence relevant to the failure, action or request. Disclose housekeeping when useful. |
-| Clear controls | Short action labels such as “Save”, “Retry”, “Copy”. Familiar symbols with accessible names. Visible labels for ambiguous actions. Keep instructions where the interface needs them. |
+| Clear controls | Short action labels such as “Save”, “Retry”, “Copy”. Familiar symbols with accessible names. Visible labels for ambiguous actions. Keep required content and copy that helps people understand, act or recover. |
 
 ## Verify the journey
 
