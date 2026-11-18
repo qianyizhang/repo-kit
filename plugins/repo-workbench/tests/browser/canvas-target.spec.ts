@@ -216,7 +216,11 @@ test('native metadata binds without messages; picker and restart preserve select
           requestAnimationFrame(() => requestAnimationFrame(() => done())),
         ),
     );
-    const originalInfo = await second.locator('.mcp-observability dd').allTextContents();
+    const contextField = second
+      .locator('.mcp-observability dt')
+      .filter({ hasText: /^Context$/ })
+      .locator('xpath=following-sibling::dd[1]');
+    const originalContext = await contextField.innerText();
     await pages[1].screenshot({ path: info.outputPath('connection-info.png') });
     await client.close();
     client = await start();
@@ -237,28 +241,27 @@ test('native metadata binds without messages; picker and restart preserve select
         { timeout: 15000 },
       )
       .toBe(1);
-    await second.getByRole('button', { name: 'Refresh status', exact: true }).click();
+    // The old draft stays visible during recovery. Wait for the new context to own it.
+    await expect(async () => {
+      await second.getByRole('button', { name: 'Refresh status', exact: true }).click();
+      const betaContext = await contextField.innerText();
+      expect(betaContext).not.toBe(originalContext);
+      const draft = await client.callTool({
+        name: 'canvas_app',
+        arguments: { contextId: betaContext, request: { action: 'draft_read', args: {} } },
+        _meta: { threadId: ids[1] },
+      });
+      expect(draft.isError, JSON.stringify(draft)).not.toBe(true);
+      expect(JSON.stringify(draft.structuredContent)).toContain(
+        'Unsaved responsibility survives reconnect',
+      );
+    }).toPass({ timeout: 15000 });
     await expect(second.locator('.responsibility')).toHaveText(
       'Unsaved responsibility survives reconnect',
     );
     await expect(second.locator('.checkout-path')).toHaveText(repos[1]);
     await expect(first.locator('.checkout-path')).toHaveText(repos[0]);
-    const updatedInfo = await second.locator('.mcp-observability dd').allTextContents();
-    expect(updatedInfo).not.toEqual(originalInfo);
-    const betaContext = await second
-      .locator('.mcp-observability dt')
-      .filter({ hasText: /^Context$/ })
-      .locator('xpath=following-sibling::dd[1]')
-      .innerText();
-    const draft = await client.callTool({
-      name: 'canvas_app',
-      arguments: { contextId: betaContext, request: { action: 'draft_read', args: {} } },
-      _meta: { threadId: ids[1] },
-    });
-    expect(draft.isError, JSON.stringify(draft)).not.toBe(true);
-    expect(JSON.stringify(draft.structuredContent)).toContain(
-      'Unsaved responsibility survives reconnect',
-    );
+    await expect(second.getByText('UI and server builds match.')).toBeVisible();
     const downloaded = pages[1].waitForEvent('download');
     await second.getByRole('button', { name: 'Download connection log' }).click();
     const report = JSON.parse(await readFile(await (await downloaded).path(), 'utf8')) as {
