@@ -36,13 +36,29 @@
 | Notes                      | Risk, warning and info use text and red, yellow and neutral roles. Separate decision/question intent. Badge opens Notes. Edit and remove are undoable.                                                                                                                    |
 | Navigation and groups      | Leaves hidden by default and revealed by search or Show leaf nodes. Adding a child keeps the parent ID. Overlapping sibling groups dim others by default. Hide masks without moving nodes. Spatial lanes are deferred.                                                    |
 | Sources                    | File or `path#L10-L25`, syntax colors and original line numbers. Before/after diff and explicit Save source file. A returned range updates the current draft only if the object and original reference still match. Notice shows the range and whether the draft updated. |
-| Proposals                  | Apply stays beside the reviewed proposal. Save remains explicit in the header. [Comparison contract](canvas-proposal-comparison.md)                                                                                                                                       |
+| Proposals                  | Apply stays beside the reviewed proposal. Save remains explicit in the header. [Comparison contract](#proposal-comparison)                                                                                                                                                |
 
 ## Minimal action controls
 
 - **Icons** · Conventional, consistent 14–16 px strokes with targets ≥28 px, accessible names, hover tooltips and visible keyboard focus. Label unfamiliar or consequential actions.
 - **Connection actions** · Copy, refresh and log export beside the disclosure title. Report copy success only when confirmed. Provide selectable text if blocked.
 - **Visual emphasis** · Use spacing and type hierarchy. Keep branding, module numbering and repeated network labels out of work surfaces.
+
+## Proposal comparison
+
+**Review changes** opens one read-only dialog for MCP proposals and discussion replies. Before, Changes and After share one change list and one map. Apply remains outside the dialog.
+
+| Contract        | Acceptance                                                                                                                                                                                                                                                                    |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Basis           | Before uses the captured document. Stale proposals remain inspectable with Apply disabled. Close restores trigger focus. Review preserves draft selection, navigation and history.                                                                                            |
+| Identity        | Compare stable identities across nested nodes, original connections, annotations, groups, type definitions and title. Overview links preserve original relationship IDs.                                                                                                      |
+| Changes         | Show exact values and scope for meaning, structure, evidence and position changes. Mark missing entities and scopes. For removals, show the baseline.                                                                                                                         |
+| Ordering        | Reordering entities, sources or members produces no display change. Field-definition order can affect presentation. Exact-basis conflicts are checked separately.                                                                                                             |
+| Layout          | Show one valid snapshot at a time, with authored positions and readable pan and zoom. Narrow views stack the list and map with the same controls.                                                                                                                             |
+| Captured intent | Preserve the originating question and frozen comments with target and revision. Raw JSON provides detail. Map notes and comment resolution have separate owners.                                                                                                              |
+| Labels          | Show inline labels where they clear cards and other labels. Clip or ellipsize wide text. Full names remain available in accessible link controls and inspection. Screen-scale hover stays inside the pane and closes on selection. Dense labels appear on selection or focus. |
+
+- **Evidence limit** · Identity changes appear as additions and removals. Runtime impact needs source evidence. [Canvas verification](../README.md#canvas-verification)
 
 ## Repository selection
 
@@ -71,7 +87,6 @@
 | Shared proposal review                          | Captured-basis comparison, proposal-bound migration consent and draft-only Apply across MCP and discussion replies |
 | [Architecture contract](canvas-architecture.md) | Map semantics, editing safety and agent controls                                                                   |
 | [MCP integration](mcp-apps.md)                  | Host connection, transport and diagnostics                                                                         |
-| [Canvas verification](canvas-verification.md)   | Review and acceptance checks                                                                                       |
 
 ## Interaction inspection
 

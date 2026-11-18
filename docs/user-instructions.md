@@ -10,7 +10,7 @@
 
 - **Review standard** · One owner per rule, a concrete failure the rule prevents, and meaningful exceptions or examples.
 - **Language** · [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf)
-- **Attribution** · [Review outcomes](reviews/README.md)
+- **Attribution** · [Upstream registry](../.codex/skills/maintain-repo-kit/references/upstreams.md)
 
 ## Sync
 

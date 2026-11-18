@@ -36,6 +36,7 @@ codex plugin marketplace add "$HOME"
 ```
 
 - **Outcome** · One entry merged into `~/.agents/plugins/marketplace.json`. Setup prints the exact plugin identity in the existing catalog.
+- **Activation** · Open a fresh chat. Refresh or restart Codex if it still shows the old catalog. Retire any old direct `mcp_servers.repo_canvas` registration after verifying the packaged plugin.
 
 ### Repository-scoped
 
@@ -44,10 +45,10 @@ npm install --save-dev /absolute/repo-kit-workbench-VERSION.tgz --ignore-scripts
 npx --no-install repo-workbench setup --scope repo
 ```
 
-- **Outcome** · The trusted repo selects its own version through `.agents/plugins/marketplace.json` and `.codex/config.toml`. Other Workbench identities are disabled for that repo only. Existing user configuration and unrelated entries stay intact.
+- **Configuration** · Setup writes `.agents/plugins/marketplace.json` and `.codex/config.toml` to enable the repo's identity and disable other Workbench identities for that repo. Existing user configuration and unrelated entries stay intact.
 - **Guardrails** · Setup rejects catalog-name collisions, unsupported or invalid TOML, symlinked config paths and concurrent edits. Changed files are backed up at the printed private path. Each file is replaced atomically. Rerunning setup recovers interruptions and reconciles newly added user versions.
 - **Shareable setup** · Track the catalog, project config and npm lockfile. For repos without a root npm manifest, install to `--prefix .cache/repo-workbench-runtime` and invoke that CLI with `setup --scope repo --repo /absolute/repo`.
-- **Activation** · Use a fresh chat in the trusted repository. Refresh or restart Codex if its catalog is stale. Retire an old direct `mcp_servers.repo_canvas` registration after verifying the packaged plugin. Repo-only desktop activation remains an open migration check.
+- **Activation** · Use the user-wide install for routine use. Repo-scoped catalog discovery is verified. Desktop activation remains open in repo-kit's `docs/backlog.md`.
 - **Distribution** · Local tarball today. A registry release can use the same package with marketplace `source: "npm"`. [Plugin packaging](https://developers.openai.com/plugins/build/plugins)
 
 ## Repository identity and storage
@@ -84,5 +85,12 @@ npx --no-install repo-workbench setup --scope repo
 | `REPO_WORKBENCH_CODEX_BIN=/absolute/path/to/codex node --test tests/codex.test.ts` | Opt-in native configuration precedence, catalog isolation and rediscovery. Disposable config and no model turn.                     |
 
 - **Source** · TypeScript, TSX, CSS and ESLint configuration. `prepack` rebuilds ignored `dist/`.
-- **Desktop evidence** · Repo-kit's `docs/migrations/repo-workbench.md` tracks acceptance after installation and restart.
 - **Provenance** · Extracted from Card Workshop `2db3b0d` (2026-10-20 review). Target repositories own maps, cases, private logs, retained evidence and policy.
+
+### Canvas verification
+
+- **Main journey** · Exercise source preview and edit, [proposal review](docs/canvas-design.md#proposal-comparison), stale edits, keyboard menus, export/import, Undo, Reload and panel close/reopen. Run the repository gate and Canvas browser suite.
+- **Visual comparisons** · Use matched before/after captures at 1440×1000 desktop, 740×950 compact host and 390×844 mobile. Use the same saved map, root selection and 80% zoom. Retain full screenshots, annotate report crops only and label simulated hosts.
+- **Accessibility** · Normal text contrast ≥4.5:1. Meaningful focus/control contrast ≥3:1. Check reduced motion and affected host and standalone themes. Existing comparison evidence covers dark close-button contrast and narrow light layout. App-wide claims need broader evidence.
+- **Desktop release smoke test** · After refreshing the updated plugin, open a disposable Canvas in a fresh chat and send a question to its owning chat. Apply the returned proposal and verify that Save writes the intended map. Leave a second edit unsaved, reload, and verify draft recovery in the same repository.
+- **Evidence** · Record actual Codex acceptance separately from protocol and simulated-host results.

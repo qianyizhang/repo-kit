@@ -6,8 +6,8 @@ as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 
 ## Benchmark evidence review — 2026-11-06
 
-- Reviewed `cursor/plugins/pstack` at
-  `c742dd61706fbacc1b95f1a20b7b988cf096ce6c` against `d1453c11`.
+- Reviewed [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/c742dd61706fbacc1b95f1a20b7b988cf096ce6c/pstack)
+  (MIT) against `d1453c11`.
   **adapt:** the new decision/noise-floor rule from `principle-explain-the-number`,
   with existing completed-work, output/error and repeated-run checks from
   `benchmark-checklist`, into the [delivery guide](../../../../user/practices/github.md#final-verification).
@@ -23,17 +23,31 @@ as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
   design briefs already exist; no observed context-contamination failure justified
   replacing conditional delegation or refreshing the adapted bundle. The pin and
   local decision, write-scope and host adaptations remain unchanged.
-- [Review outcomes](../../../../docs/reviews/README.md#guidance-outcomes-and-attribution)
-  retain attribution, representative scenarios and validation limits.
+- The scenario review at kit `3292915` covered noisy, incorrect, repeatable,
+  ballpark and docs-only cases. Agent performance remains unmeasured.
 
 ## Impeccable — 2026-10-29
 
-- Source: `pbakaus/impeccable` at `5adaee704634e9031ec8943721c4ffa1a3c22221`
-  (Paul Bakaus, Apache-2.0, skill 4.8.0).
-- **adapt:** two concepts into the existing [UI/UX guide](../../../../user/practices/ui-ux.md).
-  [Review outcomes](../../../../docs/reviews/README.md#guidance-outcomes-and-attribution)
-  retain the scope, local evidence and limits. The detector remains optional;
-  no upstream skill or runtime installation was promoted.
+- Source · [Paul Bakaus's Impeccable 4.8.0](https://github.com/pbakaus/impeccable/tree/5adaee704634e9031ec8943721c4ffa1a3c22221) (Apache-2.0).
+- **adapt:** surface purpose and the scope of polish versus redesign into the
+  [UI/UX guide](../../../../user/practices/ui-ux.md). The optional detector found
+  a rendered placeholder contrast issue in Workbench. A source-only probe missed
+  inline TSX defects and unnamed controls. Quality and productivity remain unmeasured.
+
+## Interfaces — 2026-10-26
+
+- Source · [Jakub Krehel's Interfaces skills 1.17.0](https://github.com/jakubkrehel/skills/tree/592aedc44d7d5b3e29740984252902f3e5402a1c) (MIT).
+- **adapt** · Hover and focus, rendered contrast, field errors and reflow checks in
+  the [UI/UX guide](../../../../user/practices/ui-ux.md). Synthetic Workbench trials
+  reproduced tooltip dismissal and control-boundary contrast defects. The Saul
+  field-error candidate remains unverified.
+
+## Archify — 2026-10-23
+
+- Source · [tt-a1i/archify](https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083) (MIT).
+- **adapt** · Stable diagnostics and readiness checks for [UI reviews](../../../../skills/ui-discussion/references/review-surface.md).
+  Separate meaning and geometry in read-only proposal comparisons with frozen
+  feedback and explicit coverage limits. [Canvas authoring](../../../../plugins/repo-workbench/docs/canvas-authoring.md)
 
 ## Personal practice review — 2026-10-22
 
@@ -44,8 +58,8 @@ as `adopt`, `adapt`, `watch`, `reject`, or `already-covered`.
 - `mattpocock/skills` at `5beb35b040e3de97e54fa9e386d7e42d15c295c2`:
   **already-covered**; all 18 files in the six selected directories match the
   existing pinned snapshot. No refresh or additional skills were installed.
-- Review depth, concrete TypeScript counterexamples and primary platform sources
-  are recorded in the [review summary](../../../../docs/reviews/README.md).
+- Local sources reviewed for the practice synthesis · TB3 `8044b9ac`, game `f3e353d`,
+  Saul `1c1645f` and repo-kit `e994319`. Agent compliance remains unmeasured.
   Future additions follow [user instruction maintenance](../../../../docs/user-instructions.md).
 
 ## Shared suite adoption — 2026-10-14

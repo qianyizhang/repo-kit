@@ -31,7 +31,7 @@
 | Multiple selection     | Explicit Select several and modifier-click. Side chat includes all selected IDs and names. Preserve native gestures and keyboard focus.                                                         |
 | Snapshot               | Timestamp/freshness, selected IDs, scope, viewport, panels, dirty/conflict state, visible nodes and command receipts.                                                                           |
 | View command           | Exact-revision, original-scope command queues until acknowledged. Verify through the next snapshot. Acknowledgment retries avoid replay. View commands never save.                              |
-| Proposal               | Compare with captured document before Apply. Save requires a separate user action. [Proposal comparison](canvas-proposal-comparison.md)                                                         |
+| Proposal               | Compare with captured document before Apply. Save requires a separate user action. [Proposal comparison](canvas-design.md#proposal-comparison)                                                  |
 | Evidence               | Browser tools own DOM and screenshots, including transient dialogs. The Canvas SDK exposes semantic commands only.                                                                              |
 
 - **Deferred** · Named multi-view maps, lasso selection and freeform highlights. Add drawing primitives only for evidenced workflows.

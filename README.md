@@ -10,7 +10,7 @@
 - **Installed bundles** · [Version and integrity status](docs/installation.md)
 - **Issue receipts** · [Read-only queue and readiness checks](docs/issue-queue.md)
 - **Maintenance** · [Repository rules](AGENTS.md) · [Ownership and decisions](docs/models.md) · [GitHub delivery](user/practices/github.md)
-- **Evidence** · [Artifact rules](user/practices/artifacts.md) · [Review outcomes](docs/reviews/README.md) · [Deferred audit work](docs/fixes.md)
+- **Evidence** · [Artifact rules](user/practices/artifacts.md) · [Backlog](docs/backlog.md)
 
 ## Apply or update
 

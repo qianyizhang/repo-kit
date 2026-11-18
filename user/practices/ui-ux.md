@@ -43,5 +43,3 @@ DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/mo
 | Visual and access verdict | Exercise the actual flow, whole screen and neighbors. Capture meaningful visual change. Assess visual quality and accessibility on the rendered flow. |
 
 [WCAG](https://www.w3.org/TR/WCAG22/) · [WAI evaluation](https://www.w3.org/WAI/test-evaluate/) · [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/)
-
-- **Provenance** · Repo-kit's `docs/reviews/README.md`.

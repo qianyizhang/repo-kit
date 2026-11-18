@@ -35,4 +35,4 @@
 
 - **Interaction** · Verify a representative encounter before extending its pattern. Then check promised effects, route returns, reload, retry, keyboard and narrow layout. Inspect terminology, input/result visibility and map continuity.
 - **Learning** · Observe the reader choosing a next action, identifying change and invariants, explaining the relationship by words or pointing, applying it to a nearby case and returning after a detour. Record assistance and confusion. Let the reader stop.
-- **Verdicts** · Report numerical, visual and learning evidence separately. Clicks, visits, completion and elapsed time alone cannot establish comprehension. Treat a new domain as a transfer trial. DCC implementation evidence and learning limits live in repo-kit's `docs/reviews/README.md`.
+- **Verdicts** · Report numerical, visual and learning evidence separately. Clicks, visits, completion and elapsed time alone cannot establish comprehension. Treat a new domain as a transfer trial.

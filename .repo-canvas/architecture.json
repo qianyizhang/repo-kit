@@ -461,7 +461,7 @@
         "kind": "node",
         "id": "plugins"
       },
-      "text": "Implementation and documented behavior are source-backed; this architecture-authoring pass did not reinstall tools or run host/browser acceptance. Package/config discovery does not prove desktop activation. Native-host and restart-dependent acceptance limits are tracked in docs/migrations/repo-workbench.md; this map does not certify them.",
+      "text": "This map records source-backed behavior. Repo-scoped desktop activation remains open in docs/backlog.md. The Workbench README owns desktop release verification.",
       "author": "agent",
       "severity": "risk"
     },

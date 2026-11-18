@@ -29,7 +29,7 @@
 
 ## Check the proposed change
 
-- **Review outcome** · Preserved intent, accurate source claims, readable relationships and expected changes against the captured basis. [Review changes](canvas-proposal-comparison.md)
+- **Review outcome** · Preserved intent, accurate source claims, readable relationships and expected changes against the captured basis. [Review changes](canvas-design.md#proposal-comparison)
 - **Write boundary** · Apply changes the draft. Save is explicit. Comparison leaves comments open. Settled decisions belong in the repository's existing record.
 - **Evidence limit** · Schema validity proves structure. Authored reachability and diagram deltas alone cannot establish runtime impact, refactor correctness or merge safety.
-- **Attribution** · Archify `25cf37080fc8b1dbe758a4efc3935b55f3327083`, `references/repository-authoring.md`, `references/authoring-defaults.md` and `delta/architecture-delta.mjs`. Repo-kit's review record links the adopted scope and source.
+- **Attribution** · [Archify at `25cf370`](https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083), `references/repository-authoring.md`, `references/authoring-defaults.md` and `delta/architecture-delta.mjs`.
