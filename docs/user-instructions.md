@@ -2,52 +2,36 @@
 
 ## Sources
 
-| Source | Installed path under `CODEX_HOME` |
-| --- | --- |
-| [Personal core](../user/AGENTS.md) | `AGENTS.md` |
-| [Practice guides](../user/practices/) | `practices/<name>.md` |
+| Source | Installed under `CODEX_HOME` | Owns |
+| --- | --- | --- |
+| [Personal core](../user/AGENTS.md) | `AGENTS.md` | Cross-project agreements and routing |
+| [Practice guides](../user/practices/) | `practices/<name>.md` | Portable judgment |
+| Repository | Local `AGENTS.md`, code, config, tests | Local meaning and executable constraints |
 
-Keep one source per rule. Put mechanical constraints in code/config/tests,
-portable judgment in a guide, cross-project agreements in the core, and bespoke
-meaning in the repo. Skills own procedures. Delete text that changes no decision.
-
-For additions, identify the failure they prevent, merge with the owning rule,
-retain necessary exceptions, and review source/version and meaningful examples.
-Keep necessary attribution in [review notes](reviews/README.md); retire spent research bundles.
-For vocabulary choices, use [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf).
+- **Review standard** · One owner per rule, a concrete failure the rule prevents, and meaningful exceptions or examples.
+- **Language** · [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf)
+- **Attribution** · [Review outcomes](reviews/README.md)
 
 ## Sync
 
-From repo-kit with Python 3.12:
+| Command suffix for `python3.12 scripts/user_instructions.py` | Outcome |
+| --- | --- |
+| `diff` | Read-only preview of changes and conflicts |
+| `sync` | Install the reviewed bundle and record file hashes |
+| `check` | Read-only integrity verdict |
 
-```sh
-python3.12 scripts/user_instructions.py diff
-python3.12 scripts/user_instructions.py sync
-python3.12 scripts/user_instructions.py check
-```
+- **Destination** · `$CODEX_HOME` or `~/.codex`. Override with `--codex-home PATH`.
+- **Committed revision** · [Installation status and revision-aware sync](installation.md)
+- **Guardrails** · Unmanaged collisions, local edits, missing managed files, unsafe symlinks and a nonempty `AGENTS.override.md` block replacement. Unmanaged notes stay in place.
 
-`CODEX_HOME` defaults to `~/.codex`; `--codex-home PATH` selects another profile.
-`diff` and `check` are read-only. Sync copies files and records their hashes.
-Use [installation status](installation.md) to verify both user bundles against a
-committed revision or install that revision without unfinished worktree changes.
-Unmanaged collisions, local edits, missing files, symlinks and an active
-`AGENTS.override.md` block replacement. Unmanaged notes stay untouched.
+## Recovery
 
-Reconcile local edits into their source, then accept the reviewed installed hash
-with `sync --adopt FILE=SHA256` (repeatable). For retirement, verify/back up its
-bytes, release its receipt entry, sync replacement routing, then remove the
-unchanged old file. Preserve unexpected edits before proceeding.
+| Condition | Expected outcome |
+| --- | --- |
+| Local edit or unmanaged collision | Preserve intended changes in the source. Accept the reviewed installed hash with repeatable `sync --adopt FILE=SHA256`. |
+| Retired source | Verify and back up its installed bytes, release its receipt entry, sync replacement routing, then retire the verified old file. Preserve unexpected edits. |
+| Interrupted sync | Rerun sync against known old/new hashes. Unexpected bytes require reconciliation. |
+| Rollback | Restore the reviewed source and sync. Recovery copies live at `CODEX_HOME/.repo-kit-user-instruction-backups/<sha256>.md`. |
 
-Recovery copies live in `CODEX_HOME/.repo-kit-user-instruction-backups/<sha256>.md`.
-An interrupted sync records known old/new hashes; rerun sync to finish. It refuses
-unexpected edits. Replacements are individually atomic, not a whole-bundle
-transaction or a lock against concurrent writers. Roll back by restoring source
-and syncing. Restart chats whose host caches instructions.
-
-Repos keep local contracts in `AGENTS.md` and point to the installed core. Remove
-copied defaults and stale shared-skill copies during updates. From each affected
-root or nested scope, use `codex debug prompt-input` to check that a fresh run
-loads both the personal core and local instructions.
-
-Run root verification after delivery changes; use representative tasks to assess
-instruction quality. Passing structural tests does not establish agent compliance.
+- **Write boundary** · Atomic per file. Recoverable as a bundle after interruption. Concurrent writers require reconciliation.
+- **Acceptance** · A fresh `codex debug prompt-input` loads the personal core and the local contract in affected scopes. Restart cached chats as needed. Use representative tasks to assess instruction quality.

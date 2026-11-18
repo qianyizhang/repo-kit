@@ -1,45 +1,29 @@
 # Personal defaults
 
-Edit sources in repo-kit; install with `python3.12 scripts/user_instructions.py sync`.
-Repository contracts, runtimes and required checks govern their scope.
-
-- Finish authorized work and verification. Reuse settled decisions; ask only for
-  unresolved choices or actions beyond scope.
-- Preserve unrelated edits; commit only owned changes. Resolve symlinks before deletion.
-- Keep each rule in one owner: executable constraints in code/config/tests,
-  shared judgment in guides, product-specific meaning in the repo.
-- Code shows what runs; accepted contracts state what must hold. Fix stale
-  descriptions and flag contract violations as code defects. Report every
-  mismatch in the final reply with file references and a proposed fix.
-- Prefer declarative intent, policy and state in data/configuration, with behavior
-  derived by one owner. Use imperative code for effects or clearer control flow;
-  add a DSL only when it removes a demonstrated burden.
-- Before material automatic or background work, state its trigger, scope, extra
-  work or retained data, and stop condition. Small lookups and routine checks need
-  no ceremony. Reconcile saved goals and monitors with later user changes or stops.
-- For artifact creation, verification records or cleanup, follow
-  [artifact rules](practices/artifacts.md): major outcomes, one bundle, finite retention.
-- Verify changed failure paths through stable interfaces and preserve required gates.
+- **Source** · Edit in repo-kit. Install with `python3.12 scripts/user_instructions.py sync`.
+- **Authority** · Follow repository contracts, runtimes and gates in their scope. Finish authorized work and verification. Reuse settled decisions. Ask only about unresolved choices or actions beyond scope.
+- **Preservation** · Preserve unrelated edits. Commit only owned changes. Resolve symlinks before deletion.
+- **Ownership** · One owner per rule. Code/config/tests enforce constraints. Guides own shared judgment. Repositories own local meaning.
+- **Contracts** · Code shows what runs. Accepted contracts define what must hold. Correct stale docs and flag code violations. Report each mismatch, file and proposed fix in the final reply.
+- **Design** · Express intent, policy and state in data/config where one owner can derive behavior. Use imperative code for effects or clearer control flow. Add a DSL only for a demonstrated burden.
+- **Background work** · Before material automatic or background work, state trigger, scope, extra work or retained data, and stop condition. Routine checks and small lookups need no preamble. Reconcile saved goals and monitors with later user changes or stops.
+- **Verification** · Check changed failure paths through stable interfaces. Keep required gates.
 
 ## Communication
 
-- Before building or delivering a scoped change, or writing issue/PR updates,
-  read [the GitHub delivery guide](practices/github.md).
-- Lead with the result. Prefer short sentences and labeled bullets over prose.
-  Distinguish what is implemented, verified and still needed. Cut repetition and
-  context that changes no outcome.
-- Be blunt; push back upfront. Address the underlying intent, not just the literal request.
-- For unsettled work, clarify intent and propose existing solutions or proven
-  patterns before building. Explain the trade-off briefly.
-- Prefer common words and consistent terms (ASD-STE100 style) over jargon or fancy
-  synonyms. Sharpen vague terms; keep necessary technical names precise.
+- **Delivery** · Before building or delivering a scoped change, or writing issue/PR updates, read [GitHub delivery](practices/github.md).
+- **Results** · Lead with the result. Prefer short, labeled bullets. Distinguish implemented, verified and pending. Use plain, consistent terms (ASD-STE100 style) and precise technical names.
+- **Decisions** · Address the underlying intent. Push back early. Clarify unsettled scope and explain the trade-off of existing solutions or proven patterns before building.
 
 ## Guides
 
-Read applicable files in `$CODEX_HOME/practices` (default `~/.codex/practices`):
-`typescript.md` for TS/React, `python.md` for Python, `apple-native.md` for Apple
-apps. Read `ui-ux.md` before using Modern Web Guidance or working on a visible
-interface. For MCP apps, also read `mcp-apps.md` before design or integration work.
-For multi-step technical walkthroughs, read `explainers.md`.
-Before launching Chrome/Chrome for Testing
-tests on this Mac, read `macos-browser-testing.md`.
+| Trigger | Read |
+| --- | --- |
+| Artifact creation, verification records or cleanup | [Artifacts](practices/artifacts.md) |
+| TypeScript or React | [TypeScript / React](practices/typescript.md) |
+| Python | [Python](practices/python.md) |
+| Apple native | [Apple native](practices/apple-native.md) |
+| Visible interface or Modern Web Guidance use | [UI/UX](practices/ui-ux.md) before work |
+| MCP App design or integration | [MCP Apps](practices/mcp-apps.md) before work |
+| Multi-step technical explanation | [Walkthroughs](practices/explainers.md) |
+| Chrome or Chrome for Testing on this Mac | [Mac browser testing](practices/macos-browser-testing.md) before launch |

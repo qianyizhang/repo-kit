@@ -1,24 +1,10 @@
 # MCP Apps
 
-Build an MCP App with a useful standalone mode. Share domain operations,
-validation and views across both modes. The host adapter owns host-specific
-capabilities; server checks enforce authority. Keep product exceptions in the repo.
-
-- Name the app, host, conversation and server. Show the action's destination
-  and scope. Send the user's text as written; freeze any explicitly attached
-  context. Ordinary sends need no evidence lookup. Keep summary, exact reads
-  and provenance separately scoped.
-- Distinguish acknowledgment, completion and uncertain delivery. Apply and Save
-  are distinct. Preserve the draft and check delivery before an explicit retry.
-- Make the frozen request and observed result inspectable, including failures.
-  Inspection never repeats the action. Persist metadata by default; save payloads
-  only in an explicit bounded capture. Label omissions and inferred connections.
-- Report what was verified: standalone, source build, installed server or active
-  panel. A simulated chat or fresh probe cannot verify the actual Codex session.
-
-Use `mcp-app` for implementation, diagnostics and boundary tests; use
-`ui-discussion --mcp` for visual review. In the hosted iframe, test without assuming
-localhost access, storage, relative assets or History APIs. Use the host bridge,
-route external links through the host and keep view state usable without storage.
-If form submission is blocked, close dialogs with a `type="button"` control that
-calls `dialog.close()`. Check dismissal, Escape and focus return in that host.
+- **Goal** · Useful standalone and hosted modes with shared operations, validation and views. Host adapter owns host capabilities, server enforces authority, and repositories own product exceptions.
+- **Roles and scope** · Name app, host, conversation and server. Show action destination and scope.
+- **Send** · User text as written. Freeze only explicitly attached context. Scope summary, exact reads and provenance separately. Ordinary sends need no evidence lookup.
+- **Outcome** · Distinguish acknowledgment, completion and uncertain delivery. Apply and Save stay distinct. Preserve the draft and inspect delivery before deliberate retry.
+- **Inspection** · Frozen request, observed result and failure details without replay. Persist metadata by default and payloads only in explicit bounded captures. Label omissions and inference.
+- **Acceptance** · State which of standalone, source build, installed server and active panel was exercised. Verify actual Codex delivery in its owning conversation.
+- **Hosted iframe** · Use the host bridge and route external links through it. Keep views usable when localhost, storage, relative assets or History APIs are unavailable. If forms are blocked, use a `type="button"` action calling `dialog.close()`. Verify dismissal, Escape and focus return.
+- **Workflows** · `mcp-app` for implementation, diagnostics and boundary tests. `ui-discussion --mcp` for visual review.

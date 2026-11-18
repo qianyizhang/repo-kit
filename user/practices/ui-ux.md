@@ -2,97 +2,46 @@
 
 ## Before proposing or building
 
-- Run the pinned Modern Web Guidance CLI with
-  `DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/modern-web-guidance"`
-  followed by `search` or `retrieve`.
-  If the CLI is unavailable, consult official platform documentation.
-- Inspect the existing rendered product, source and design owner when available.
-  Name the user goal, visible parts and roles in plain language. Use the same names
-  in the proposal, UI and tests; a panel is not inherently a chat or an agent.
-- Set the affected surface's purpose: **operate** to complete a task, **read** to
-  understand, **persuade** to decide and act, or **experience** to engage with the
-  work itself. Let that purpose guide density, type, motion and expression; a
-  product's dashboard and landing page can have different purposes.
-- Distinguish polish from redesign before editing. **Polish** preserves the
-  current visual identity and intended behavior while fixing local defects.
-  **Redesign** may replace visual direction within the authorized scope; retain
-  product facts, core functions and platform conventions. Widen a polish task
-  into redesign only when authorized.
-- Sketch two dimensions: spatial layout (regions, facts, actions and their owners)
-  and temporal journey (cue, deliberate action, outcome and recovery). Check the
-  affected surface and its neighbors before adding controls. Scale this to the
-  change; a small edit needs no exhaustive audit or review artifact.
-- Establish principles before choosing a visual direction. Record accepted
-  terminology and decisions in the product's existing design owner; code remains
-  the source of truth for implemented behavior. Use `ui-discussion` when a full
-  shared map and review are needed.
-- In reviews, separate accessibility requirements from style heuristics. Judge
-  density, type and motion against the product's intent and demonstrated failures;
-  a different preferred value is not a defect.
+- **Web guidance** · Run the pinned CLI with `search` or `retrieve`. If unavailable, use official platform documentation.
+
+```sh
+DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/modern-web-guidance" search "<query>"
+```
+
+- **Shared terms** · Inspect the rendered product, source and design owner when available. Name the goal, visible parts and roles in plain words. Use the same names in proposal, UI and tests.
+- **Purpose** · Operate to complete a task, read to understand, persuade to decide and act, or experience to engage with the work. Set density, type, motion and expression per surface.
+- **Scope** · Polish fixes local defects within current visual identity and intended behavior. Redesign can replace the direction with authorization. Preserve product facts, core functions and platform conventions.
+- **Map** · Cover both spatial layout (regions, facts, actions, owners) and the journey (cue, action, outcome, recovery). Check neighbors before adding controls. Match review depth to the change. Use `ui-discussion` for a full map and shared review.
+- **Decision owner** · Establish principles before choosing direction. Record accepted terms and decisions in the product design owner. Code shows implemented behavior.
+- **Review** · Distinguish accessibility requirements from style heuristics. Judge density, type and motion against intent and demonstrated failures.
 
 ## Layout and disclosure
 
-- Let layout explain relationships. Remove repeated facts, unnecessary secondary
-  labels and descriptions; keep essential labels, values and units identifiable.
-- Give each selection or action one clear home; retain alternate access when it
-  serves a distinct context. Avoid competing selectors for the same choice.
-  For a journey containing several interactions,
-  show the applicable actions at each step. Compare alternate outcomes in place;
-  for long journeys, highlight the current phase without losing context.
-- In staged tools, expose controls only where they affect the current output.
-  Hide controls from other stages; disable dependent controls with a short reason.
-  Preserve their values when switching stages and put the current experiment
-  before upstream settings.
-- In interactive workbenches, keep the primary viewport, tunable controls and
-  resulting effects together in a stable frame. Bound long data/code scrolling
-  to an inspector. Give shared selections one persistent home across views;
-  a floating overlay must reserve space, preserve context and support dismissal.
-- Show enough to reveal what the user can do next. Keep short facts and inputs
-  visible; an accordion for one sentence adds work. Reveal substantial details
-  after deliberate interest. Use hover/focus previews for brief supplemental
-  context, with a touch-accessible equivalent; keep essential instructions visible
-  and long payloads readable/selectable in an inspector.
-- Choose a familiar visual form for the relationship: for exchanges over time,
-  use actor lanes and ordered events. Avoid unrelated cards when the question is
-  how parts connect. Name each destination and distinguish observation from inference.
-- Give diagnostics a concrete purpose and scope, such as investigating a failed
-  run. Reveal unrelated housekeeping only when relevant or requested.
-- Prefer familiar symbols (ℹ, ↻) over text when recognizable. Give controls
-  accessible names; use visible labels when the action would otherwise be ambiguous.
-- Use short action labels: “Save”, “Retry”, “Copy”. Prefer one sentence to a paragraph;
-  keep instructions only where the interface cannot explain the action.
+| Goal | Outcome |
+| --- | --- |
+| Clear ownership | Layout shows relationships. One clear home per action, selection and fact. Alternate access earns its place in a distinct context. Essential labels, values and units remain visible. |
+| Continuous journey | Actions fit the current phase. Compare outcomes in place. Highlight the current phase of long journeys with context still visible. |
+| Useful stage controls | Show controls that affect this stage. Explain dependency-disabled controls briefly. Keep values across stages and prioritize the current experiment over upstream settings. |
+| Stable workbench | Primary viewport, controls and effects share a stable frame. Inspector owns long scrolling. Shared selections have one persistent home. Floating panels reserve space, preserve context and support dismissal. |
+| Progressive detail | Visible short facts, inputs and next actions. Disclose substantial detail on demand. Hover/focus supplements essential content and has a touch equivalent. Long payloads remain readable and selectable in the inspector. |
+| Meaningful relationships | Familiar form fits the question. Actor lanes and ordered events show exchanges over time. Name destinations and label observations and inference. |
+| Scoped diagnostics | Show evidence relevant to the failure, action or request. Disclose housekeeping when useful. |
+| Clear controls | Short action labels such as “Save”, “Retry”, “Copy”. Familiar symbols with accessible names. Visible labels for ambiguous actions. Keep instructions where the interface needs them. |
 
 ## Verify the journey
 
-- Before implementation, list each primary action's real route and expected
-  outcomes, including failure, unavailable capability and uncertain completion.
-  Verify the wiring through that route; a clickable prototype establishes only
-  simulated behavior. Evidence refresh must not repeat the underlying action.
-- Preserve drafts, navigation context and truthful loading/error/recovery states.
-  Test realistic content and affected empty, long, loading, error and dirty states.
-- Check keyboard/focus, contrast, non-color cues, target size, overflow, text scaling,
-  themes and reduced motion where affected. Respect platform input conventions.
-- For hover/focus content, verify pointer travel into it and dismissal without
-  moving focus when it obscures other content. Check the real open/close path.
-- Measure text and necessary control cues against their rendered adjacent colors.
-  Distinguish control boundaries from decorative dividers; one failing role does
-  not justify changing every use of a shared color.
-- Associate field-specific errors with their inputs and make correction reachable.
-  Keep form-level failures and conflict/uncertain-save recovery distinct; a
-  validation pattern must not enable unsafe repeat actions.
-- Check narrow reflow and text enlargement separately. Necessary two-dimensional
-  content, such as a data table, may scroll within its region; verify readable
-  cells, access to full values and a visible cue to hidden content.
-- For each stage, change every enabled control and verify an observable effect
-  in its viewport or live data. Check dependency changes, retained selections,
-  and viewport stability during navigation, inspector scrolling and text scaling.
-  Clickability and horizontal reflow alone do not establish a usable experiment.
-- Exercise the actual flow and inspect the whole screen and sibling surfaces.
-  Capture meaningful visual changes; automated checks alone do not establish
-  accessibility or visual quality.
+| Evidence | Acceptance |
+| --- | --- |
+| Real route | Before implementation, identify each primary action's route and expected success, failure, unavailable capability and uncertain completion. Verify wiring through that route. Refresh evidence without repeating effects. |
+| Real states | Realistic empty, long, loading, error and dirty states. Preserve drafts, navigation context and truthful recovery. |
+| Accessibility | Keyboard/focus, rendered contrast, non-color cues, targets, overflow, text scaling, themes and reduced motion where affected. Respect platform input conventions. |
+| Hover/focus | Verify real opening, pointer travel into supplemental content and dismissal without moving focus when it obscures content. |
+| Contrast | Measure text and necessary control cues against rendered adjacent colors. Distinguish functional boundaries from decorative dividers. Fix the affected role. |
+| Field and form errors | Associate field errors with their inputs and make correction reachable. Form failures, conflicts and uncertain saves have distinct recovery. Prevent unsafe repeats. |
+| Narrow and enlarged views | Check reflow and text enlargement separately. Bound necessary two-dimensional scrolling to its region. Verify readable cells, full values and cues to hidden content. |
+| Staged tools | Every enabled control changes its viewport or live data observably. Check dependencies, retained selection and a stable viewport across navigation, inspector scroll and text scaling. |
+| Visual and access verdict | Exercise the actual flow, whole screen and neighbors. Capture meaningful visual change. Assess visual quality and accessibility on the rendered flow. |
 
-References: [WCAG](https://www.w3.org/TR/WCAG22/),
-[WAI evaluation](https://www.w3.org/WAI/test-evaluate/),
-[Apple HIG](https://developer.apple.com/design/human-interface-guidelines/).
+[WCAG](https://www.w3.org/TR/WCAG22/) · [WAI evaluation](https://www.w3.org/WAI/test-evaluate/) · [Apple HIG](https://developer.apple.com/design/human-interface-guidelines/)
 
-User-feedback provenance: `docs/reviews/README.md` in repo-kit.
+- **Provenance** · Repo-kit's `docs/reviews/README.md`.

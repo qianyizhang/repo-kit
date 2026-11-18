@@ -1,122 +1,56 @@
 # Shared skill suite
 
-`skills/` is the canonical shared bundle. [skills-lock.json](../skills-lock.json)
-owns the local selection and pins delivered hashes. [scripts/skills.py](../scripts/skills.py)
-defines the Matt Pocock import set; the lock records its upstream baseline and
-entrypoint adaptations. Each revision carries its own local selection. Preserve
-other imported skills' source revisions and licenses alongside their local copies.
-Skills install once per user; repository-specific skills and contracts stay local.
-Workbench ships its own [file-map skill](../plugins/repo-workbench/skills/repo-file-map/SKILL.md)
-and runtime; it is not installed by this shared-skill sync. Cleanup implementation
-uses `simplify-repository`.
+| Source | Owns |
+| --- | --- |
+| [`skills/`](../skills/) | Shared skills and colocated source attribution and licenses |
+| [`skills-lock.json`](../skills-lock.json) | Local selection, file hashes, external baseline and declared entrypoint adaptations |
+| [`scripts/skills.py`](../scripts/skills.py) | Matt Pocock import set, source validation and guarded delivery |
 
-Copier delivers `template/` governance separately. Local discovery here contains
-only `maintain-repo-kit`.
+- **Delivery** · One installation per user. Repository skills and bindings stay local. Repo Workbench delivers its own plugin skills.
+- **Discovery here** · `maintain-repo-kit`.
 
 ## Install and check
 
-From repo-kit with Python 3.12:
+| Command suffix for `python3.12 scripts/skills.py` | Outcome |
+| --- | --- |
+| `check --source-only` | Source matches the lock |
+| `diff` | Read-only preview of installed changes and conflicts |
+| `sync` | Install managed skills and license, record the applied lock |
+| `check` | Verify every file in the managed installation |
 
-```sh
-python3.12 scripts/skills.py check --source-only
-python3.12 scripts/skills.py diff
-python3.12 scripts/skills.py sync
-python3.12 scripts/skills.py check
-```
-
-The default destination is `~/.agents/skills`; `--installed-root PATH` selects
-another discovery location or a disposable verification directory. Parent
-discovery symlinks are respected. Sync changes only managed skills and their
-license; its generated receipt records the applied lock.
-Use [installation status](installation.md) for source-commit provenance and one
-check of both user bundles against a committed revision.
-
-In a Git checkout, source checks and lock generation read tracked files and
-nonignored additions under `skills/`. The `lock` command requires a checkout.
-Committed snapshots and exported bundles must match the lock in full.
-Installed checks inspect every file in managed skills.
-The source lock must match. Sync refuses unmanaged collisions (including empty
-directories), edited or missing installed files, and symlinks inside managed
-skills. Additions require absent destinations and an unchanged prior installation.
-Preserve and reconcile local edits or retired skills before retrying.
+- **Destination** · `~/.agents/skills`. Override with `--installed-root PATH`. Parent discovery symlinks resolve to their targets.
+- **Guardrails** · Unmanaged collisions, including empty directories, unexpected edits, missing files and internal symlinks stop sync. New skills require absent destinations and an intact prior installation.
+- **Committed revision** · [Installation status and revision-aware sync](installation.md)
 
 ## Recovery
 
-Previous managed files and their receipt remain under `.repo-kit-skill-backups/`
-beside the resolved destination, outside skill discovery. An interrupted update
-leaves a record: `check` and `diff` report it without writing. The next explicit
-`sync` against the same skill selection verifies old/new hashes and backups,
-restores the previous installation, then retries. A completed update only needs
-its leftover record removed.
-Unexpected edits or changed backups stop recovery before paths move; preserve
-and reconcile them manually. This handles process interruption, not power loss.
+| Condition | Expected outcome |
+| --- | --- |
+| Interrupted update | `diff` and `check` report pending recovery. Explicit sync of the same selection verifies known hashes, restores the previous state and retries. Completed updates clear the leftover record. |
+| Unexpected bytes | Reconcile edits or changed backups before retrying. Recovery copies and receipts live in `.repo-kit-skill-backups/` beside the resolved destination. |
+| Rollback | Restore the reviewed source and lock, reconcile independent installed edits, then sync after reviewing the diff. |
 
-To roll back, restore a reviewed bundle and lock in repo-kit, review the diff,
-then sync. Restore independently edited installations from their recovery copies
-before applying another lock.
+- **Recovery scope** · Process interruption.
 
 ## Review an update
 
-For the Matt Pocock upstream, inspect selected skills, dependencies and invocation
-policy in a clean, disposable checkout. Use its exact reviewed commit:
+| Change | Acceptance |
+| --- | --- |
+| Upstream refresh | Clean disposable checkout at the exact reviewed commit. Refresh reads committed blobs and preserves only adaptations whose upstream bases match. Changed bases or unmanaged destination files stop writes. |
+| Local skill or adaptation | Updated selection in the lock, regenerated hashes with `lock`, and untouched upstream support files, metadata and licenses. |
+| Source verification | `check --source-only`, skill tests and a representative task. Git checks and locking include tracked and nonignored skill additions. Exported and committed bundles must match the full lock. |
+| Delivery | Reviewed diff, explicit sync and installed integrity check. |
 
 ```sh
 python3.12 scripts/skills.py refresh --upstream-checkout /path/to/clean/checkout --revision FULL_COMMIT
-git diff -- skills skills-lock.json
-python3.12 scripts/skills.py check --source-only
+python3.12 scripts/skills.py lock
 python3.12 -m unittest discover -s tests -p 'test_skills.py' -v
 ```
 
-Refresh reads committed blobs, excludes ignored generated files, and neither
-fetches nor installs. If an upstream-owned destination contains an unmanaged
-file, refresh stops before replacing any skill. It preserves declared adaptations only against unchanged
-upstream baselines. A changed or removed adapted file stops refresh before
-writes; reconcile the adaptation and exact provenance explicitly.
-
-For reviewed local-skill or adaptation edits, run
-`python3.12 scripts/skills.py lock`. For a new local skill, add its name to the
-lock's `skills` list first; `lock` generates the file hashes. Only declared
-entrypoint adaptations may differ; upstream supporting files, metadata and
-license stay unchanged. Use the current script: schema 2 makes older
-check/sync/lock commands reject adapted bundles, while the current script still
-reads legacy unadapted locks. Installation receipts and recovery remain schema 1.
-
-Review upstream monthly or when friction appears; no background updater is
-installed. Test changed instructions on a representative task as well as through
-structural checks. Finish with `diff`, explicit `sync`, then `check` as above.
-Git owns local change history.
+- **Compatibility** · Use the current script for schema 2 adapted bundles. It also reads legacy unadapted locks. Installation receipts and recovery records use schema 1.
+- **Cadence** · Monthly or when friction appears. Refresh is local and source-only.
 
 ## Invocation and repository bindings
 
-`retro` and `improve-codebase-architecture` require explicit invocation. Other
-skills may be selected for relevant tasks. [Reconcile main](../skills/reconcile-main/SKILL.md)
-can handle local cleanup; it asks before expanding a local request to remote
-reconciliation. Action authorization still applies. Retain upstream metadata;
-record any required host exception in the lock.
-
-Repository guidance maps names such as `GLOSSARY.md`, `docs/adr/` and
-`CODING_STANDARDS.md` to existing owners. Local contracts, tests, language and
-accepted decisions govern that binding. Skills add no write authority and need
-no copied local rules, mandatory ledger or repeated confirmation.
-
-## Selection and provenance
-
-These records explain local additions:
-
-- [Shared delivery decision](models.md#decisions): the initial
-  2026-10-14 migration retired generic wrappers, `glossary-drill` and the maintained
-  `explain-layman` runtime/validator. Older Copier consumers still need separate
-  baseline reconciliation. Specialized consumer skills remain locally owned.
-- [Review outcomes](reviews/README.md) condense the finish-work trial, UI review
-  corrections and MCP construction rationale. Their skills own current procedures.
-- [Simplify-repository](../skills/simplify-repository/SKILL.md): imported on
-  2026-10-19 from the [user-owned account skill](https://chatgpt.com/skills?skill_id=6ad5c4766910819191f51bfe0187a2e6),
-  version 2. The local workflow now uses scope-driven discovery and delegates final
-  closeout to `finish-work`; upstream references, host metadata and icon remain.
-- [Socratic tutor](../skills/socratic-tutor/SKILL.md): adapts Jane Street's tutor
-  for requested practice and mastery. It fills a different role from `grilling`,
-  which resolves decisions, and `show-me`, which explains a mechanism. The skill
-  carries its source revision and MIT license and is maintained locally.
-
-Temporary migration recovery is retained only for a named unresolved obligation;
-remove it after resolution under the [artifact rules](../user/practices/artifacts.md).
+- **Explicit invocation** · `retro` and `improve-codebase-architecture`. Other skills apply by task.
+- **Authority** · Local contracts, language, tests and decisions govern repository bindings. Record host-specific invocation exceptions in the lock. [Reconcile main](../skills/reconcile-main/SKILL.md) keeps local and remote authority separate.

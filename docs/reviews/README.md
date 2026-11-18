@@ -1,133 +1,27 @@
 # Review outcomes
 
-These entries record historical decisions, results and limits. Current source
-and contracts own behavior and verification. Completed maps, captures, test logs
-and per-file hash receipts have been removed.
-
 ## Product outcomes
 
-- **Canvas:** the 21 October review established reading/editing modes, one owner
-  per fact, contextual notes and focus on the current question. Accepted meaning
-  lives in [Canvas design](../../plugins/repo-workbench/docs/canvas-design.md).
-- **Example MCP App:** `43a08a4` implemented one scenario navigation, four actor
-  lanes, ordered observed events and one observation store for inspection/export.
-  [Design](../../plugins/example-mcp-app/design.md) and
-  [verification](../../plugins/example-mcp-app/README.md#verification) own the result.
-  SDK-fixture checks did not establish native conversation delivery. Native v0.3
-  acceptance was later recorded on 23 October at build `e0dbe92d7284`; it does
-  not cover the later observability build.
-- **Workbench ownership:** the 23–24 October review led to separate user/background
-  retention, caller-scoped contexts, crash-recoverable discussion transactions,
-  nested trace validation, shared host lifetimes, ReportSession and Example CI.
-  [Runtime contract](../../plugins/mcp-app-runtime/README.md) owns immutable
-  identity/policy, command-driven state and new lifetimes on reconnect; product
-  owners recover drafts. Source/package/browser checks were reported passing.
-  [Migration acceptance](../migrations/repo-workbench.md) retains unfinished native
-  checks; installed cross-chat process sharing was not established.
-- **Open review candidates:** recheck usage-to-trace scroll restoration, result
-  schemas for tool catalogs, cross-process diagnostic correlation and full
-  keyboard/accessibility coverage before claiming them complete. Measure cold
-  panel load, idle traffic and large-history memory before adding budgets or
-  splitting bundles. These are follow-ups, not new implementation authorization.
+| Review | Outcome | Evidence and limits |
+| --- | --- | --- |
+| Canvas · 21 October | Separate reading and editing, one owner per fact, contextual notes, focus on the current question. [Canvas design](../../plugins/repo-workbench/docs/canvas-design.md) | Accepted design. [Pending desktop checks](../migrations/repo-workbench.md) |
+| Example MCP App | `43a08a4` delivered one scenario navigation, four actor lanes, ordered observations and one store for inspection/export. [Design](../../plugins/example-mcp-app/design.md) | SDK fixtures cover bridge behavior. Native v0.3 acceptance on 23 October applies to build `e0dbe92d7284`; later observability build pending. [Verification](../../plugins/example-mcp-app/README.md#verification) |
+| Workbench ownership · 23–24 October | Separate user/background retention, caller-scoped contexts, recoverable discussion writes, nested trace validation, shared host lifetimes, ReportSession and Example CI. [Runtime contract](../../plugins/mcp-app-runtime/README.md) | Reported source/package/browser passes. Installed cross-chat process sharing pending. |
+| Open candidates | Usage-to-trace scroll restoration, tool catalog result schemas, cross-process correlation, keyboard/accessibility coverage. | Measure cold panel load, idle traffic and large-history memory before setting budgets or splitting bundles. |
 
 ## Guidance outcomes and attribution
 
-- **Connected learning trial, 11 November:** user feedback favored a visible whole,
-  one meaningful action, concrete reinforcement and reversible routes. Earlier
-  attempts exposed too many controls, isolated examples and text-only recaps.
-  The isolated DCC candidate had four routes and 22 encounters. Its 48 behavior
-  tests and bounded browser/numerical checks covered paired samples, explicit
-  clocks, nested returns, narrow views and failure recovery. A dynamic route
-  fixture exercised the shared session without engine edits. The
-  [walkthrough practice](../../user/practices/explainers.md) owns the concise rules;
-  Bio OS was identified as a transfer trial. These results establish
-  implementation behavior and user preference. Comprehension remains unmeasured.
-
-- **Night Passage Animation Lab, 10 November:** user feedback identified terms
-  introduced before their roles, unrelated measurements, and confusing stillness.
-  The revision followed the right knee from the Blender rig to the exported swing,
-  aligned attack contact across the game and clip clocks, then distinguished the
-  knee joint from a point on the trousers. It moved pseudocode and raw coordinates
-  behind disclosure. The [explainer practice](../../user/practices/explainers.md)
-  owns the portable guidance. The example used game source `9e8a9544af6b` and
-  sampled rig and delivery data. Same-agent browser checks verified the comparisons
-  and interactions; they did not establish reader comprehension.
-
-- **Benchmark evidence, 6 November:** adapted decision/noise-floor handling from
-  [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/c742dd61706fbacc1b95f1a20b7b988cf096ce6c/pstack)
-  (MIT), plus its existing benchmark validity checks, into the
-  [delivery guide](../../user/practices/github.md#final-verification). At kit
-  `3292915`, the guide did not explicitly require rejecting noisy results or
-  failed/skipped work. Scenario review covers noisy results,
-  incomplete/incorrect work, repeatable meaningful effects, a labeled ballpark,
-  and documentation-only work. This is guidance review, not an agent-performance
-  experiment or a new executable benchmark. Required gates, bounded checks and
-  evidence reuse remain. No skill imports, forced profiling, fixed repetition
-  quota, new evidence ledger or consumer installation were included.
-
-- **Shader Pipeline Lab, 4 November:** the initial mesh stage exposed nine enabled
-  scene controls although its mesh diagram was fixed; the page was 2,130 px tall
-  in a 900 px window. A same-agent correction added stage-scoped controls, a
-  persistent pipeline selector, and a stable viewport beside bounded inspectors.
-  Real-browser checks change each exposed control and test retained state and
-  viewport bounds. These findings informed the
-  [UI/UX guide](../../user/practices/ui-ux.md); they are not independent usability
-  evidence or an accessibility-conformance claim. Temporary review captures were
-  retired after the conclusions and regression coverage were recorded.
-
-- **Impeccable, 29 October:** adapted surface purpose and the polish/redesign
-  boundary from [Paul Bakaus's Impeccable](https://github.com/pbakaus/impeccable/tree/5adaee704634e9031ec8943721c4ffa1a3c22221)
-  (Apache-2.0, skill 4.8.0). The [UI/UX guide](../../user/practices/ui-ux.md)
-  owns the rules. A same-agent trial on Workbench usage and trace views exercised
-  task-focused refinement while retaining the existing identity; the other
-  surface purposes were reviewed as guidance. The rendered detector
-  found a placeholder contrast defect; source-only probes missed inline TSX
-  defects and unnamed controls. This trial does not establish a quality or
-  productivity advantage. Only the two guidance concepts were promoted; the
-  detector remains an optional external tool. No hooks, aesthetic bans, scoring
-  system, required context files or upstream skill files were adopted.
-
-- **Report UI, 27 October:** the Saul/EZ round established component/region/leaf,
-  peer-level and context-view terms, plus contextual inspection and guided visual
-  comparisons. The [review-surface contract](../../skills/ui-discussion/references/review-surface.md)
-  owns their definitions and rules; the template and validator own behavior and
-  gates. The report presentation was accepted; application UX decisions remain
-  open. Native captures and HTML proposals were kept distinct.
-
-- **Interfaces, 26 October:** adapted concrete hover/focus, contrast-role,
-  field-error and reflow checks from [Jakub Krehel's Interfaces skills](https://github.com/jakubkrehel/skills/tree/592aedc44d7d5b3e29740984252902f3e5402a1c)
-  (MIT, version 1.17.0) into the existing UI/UX guide. UI discussion owns evidence
-  reporting; finish-work owns change classification. Two synthetic browser trials
-  reproduced Workbench tooltip and input-boundary defects; a committed-source
-  Saul review identified an unverified field-error improvement candidate. These
-  same-agent trials do not establish a quality advantage or accessibility
-  conformance. Exact aesthetic recipes, blanket severity and a second review
-  framework were not adopted. No upstream skill files were imported.
-- **Finish-work, 14 October:** a small synthetic comparison found both the normal
-  prompt and the skill fixed the same state-reset defect. The skill made candidate
-  and regression checks more explicit; a repeat produced no edits. No general
-  quality, latency or cost advantage was measured. [The skill](../../skills/finish-work/SKILL.md)
-  owns the procedure; private session registers are no longer duplicated here.
-- **UI discussion, 22 October:** map the actual layout and name components before
-  tracing journeys. A generic prototype did not establish shared understanding.
-  Feedback from the Example sequence design informed the
-  [UI/UX](../../user/practices/ui-ux.md) and [MCP](../../user/practices/mcp-apps.md)
-  guides. [UI discussion](../../skills/ui-discussion/SKILL.md) owns review mechanics.
-- **Practice library, 22 October:** clean local sources included TB3 `8044b9ac`,
-  game `f3e353d`, Saul `1c1645f` and repo-kit `e994319`. Portable judgment was adapted
-  from [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/d1453c11d1dde9714d4c313c97d3a68432265c7f/pstack)
-  (MIT, `d1453c11`); host orchestration was not adopted. Topic guides retain primary
-  references. Matt Pocock upstream selection and license remain in
-  [the skill lock](../../skills-lock.json) and [license](../../skills/mattpocock-LICENSE).
-  This was synthesis and manual review, not proof of agent compliance.
-- **MCP practice:** source review used repo-kit `96221a6`, Astro `e100f85` and Saul
-  `feee3da`: shared operations across HTTP/MCP, frozen selections, explicit Apply
-  and Save, and no retry of uncertain effects. The independently generated starter
-  has its own behavior gates; it is not automatically synchronized with plugins.
-- **Archify, 23 October:** adapted stable diagnostics/readiness and meaning-versus-
-  geometry comparison from [tt-a1i/archify](https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083)
-  (MIT, `25cf3708`). Local models remain authoritative. Accepted one read-only
-  proposal comparison with frozen feedback and declared coverage gaps; deferred
-  extra diagram modes, motion and committed-source-only provenance. Owners are
-  [Canvas authoring](../../plugins/repo-workbench/docs/canvas-authoring.md) and
-  [review readiness](../../skills/ui-discussion/references/review-surface.md).
+| Review | Adopted outcome | Evidence and limits |
+| --- | --- | --- |
+| Connected learning · 11 November | Visible whole, one meaningful action, concrete reinforcement and reversible routes. [Walkthrough practice](../../user/practices/explainers.md) | User feedback and isolated DCC candidate (four routes, 22 encounters, 48 behavior tests). Browser/numerical checks covered paired samples, clocks, nested returns, narrow views and recovery. Dynamic route reused the session without engine edits. Inspection found details needing an inset, clipped labels and comparison context lost after selection. Bio OS transfer and comprehension unmeasured. |
+| Night Passage Animation Lab · 10 November | Follow the right knee from Blender rig to exported swing. Align attack contact across clocks. Distinguish the joint from a trouser point. Disclose pseudocode and raw coordinates on demand. [Explainer practice](../../user/practices/explainers.md) | User feedback and same-agent browser checks against game `9e8a9544af6b` and rig/delivery samples. Comprehension unmeasured. |
+| Benchmark evidence · 6 November | Require comparable completed work, reject noise as a basis for decisions, label ballpark estimates. [Delivery guide](../../user/practices/github.md#final-verification) | Adapted [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/c742dd61706fbacc1b95f1a20b7b988cf096ce6c/pstack) (MIT). Scenario review at kit `3292915` covered noisy, incorrect, repeatable, ballpark and docs-only cases. Agent performance unmeasured. |
+| Shader Pipeline Lab · 4 November | Stage-scoped controls, persistent pipeline selector and stable viewport beside bounded inspectors. [UI/UX guide](../../user/practices/ui-ux.md) | Baseline showed nine enabled controls for a fixed diagram and 2,130 px content in a 900 px window. Same-agent real-browser checks covered every exposed control, retained state and viewport bounds. Independent usability and accessibility conformance unmeasured. |
+| Impeccable · 29 October | Surface purpose and the polish/redesign boundary. Detector remains optional. [UI/UX guide](../../user/practices/ui-ux.md) | Adapted [Paul Bakaus's Impeccable 4.8.0](https://github.com/pbakaus/impeccable/tree/5adaee704634e9031ec8943721c4ffa1a3c22221) (Apache-2.0). Same-agent Workbench usage/trace trial preserved identity. Rendered detector found placeholder contrast. Source-only probe missed inline TSX defects and unnamed controls. Quality/productivity unmeasured. |
+| Report UI · 27 October | Component/region/leaf, peer level and context view. Contextual inspection and guided comparisons. [Review-surface contract](../../skills/ui-discussion/references/review-surface.md) | Saul/EZ report presentation accepted. Application UX decisions open. Native captures and HTML proposals retain separate evidence roles. |
+| Interfaces · 26 October | Hover/focus, contrast roles, field errors and reflow checks. [UI/UX guide](../../user/practices/ui-ux.md) | Adapted [Jakub Krehel's Interfaces skills 1.17.0](https://github.com/jakubkrehel/skills/tree/592aedc44d7d5b3e29740984252902f3e5402a1c) (MIT). Synthetic Workbench trials reproduced tooltip/input-boundary defects. Saul field-error candidate unverified. Quality and accessibility conformance unmeasured. |
+| Archify · 23 October | Stable diagnostics/readiness and separate comparison of meaning and geometry. Read-only proposal comparison with frozen feedback and declared coverage gaps. [Canvas authoring](../../plugins/repo-workbench/docs/canvas-authoring.md) · [Review readiness](../../skills/ui-discussion/references/review-surface.md) | Adapted [tt-a1i/archify](https://github.com/tt-a1i/archify/tree/25cf37080fc8b1dbe758a4efc3935b55f3327083) (MIT). Existing models retain authority. Extra modes, motion and committed-source-only provenance deferred. |
+| UI discussion · 22 October | Map the actual layout and name components before tracing journeys. [UI/UX](../../user/practices/ui-ux.md) · [MCP](../../user/practices/mcp-apps.md) · [UI discussion](../../skills/ui-discussion/SKILL.md) | Generic prototype failed to establish shared understanding. Example sequence feedback informed the guides. |
+| Practice library · 22 October | Portable judgment from reviewed sources. Topic guides retain primary references. | TB3 `8044b9ac`, game `f3e353d`, Saul `1c1645f`, repo-kit `e994319`, [Lauren Tan's pstack](https://github.com/cursor/plugins/tree/d1453c11d1dde9714d4c313c97d3a68432265c7f/pstack) (MIT). Manual synthesis. Host orchestration excluded. Agent compliance unmeasured. [Matt Pocock skill lock](../../skills-lock.json) · [License](../../skills/mattpocock-LICENSE) |
+| Finish-work · 14 October | Candidate and regression checks made explicit. [Skill](../../skills/finish-work/SKILL.md) | Synthetic trial. Both prompts fixed the same state-reset defect. Repeat required zero edits. General quality, latency and cost unmeasured. |
+| MCP practice | Shared HTTP/MCP operations, frozen selection, explicit Apply/Save and deliberate handling of uncertain effects. [MCP guide](../../user/practices/mcp-apps.md) | Source review of repo-kit `96221a6`, Astro `e100f85` and Saul `feee3da`. Independent generated starter has its own behavior gates. |

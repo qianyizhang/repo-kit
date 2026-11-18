@@ -1,181 +1,56 @@
 # repo-kit
 
-Personal Codex instructions, shared agent skills and a separate [Copier](https://copier.readthedocs.io/)
-governance template, plus the optional [Repo Workbench
-plugin](plugins/repo-workbench/README.md). `skills/` owns the shared skill bundle;
-`template/` owns portable governance; `plugins/` owns executable development tools. Root
-[AGENTS.md](AGENTS.md) governs maintenance here. `user/` owns the personal working
-core and on-demand [practice guides](docs/user-instructions.md#sources).
+| Product | Outcome | Owner |
+| --- | --- | --- |
+| Personal instructions | One set of Codex defaults and practice guides per user | [Instruction maintenance](docs/user-instructions.md) |
+| Shared skills | One pinned skill bundle per user | [Skill maintenance](docs/skill-suite.md) |
+| Governance template | Shared rules and checks with repository-owned bindings | [Copier delivery](#apply-or-update) |
+| Repo Workbench | Local architecture, file inventory, session review and usage tools | [Workbench](plugins/repo-workbench/README.md) |
 
-## Personal instructions
-
-Review and install the working core and TypeScript/React, Python, Apple-native
-and UI/UX guides independently of skills and repository governance:
-
-```sh
-python3.12 scripts/user_instructions.py diff
-python3.12 scripts/user_instructions.py sync
-python3.12 scripts/user_instructions.py check
-```
-
-Unmanaged existing files require reviewed adoption first. See
-[adoption, drift protection and recovery](docs/user-instructions.md).
-
-For local or cloud delivery work, including CI, releases, issues and PRs, use the
-shared [GitHub delivery guide](user/practices/github.md).
-
-The [read-only issue queue CLI](docs/issue-queue.md) inspects explicit issue
-receipts with `queue`, `status`, `next` and `check`; its fixture mode needs no
-credentials. Recommendations do not dispatch or authorize work.
-
-## Shared skills
-
-The locked bundle includes upstream-derived workflows, declared local adaptations
-and local skills. It is installed once for your user account. From this repository:
-
-```sh
-python3.12 scripts/skills.py diff
-python3.12 scripts/skills.py sync
-python3.12 scripts/skills.py check
-```
-
-See [pinning, update review, recovery and local mappings](docs/skill-suite.md).
-Shared skills are no longer copied by Copier. Project-specific skills stay local.
-
-The [core model and decisions](docs/models.md) explain how
-Candidates, Campaigns, the portable product, and consumer bindings relate.
-
-## Repo Workbench
-
-Repo Canvas, recorded-session review, trace reading and usage analytics are delivered as
-one standalone npm-compatible plugin. Install at user or repository scope; saved
-architecture stays in the target repository. Plugin builds and dependencies are isolated
-from shared skills and Copier. See its [installation and
-checks](plugins/repo-workbench/README.md).
-
-Track deferred desktop/manual acceptance and the final fix round in the
-[collective migration checklist](docs/migrations/repo-workbench.md).
-
-## Ownership contract
-
-Among paths delivered by `template/`, those outside Copier's `_skip_if_exists`
-list are kit-managed: portable doctrine, checks and agent bootstrap.
-`copier update` merges template changes against the recorded baseline; review conflicts
-and local edits before accepting the managed result.
-
-True seeds and bindings stay consumer-owned: the consumer constitution, index,
-backlog, glossary and local configuration. Copier
-distributes shared behavior; it does not own local meaning.
-
-Each consumer records its source revision in `.copier-answers.yml`. Reconcile
-updates from that `_commit`. Tags are preferred release checkpoints, not the
-only valid source revisions.
+- **Installed bundles** · [Version and integrity status](docs/installation.md)
+- **Issue receipts** · [Read-only queue and readiness checks](docs/issue-queue.md)
+- **Maintenance** · [Repository rules](AGENTS.md) · [Ownership and decisions](docs/models.md) · [GitHub delivery](user/practices/github.md)
+- **Evidence** · [Artifact rules](user/practices/artifacts.md) · [Review outcomes](docs/reviews/README.md) · [Deferred audit work](docs/fixes.md)
 
 ## Apply or update
 
-Inspect the consumer baseline and reconcile local bindings around the Copier
-operation. Replace `<approved-revision>` with the reviewed tag or
-commit for both adoption and update:
+- **Goal** · Deliver portable governance while preserving consumer policy, navigation and bindings.
+- **Baseline** · The consumer's `.copier-answers.yml` records the source `_commit`. Choose a reviewed tag or commit explicitly. Copier's default tag selection can lag local HEAD.
+- **Adoption outcome** · Repository bindings and authority frontmatter complete, governance settings integrated into `pyproject.toml`, and the local agent discovery layout generated with `scripts/bootstrap_agents.py`.
+- **Consumer checks** · `scripts/check_docs.py` passes in the consumer lint gate. Authoring and file-size checks provide advisory feedback. Use the consumer's supported Python.
+- **Update acceptance** · Reviewed conflicts and local edits, preserved bindings, passing consumer checks.
+- **Older baselines** · [Migration handoff](.codex/skills/maintain-repo-kit/references/migration-handoff.md)
 
-```bash
-# first adoption
+```sh
+# Adopt from outside the target repository.
 UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
   uvx --from copier==9.17.1 copier copy --vcs-ref <approved-revision> ~/pkgs/repo-kit <target-repo>
 
-# update from the recorded source
-cd <target-repo>
+# Update from the target repository.
 UV_CACHE_DIR=.cache/uv UV_TOOL_DIR=.cache/uv-tools \
   uvx --from copier==9.17.1 copier update --vcs-ref <approved-revision>
 ```
 
-Without `--vcs-ref`, Copier normally selects the latest version tag, which can
-lag source `HEAD`. An explicit commit selects that reviewed state without
-creating a release checkpoint; tagging and propagation remain separate actions.
-
-Review preserved bindings and run the consumer's checks before accepting an
-update. When moving from a Claude-owned baseline, follow the
-[migration handoff](.codex/skills/maintain-repo-kit/references/migration-handoff.md)
-before updating: preserve local policy in `AGENTS.md` and reduce `CLAUDE.md` to
-its discovery pointer.
-
-## Local artifacts
-
-Follow [artifact and verification rules](user/practices/artifacts.md). Temporary
-review bundles live in ignored `.artifacts/<outcome>/`; closeout deletes them after
-promoting useful decisions. Build output, caches and recovery data keep their
-existing locations and are removed when no active process or recovery needs them.
-Completed review outcomes are condensed in [review notes](docs/reviews/README.md).
-
 ## Verify repo-kit
 
-Enable the tracked pre-push gate once per clone:
+| Change | Required evidence |
+| --- | --- |
+| Root | `make ci-check` passes the skill source, unit test and Python format/lint gates. [Root CI](.github/workflows/root-checks.yml) |
+| Copier or template | `REPO_KIT_COPIER_SMOKE=1 make test` passes on the reviewed candidate index. Use a disposable checkout when staging includes unrelated work. |
+| Personal instructions | Reviewed diff and passing integrity check after authorized sync. [Instruction maintenance](docs/user-instructions.md#sync) |
+| Standalone npm packages | `make check-npm-install` passes fresh, isolated installs at HEAD. [npm CI](.github/workflows/npm-install.yml) |
+| Executable plugins | Shared runtime installed and checked, then `npm run check` and `npm run test:browser` in each affected plugin. Shared runtime changes require both suites. [Plugin CI](.github/workflows/workbench.yml) · [Mac browser testing](user/practices/macos-browser-testing.md) |
+| MCP App starter | From a fresh `scaffold.py` output, `npm ci`, `npm run check` and `npm run test:browser` pass. [Starter CI](.github/workflows/mcp-app-skill.yml) |
+| Behavior atlas starter | From a fresh `scaffold_atlas.py` output, `npm ci --ignore-scripts`, `npm run check` and `npm run build` pass. [Atlas CI](.github/workflows/behavior-atlas.yml) |
 
 ```sh
-git config --local core.hooksPath .githooks
-```
-
-If a clone already uses custom hooks, integrate this hook with that setup instead
-of replacing it. The hook skips installs for fast-forward updates to existing
-branches when the diff contains only regular Markdown files covered by the
-[documentation allowlist](scripts/check_npm_install.py). Other outgoing commit
-tips are exported and checked with `npm ci` for each tracked standalone npm
-package, each with a separate empty cache. The gate preserves the working
-checkout and blocks a failed install. Package-manager registry and
-authentication settings still apply. For each tip it checks, the gate reads its
-`.nvmrc` (the gate checkout's pin for older, unpinned tips) and the packages' shared
-exact npm `packageManager` pin. It uses a matching pair from `PATH`, or selects
-the pinned Node installation under
-`${NVM_DIR:-~/.nvm}/versions/node/` without changing your shell default. CI uses
-the same `.nvmrc`. No `nvm use` is needed before pushing. Missing or mismatched
-tools block before installation with a one-time setup command; the gate never
-downloads toolchains. Package engines remain enforced by `npm ci`.
-Ref deletions skip installation. The [CI job](.github/workflows/npm-install.yml)
-runs the full fresh-install check on pushes and pull requests, including docs-only
-changes. This repository's npm packages each own a sibling lockfile.
-
-To run the fresh-install gate on the current commit locally:
-
-```sh
-make check-npm-install
-```
-
-The [root CI job](.github/workflows/root-checks.yml) runs `make ci-check` on pushes
-and PRs. This checks skill sources, runs root unit tests, and checks Python
-format and lint. Use Python 3.12; set up the check environment once per clone:
-
-```sh
+# One-time Python 3.12 check setup.
 python3.12 -m venv .venv
 make setup-check
 ```
 
-```sh
-make ci-check
-```
-
-Use `make check-source`, `make test`, or `make lint` for a focused run. The
-fresh npm installs and executable scaffold and plugin gates are separate from
-`ci-check`.
-
-For `template/` or Copier changes, run `REPO_KIT_COPIER_SMOKE=1 make test` against
-a reviewed candidate index; use a disposable checkout to exclude unrelated staging.
-For user instructions, review `diff`, run `sync`, then `check`.
-For executable plugin changes, use Node 24.21+. Install and check
-`plugins/mcp-app-runtime` first, then run `npm run check` and
-`npm run test:browser` in each changed plugin (`repo-workbench` and/or
-`example-mcp-app`). Shared runtime changes require both plugin suites. For browser tests on this Mac,
-read [Mac browser testing](user/practices/macos-browser-testing.md).
-
-For the MCP App skill's executable starter, generate into a new temporary directory
-with `skills/mcp-app/scripts/scaffold.py`, then run `npm ci`, `npm run check` and
-`npm run test:browser` there. The [starter CI job](.github/workflows/mcp-app-skill.yml)
-exercises that same generated app. The root tests cover generator safety and the
-MCP integration review validator; neither check alone verifies an app integration.
-
-For the behavior atlas scaffold, generate with
-`skills/ui-discussion/scripts/scaffold_atlas.py`, then run `npm ci --ignore-scripts`,
-`npm run check`, and `npm run build` in the generated directory. Its browser
-runtime has no dependencies; the package pins development type checking. The
-[atlas CI job](.github/workflows/behavior-atlas.yml) checks that generated source.
-
-Use [finish-work](skills/finish-work/SKILL.md) to review and close a completed
-slice, committing when requested.
+- **Focused root checks** · `make check-source`, `make test`, `make lint`.
+- **Pre-push setup** · `git config --local core.hooksPath .githooks`. Integrate with any existing custom hooks.
+- **Pre-push outcome** · Each outgoing tip passes `npm ci` for each standalone npm package with a fresh cache in an isolated export. Ref deletions and allowlisted Markdown-only fast-forwards to existing branches skip the hook's installs. Hosted npm CI still runs. [Gate and allowlist](scripts/check_npm_install.py)
+- **Toolchain** · Each tip's `.nvmrc` and shared exact npm pin select tools on PATH or under `${NVM_DIR:-~/.nvm}/versions/node/`. Older tips use the gate checkout's Node pin. Missing tools fail with setup instructions. Registry and authentication settings still apply.
+- **Closeout** · [Finish work](skills/finish-work/SKILL.md)

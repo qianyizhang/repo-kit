@@ -1,73 +1,53 @@
 # Offline Codex usage dashboard
 
-A local tool for analyzing Codex JSONL session logs and `.jsonl.zst` archives without proxies, accounts, or network calls.
+- **Goal** · Analyze local Codex JSONL sessions and `.jsonl.zst` archives.
+- **Source** · Read-only `sessions` and `archived_sessions` under `$CODEX_HOME` or `~/.codex`. Supply `--root` to choose other roots.
 
 ## Quick start
 
-```sh
-repo-workbench usage --serve
-```
-
-Opens loopback server at `http://127.0.0.1:4381/`. Re-reads appended logs incrementally via disk index.
-
-### Offline bundles and custom roots
-
-```sh
-# Generate self-contained offline HTML bundle
-repo-workbench usage --out test-results/my-usage
-
-# Custom roots and custom port
-repo-workbench usage --root /path/to/sessions --serve --port 4382
-
-# Verification
-npm test
-npm run test:browser -- tests/browser/usage-dashboard.spec.ts
-```
-
-Both modes initially show all recorded dates and share a semantic palette for status, selection, tooltips, and charts. The display follows the OS color mode standalone and the host color mode in Codex. Compressed sources show decoded and stored sizes; hashes and record offsets refer to decoded JSONL. Damaged archives appear as coverage gaps.
-
-Default roots: `sessions` and `archived_sessions` in `$CODEX_HOME` or `~/.codex`.
+| Command                                                             | Outcome                                                                          |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `repo-workbench usage --serve`                                      | Loopback dashboard at `http://127.0.0.1:4381/` with session trace links          |
+| `repo-workbench usage --root /path/to/sessions --serve --port 4382` | Custom roots and port                                                            |
+| `repo-workbench usage --out test-results/my-usage`                  | Self-contained offline HTML. Default export uses a fresh OS temporary directory. |
 
 ## Views and analytics
 
-- **Overview**: Token metrics (input, output, cache share, reasoning share), daily trends, 182-day activity heatmap, model/project breakdowns, and sortable session tables.
-- **Filters**: Date range, model, project, effort, and search. Auto-review sessions (`codex-auto-review`) are excluded by default.
-- **Pricing**: Standard rates (as of 2026-10-09) with configurable USD/million token rates. Applies 2× input / 1.5× output modifiers above 272K request tokens for eligible models.
-- **Evidence & Trace**: Links to physical file lines and SHA-256 hashes. In `--serve` mode, links directly into the trace visualizer. Exports filtered rows to CSV.
+| View             | Outcome                                                                                                                                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview         | Token totals, daily trends, 182-day heatmap, model/project breakdowns and sortable sessions                                                    |
+| Filters          | Dates, model, project, effort and search. Initial view spans all dates and hides sessions containing only `codex-auto-review` records.         |
+| Pricing          | Configurable USD per million tokens. Standard rates dated 2026-10-09. Eligible events above 272,000 input tokens use 2× input and 1.5× output. |
+| Evidence & Trace | Source lines and SHA-256, served trace links, filtered CSV and exact usage records                                                             |
+| Theme            | OS theme standalone, host theme in Codex                                                                                                       |
 
 ## Metrics definitions
 
-- `Total tokens = input + output`.
-- `Cache share = cache_read / input`.
-- `Reasoning share = recorded_reasoning / output`.
-- Metrics track metered usage records, not prompt counts or turns.
+| Metric          | Formula                       |
+| --------------- | ----------------------------- |
+| Total tokens    | `input + output`              |
+| Cache share     | `cache_read / input`          |
+| Reasoning share | `recorded_reasoning / output` |
+
+- **Unit** · Metered usage records.
 
 ## Accounting and indexing
 
-- **Record precedence**: Modern `token_usage_record` `(thread_id, response_id)` takes precedence over legacy cumulative snapshots. Responses are globally deduplicated across archived/copied files.
-- **Incremental indexing**: Maintained under `~/.cache/repo-workbench/usage/<root-key>/` or the `--cache` override. Unchanged device, inode, size, mtime and ctime permit a cache hit. When a plain log grows, the scanner reads and hashes the entire former prefix before reusing its parsed records. A mismatch triggers a full reparse. Bytes scanned includes verification reads; an unfinished last line is parsed again.
-- **Integrity**: Serialized SHA-256 states preserve exact whole-file hashes. Malformed lines and counter reconciliation mismatches (`input + output != total`) are logged as coverage gaps without halting scans.
+- **Record identity** · Modern `token_usage_record` keyed by `(thread_id, response_id)` takes precedence over cumulative snapshots. Deduplicate responses across archived/copied files.
+- **Index** · `$XDG_CACHE_HOME/repo-workbench/usage` or `~/.cache/repo-workbench/usage`, partitioned by root key. Override with `--cache`.
+- **Reuse** · Unchanged device, inode, size, mtime and ctime allow a cache hit. Growing plain logs require a complete hash check of the old prefix. Mismatch triggers reparse. Bytes scanned includes verification. A partial last line is parsed again.
+- **Integrity** · Serialized SHA-256 state preserves exact whole-file hashes. For archives, hashes and offsets refer to decoded JSONL. Stored and decoded sizes are visible. Damaged archives, malformed lines and counter mismatches appear as coverage gaps.
 
 ## Refresh and evidence
 
-After the first successful scan, reopening in Codex can show a timestamped cached
-summary while a background worker refreshes the index. A failure leaves that
-summary visible and offers **Refresh logs**. You can discuss the cached summary
-while source inspection waits for the current index. The panel adopts refreshed
-data under a new revision, preserving filters and the discussion draft. Active
-traces remain pinned until deliberate refresh. The panel status tooltip shows
-initial load time, and the protocol status exposes index, scan, summary, and
-persistence timings.
+| Situation                      | Outcome                                                                                                                                                                                                                                      |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reopen after a successful scan | Timestamped cached summary remains available during background refresh. Discussion can use the cached summary. Source inspection waits for the current index.                                                                                |
+| Refresh fails                  | Cached summary stays visible. **Refresh logs** offers retry.                                                                                                                                                                                 |
+| Refresh succeeds               | Panel adopts a new revision and retains filters and draft. Active traces remain pinned until deliberate refresh.                                                                                                                             |
+| Inspect or export              | Embedded summaries include exact event counts, reasoning coverage and pricing bands. Inspection loads up to 100 exact records. CSV includes all filtered records. Offline HTML retains complete usage records and uses the same aggregation. |
+| Diagnose slow load             | Panel status exposes initial load time. Protocol status exposes index, scan, summary and persistence timings.                                                                                                                                |
 
-The embedded panel receives daily and session summaries with exact event counts,
-reasoning coverage, and per-event pricing bands. Evidence inspection loads up to
-100 exact usage records. CSV export explicitly requests all filtered records.
-Offline exports retain the complete usage records and use the same aggregation
-rules. [MCP Apps](mcp-apps.md#reports-and-conversation-context) covers host controls
-and discussion attachments.
-
-## Code structure
-
-- `packages/usage/`: Log scanning, incremental index, and pricing logic.
-- `packages/usage/browser/`: Dashboard UI (`main.ts`, `charts.ts`, `evidence.ts`, `dom.ts`).
-- `packages/session-review/`: Shared trace inspection views.
+- **Host context** · [Report discussion and attachments](mcp-apps.md#reports-and-conversation-context)
+- **Owners** · `packages/usage/` for scanning, index and pricing, `packages/usage/browser/` for dashboard presentation, `packages/session-review/` for trace views.
+- **Checks** · `npm test` and `npm run test:browser -- tests/browser/usage-dashboard.spec.ts`.
