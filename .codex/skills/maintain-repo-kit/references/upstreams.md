@@ -180,6 +180,12 @@ replacement implementations or new skill surfaces.
 - Validation: structural and Copier checks plus scenario walkthroughs can assess
   preservation and routing. They do not establish model performance improvements.
 
+## OpenAI — GPT-6.2 prompting guidance
+
+- Source: [Using GPT-6.2](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6.2-astra#prompting-best-practices), reviewed 2026-11-19.
+- Local evidence: repo-kit `7fca8eb`, `bdbe57d`; Saul `12d0fc5`, `f42b8c6`; med-assets `6be2449`, `d828d8e`, `00b2cbd`.
+- `adapt`: lead with intent and completion evidence, leave reversible execution choices to the agent, and keep ordered steps where readers depend on them. [Documentation practice](../../../../user/practices/documentation.md) owns the standard.
+
 ## backnotprop/pstack statechart
 
 - Source: https://github.com/backnotprop/pstack/tree/6c75f4e67546c2ddbf9634734c1e3ebbea34861a/skills/statechart

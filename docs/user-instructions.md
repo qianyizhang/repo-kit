@@ -8,7 +8,7 @@
 | [Practice guides](../user/practices/) | `practices/<name>.md` | Portable judgment |
 | Repository | Local `AGENTS.md`, code, config, tests | Local meaning and executable constraints |
 
-- **Review standard** · One owner per rule, a concrete failure the rule prevents, and meaningful exceptions or examples.
+- **Review standard** · Apply the [documentation practice](../user/practices/documentation.md). Keep a rule when it prevents a concrete failure and its exceptions affect the result.
 - **Language** · [ASD-STE100](https://www.asd-ste100.org/assets/files/ASD-STE100_ISSUE9.pdf)
 - **Attribution** · [Upstream registry](../.codex/skills/maintain-repo-kit/references/upstreams.md)
 

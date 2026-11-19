@@ -19,6 +19,7 @@
 
 | Trigger | Read |
 | --- | --- |
+| Writing or revising repository docs | [Documentation](practices/documentation.md) |
 | Artifact creation, verification records or cleanup | [Artifacts](practices/artifacts.md) |
 | TypeScript or React | [TypeScript / React](practices/typescript.md) |
 | Python | [Python](practices/python.md) |
