@@ -27,4 +27,5 @@
 | Visible interface or Modern Web Guidance use | [UI/UX](practices/ui-ux.md) before work |
 | MCP App design or integration | [MCP Apps](practices/mcp-apps.md) before work |
 | Multi-step technical explanation | [Walkthroughs](practices/explainers.md) |
+| Blender MCP or headless Blender | [Blender workflow and setup](practices/blender.md) |
 | Chrome or Chrome for Testing on this Mac | [Mac browser testing](practices/macos-browser-testing.md) before launch |
