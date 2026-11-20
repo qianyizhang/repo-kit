@@ -1,5 +1,12 @@
 # Delivery, issues and PRs
 
+## Delivery path
+
+| Setting | Default |
+| --- | --- |
+| Local development on the user's Mac | Work and commit on the current development branch. Use a PR when requested or required by branch protection or a guarded workflow. |
+| Cloud or remote development | Use a draft PR when the user cannot supervise commits directly. Record the tested revision, checks and limits. |
+
 ## Delivery routine
 
 | Outcome | Evidence |
@@ -15,6 +22,7 @@
 - **Plan** · One set of changed inputs, required gates and reusable evidence in the brief. Count prior hook checks. Run cheap content and format checks first. Recheck changed inputs, failures and unresolved risks.
 - **Docs** · Content, links and format. [Installation integrity](typescript.md#installation-integrity) applies when its inputs or gates require it.
 - **Claims** · Name the verified surfaces and material limits. Hosted, installed, UI and live-service acceptance need their own evidence. After push, mark hosted checks pending until complete.
+- **Local asset uploads** · On the user's Mac, a successful upload of the intended asset completes routine integrity verification. Record the upload result. Use a separate download for an explicit readback or restore check, or when a guarded workflow requires one.
 
 ### Benchmark claims
 

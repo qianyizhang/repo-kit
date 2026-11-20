@@ -90,7 +90,7 @@ npx --no-install repo-workbench setup --scope repo
 ### Canvas verification
 
 - **Main journey** · Exercise source preview and edit, [proposal review](docs/canvas-design.md#proposal-comparison), stale edits, keyboard menus, export/import, Undo, Reload and panel close/reopen. Run the repository gate and Canvas browser suite.
-- **Visual comparisons** · Use matched before/after captures at 1440×1000 desktop, 740×950 compact host and 390×844 mobile. Use the same saved map, root selection and 80% zoom. Retain full screenshots, annotate report crops only and label simulated hosts.
+- **Visual comparisons** · Use matched before/after captures at 1440×1000 desktop and 740×950 compact desktop host. Use 390×844 for mobile comparisons when mobile is in scope. Use the same saved map, root selection and 80% zoom. Retain full screenshots, annotate report crops only and label simulated hosts.
 - **Accessibility** · Normal text contrast ≥4.5:1. Meaningful focus/control contrast ≥3:1. Check reduced motion and affected host and standalone themes. Existing comparison evidence covers dark close-button contrast and narrow light layout. App-wide claims need broader evidence.
 - **Desktop release smoke test** · After refreshing the updated plugin, open a disposable Canvas in a fresh chat and send a question to its owning chat. Apply the returned proposal and verify that Save writes the intended map. Leave a second edit unsaved, reload, and verify draft recovery in the same repository.
 - **Evidence** · Record actual Codex acceptance separately from protocol and simulated-host results.
