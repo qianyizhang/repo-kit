@@ -21,13 +21,14 @@ DISABLE_TELEMETRY=1 "$HOME/.local/share/modern-web-guidance/node_modules/.bin/mo
 | Goal | Outcome |
 | --- | --- |
 | Clear ownership | Layout shows relationships. One clear home per action, selection and fact. Alternate access earns its place in a distinct context. Essential labels, values and units remain visible. |
+| Useful copy | Use grouping, alignment and spacing to show what belongs together. Omit secondary labels that repeat a heading or control name, and descriptions that restate what the layout already makes clear. Keep copy that adds information people need to understand, act or recover. |
 | Continuous journey | Actions fit the current phase. Compare outcomes in place. Highlight the current phase of long journeys with context still visible. |
 | Useful stage controls | Show controls that affect this stage. Explain dependency-disabled controls briefly. Keep values across stages and prioritize the current experiment over upstream settings. |
 | Stable workbench | Primary viewport, controls and effects share a stable frame. Inspector owns long scrolling. Shared selections have one persistent home. Floating panels reserve space, preserve context and support dismissal. |
 | Progressive detail | Visible short facts, inputs and next actions. Disclose substantial detail on demand. Keep essential content visible and provide a touch equivalent for hover/focus when touch input is in scope. Long payloads remain readable and selectable in the inspector. |
 | Meaningful relationships | Familiar form fits the question. Actor lanes and ordered events show exchanges over time. Name destinations and label observations and inference. |
 | Scoped diagnostics | Show evidence relevant to the failure, action or request. Disclose housekeeping when useful. |
-| Clear controls | Short action labels such as “Save”, “Retry”, “Copy”. Familiar symbols with accessible names. Visible labels for ambiguous actions. Keep required content and copy that helps people understand, act or recover. |
+| Clear controls | Short action labels such as “Save”, “Retry”, “Copy”. Familiar symbols with accessible names. Visible labels for ambiguous actions. |
 
 ## Verify the journey
 

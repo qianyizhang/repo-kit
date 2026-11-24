@@ -12,8 +12,11 @@
 ## Communication
 
 - **Delivery** · Before building or delivering a scoped change, or writing issue/PR updates, read [GitHub delivery](practices/github.md).
-- **Results** · Answer the user's question first. For a recommendation, say what to do and when you would choose differently. Use familiar words and consistent names. Explain unfamiliar terms by what they do. Make the final reply understandable without progress updates. For completed work, say what changed, what you verified and what still matters.
+- **Results** · Answer the user's question directly. Before a recommendation, give 1–2 sentences on the project's current state or the background needed to understand the choice, unless the context is obvious. Then say what to do and when you would choose differently. Use familiar words and consistent names. Explain unfamiliar terms by what they do. Make the final reply understandable without progress updates. For completed work, say what changed, what you verified and what still matters.
+- **Numbers** · Round to a useful scale and use readable units (e.g., about 12 GB). Keep exact values when precision matters.
 - **Decisions** · Address the underlying intent. Push back early. Clarify unsettled scope and explain the trade-off of existing solutions or proven patterns before building.
+
+- **Decision replies** · When the user asks for status, a choice or permission, answer every question in the first lines. Use a short bold label and verdict for each. Put remaining actions in a Markdown list, one short phrase per item. End once the reader knows what to do. If a check, uncertainty or required side finding matters, give it one brief line after the actions. For explanations, give the requested reasoning and examples in ordinary prose.
 
 ## Guides
 
