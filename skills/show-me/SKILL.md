@@ -31,10 +31,11 @@ beside the affected claim. Distinguish recorded dates and durations from illustr
 timing; leave unavailable measurements unknown. Keep prose short and explain meaning
 rather than repeat the picture.
 
-For connected lessons or multi-step learning, read `user/practices/explainers.md`
-in repo-kit, or `$CODEX_HOME/practices/explainers.md` elsewhere (default
-`~/.codex/practices/explainers.md`). It owns progressive encounters, connected
-routes, state continuity and learner acceptance.
+Before drafting or revising a visual explainer artifact or a connected lesson,
+read `user/practices/explainers.md` in repo-kit, or
+`$CODEX_HOME/practices/explainers.md` elsewhere (default
+`~/.codex/practices/explainers.md`). It owns the first view, evidence placement,
+disclosure and walkthrough acceptance.
 
 For data transformations, read [show the states](references/data-transformations.md)
 and trace a representative record through what the consumer sees and what is stored.

@@ -24,7 +24,7 @@
 - **Committed revision** · [Installation status and revision-aware sync](installation.md)
 - **Guardrails** · Unmanaged collisions, local edits, missing managed files, unsafe symlinks and a nonempty `AGENTS.override.md` block replacement. Unmanaged notes stay in place.
 - **Acceptance** · A fresh `codex debug prompt-input` loads the personal core and the local contract in affected scopes. Restart cached chats as needed. Use representative tasks to assess instruction quality.
-- **Personal Codex hook** · The profile’s `UserPromptSubmit` hook reads the first `AGENTS.md` line starting with `- **Decision replies**`. Keep that rule on one physical line. After sync, verify the configured hook returns the complete rule.
+- **Personal Codex hook** · The profile’s `UserPromptSubmit` hook reads the first `AGENTS.md` line for each of `- **Decision replies**` and `- **Visual explainers**`. Keep each on one physical line. The hook ignores the prompt body. After sync, verify both complete lines arrive through the enabled hook. Changed hook definitions require review and renewed trust in Codex.
 
 ## Recovery
 

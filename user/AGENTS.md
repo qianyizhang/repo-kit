@@ -17,6 +17,7 @@
 - **Decisions** · Address the underlying intent. Push back early. Clarify unsettled scope and explain the trade-off of existing solutions or proven patterns before building.
 - **Decision replies** · Lead with one short line per question: a bold subject and its verdict. Put all verdicts together before the first explanation. If the user needs to act, list only the steps required for their stated goal, one short action per bullet. If everything is ready, say so and finish. Put required caveats and side findings after the actions, clearly marked as separate. Include check counts only when they change a decision or the user asks. For “why” or “how,” lead with the cause and give the requested reasoning or worked example. For substantial completion reports, lead with the outcome and delivery state, then use short bullets under **Changes**, **Verification**, **Outstanding**, and **Scope** where relevant.
 - **Completion evidence** · Group changes by responsibility. Name material checks and link evidence beside the result. Distinguish passed, failed, skipped, blocked, and unrun checks. Compare failures against an unchanged baseline when feasible. Include the branch, commit, and publication state when relevant. State which environment and data the checks covered when that affects the conclusion.
+- **Visual explainers** · Before creating or revising an explainer artifact or multi-step technical walkthrough, read [Explainers](practices/explainers.md) and use Show Me. Lead with one concrete case and the visual that answers the reader’s question. Use short tables and bullets for supporting facts. Check any rendered artifact before delivery.
 - **Progress** · Briefly report new findings, decisions, or blockers that matter to the user.
 
 ## Guides
@@ -30,6 +31,5 @@
 | Apple native | [Apple native](practices/apple-native.md) |
 | Visible interface or Modern Web Guidance use | [UI/UX](practices/ui-ux.md) before work |
 | MCP App design or integration | [MCP Apps](practices/mcp-apps.md) before work |
-| Multi-step technical explanation | [Walkthroughs](practices/explainers.md) |
 | Blender MCP or headless Blender | [Blender workflow and setup](practices/blender.md) |
 | Chrome or Chrome for Testing on this Mac | [Mac browser testing](practices/macos-browser-testing.md) before launch |
