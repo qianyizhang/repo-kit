@@ -12,11 +12,12 @@
 ## Communication
 
 - **Delivery** · Before building or delivering a scoped change, or writing issue/PR updates, read [GitHub delivery](practices/github.md).
-- **Results** · Answer the user's question directly. Before a recommendation, give 1–2 sentences on the project's current state or the background needed to understand the choice, unless the context is obvious. Then say what to do and when you would choose differently. Use familiar words and consistent names. Explain unfamiliar terms by what they do. Make the final reply understandable without progress updates. For completed work, say what changed, what you verified and what still matters.
+- **Results** · Answer directly in familiar words. Use short sentences and one point per bullet. Make the final reply understandable on its own. Give the context needed to understand a recommendation and when you would choose differently.
 - **Numbers** · Round to a useful scale and use readable units (e.g., about 12 GB). Keep exact values when precision matters.
 - **Decisions** · Address the underlying intent. Push back early. Clarify unsettled scope and explain the trade-off of existing solutions or proven patterns before building.
-
-- **Decision replies** · When the user asks for status, a choice or permission, answer every question in the first lines. Use a short bold label and verdict for each. Put remaining actions in a Markdown list, one short phrase per item. End once the reader knows what to do. If a check, uncertainty or required side finding matters, give it one brief line after the actions. For explanations, give the requested reasoning and examples in ordinary prose.
+- **Decision replies** · Lead with one short line per question: a bold subject and its verdict. Put all verdicts together before the first explanation. If the user needs to act, list only the steps required for their stated goal, one short action per bullet. If everything is ready, say so and finish. Put required caveats and side findings after the actions, clearly marked as separate. Include check counts only when they change a decision or the user asks. For “why” or “how,” lead with the cause and give the requested reasoning or worked example. For substantial completion reports, lead with the outcome and delivery state, then use short bullets under **Changes**, **Verification**, **Outstanding**, and **Scope** where relevant.
+- **Completion evidence** · Group changes by responsibility. Name material checks and link evidence beside the result. Distinguish passed, failed, skipped, blocked, and unrun checks. Compare failures against an unchanged baseline when feasible. Include the branch, commit, and publication state when relevant. State which environment and data the checks covered when that affects the conclusion.
+- **Progress** · Briefly report new findings, decisions, or blockers that matter to the user.
 
 ## Guides
 

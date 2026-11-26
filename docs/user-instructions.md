@@ -23,6 +23,8 @@
 - **Destination** · `$CODEX_HOME` or `~/.codex`. Override with `--codex-home PATH`.
 - **Committed revision** · [Installation status and revision-aware sync](installation.md)
 - **Guardrails** · Unmanaged collisions, local edits, missing managed files, unsafe symlinks and a nonempty `AGENTS.override.md` block replacement. Unmanaged notes stay in place.
+- **Acceptance** · A fresh `codex debug prompt-input` loads the personal core and the local contract in affected scopes. Restart cached chats as needed. Use representative tasks to assess instruction quality.
+- **Personal Codex hook** · The profile’s `UserPromptSubmit` hook reads the first `AGENTS.md` line starting with `- **Decision replies**`. Keep that rule on one physical line. After sync, verify the configured hook returns the complete rule.
 
 ## Recovery
 
@@ -34,4 +36,3 @@
 | Rollback | Restore the reviewed source and sync. Recovery copies live at `CODEX_HOME/.repo-kit-user-instruction-backups/<sha256>.md`. |
 
 - **Write boundary** · Atomic per file. Recoverable as a bundle after interruption. Concurrent writers require reconciliation.
-- **Acceptance** · A fresh `codex debug prompt-input` loads the personal core and the local contract in affected scopes. Restart cached chats as needed. Use representative tasks to assess instruction quality.
