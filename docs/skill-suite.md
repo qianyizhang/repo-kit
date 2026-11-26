@@ -39,6 +39,7 @@
 | Upstream refresh | Clean disposable checkout at the exact reviewed commit. Refresh reads committed blobs and preserves only adaptations whose upstream bases match. Changed bases or unmanaged destination files stop writes. |
 | Local skill or adaptation | Updated selection in the lock, regenerated hashes with `lock`, and untouched upstream support files, metadata and licenses. |
 | Source verification | `check --source-only`, skill tests and a representative task. Git checks and locking include tracked and nonignored skill additions. Exported and committed bundles must match the full lock. |
+| Codex metadata changes | Confirm the candidate skill is discoverable and its `agents/openai.yaml` loads in the supported Codex version. |
 | Delivery | Reviewed diff, explicit sync and installed integrity check. |
 
 ```sh

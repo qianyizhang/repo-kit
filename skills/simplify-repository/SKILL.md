@@ -1,6 +1,6 @@
 ---
 name: simplify-repository
-description: Simplify a repository through evidence-backed pruning, deduplication and refactoring while preserving behavior. Use for repository cleanup, obsolete code/docs/dependencies/artifacts, or demonstrated architecture friction.
+description: Assess whether code, docs, dependencies, or artifacts can be safely retired. Simplify repositories through evidence-backed pruning, deduplication, or refactoring while preserving behavior.
 ---
 
 # Simplify repository
