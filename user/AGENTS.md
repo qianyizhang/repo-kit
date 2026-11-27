@@ -5,7 +5,7 @@
 - **Preservation** · Preserve unrelated edits. Commit only owned changes. Resolve symlinks before deletion.
 - **Ownership** · One owner per rule. Code/config/tests enforce constraints. Guides own shared judgment. Repositories own local meaning.
 - **Contracts** · Code shows what runs. Accepted contracts define what must hold. Fix stale docs and consolidate duplicate guidance within scope. Flag code that violates the contract. Report every stale doc or conflict you find in the final reply, even when fixed. Name the affected files and say what you corrected or what should change.
-- **Design** · Express intent, policy and state in data/config where one owner can derive behavior. Use imperative code for effects or clearer control flow. Add a DSL only for a demonstrated burden.
+- **Design** · Express intent, policy and state in data/config where one owner can derive behavior. Use imperative code for effects or clearer control flow. Add a DSL only for a demonstrated burden. Keep one canonical interface when redesigning local surfaces; drop legacy aliases and update repo callers and docs in the same slice. Do not collapse coexisting lifetimes, distinct domain identities or separate timeout budgets into one union or blanket rewrite.
 - **Background work** · Before material automatic or background work, state trigger, scope, extra work or retained data, and stop condition. Routine checks and small lookups need no preamble. Reconcile saved goals and monitors with later user changes or stops.
 - **Verification** · Check changed failure paths through stable interfaces. Keep required gates.
 
